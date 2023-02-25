@@ -6,7 +6,7 @@ VAGRANTFILE_API_VERSION = "2"
 
 $script = <<SCRIPT
     sudo apt update
-    sudo apt install gdbserver -y
+    sudo apt install libc6-dbg gdbserver -y
 SCRIPT
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|

@@ -22,7 +22,7 @@ use *template.py* and copy it to *exploit.py* fill out the constants
 ./exploit.py REMOTE
 ```
 
-
+I recommend using [pwndbg](https://github.com/pwndbg/pwndbg).
 
 
 

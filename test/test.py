@@ -11,7 +11,7 @@ ENV = {'ENV_NAME': 'VALUE'}
 ASLR = False
 BOX = Vagd.VAGRANT_BOX
 GDB = f"""
-
+b main
 c
 """
 context.binary = exe = ELF(BINARY, checksec=False)
