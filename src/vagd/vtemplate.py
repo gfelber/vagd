@@ -1,4 +1,3 @@
-
 VAGRANT_TEMPLATE = '''# -*- mode: ruby -*-
 # vi: set ft=ruby :
 
