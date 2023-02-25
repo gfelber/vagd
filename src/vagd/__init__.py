@@ -1,9 +1,9 @@
-import vagrant
-import fileinput
 import os
-from typing import Collection, Union
 import re
 import pwn
+import fileinput
+import vagrant
+from typing import Collection, Union
 from vtemplate import VAGRANT_TEMPLATE
 
 
@@ -51,6 +51,7 @@ class Vagd:
     :param vagrantfile: location of Vagrantfile
     :param files: other files or directory that need to be uploaded to VM
     """
+
     def __init__(self,
                  binary: str,
                  box: str = VAGRANT_BOX,
@@ -63,12 +64,12 @@ class Vagd:
 
         self._vagrant_setup()
 
-        # setup ssh and upload files
         self._ssh = pwn.ssh(
             user=self._v.user(),
             host=self._v.hostname(),
             port=int(self._v.port()),
-            keyfile=self._v.keyfile()
+            keyfile=self._v.keyfile(),
+            ignore_config=True
         )
         self._ssh.set_working_directory()
 
@@ -89,6 +90,7 @@ class Vagd:
     :param kw: pwntool parameters
     :return: pwntools process
     """
+
     def start(self, argv: Collection = ('',), gdbscript: str = '', *a, **kw) -> pwn.process:
         if pwn.args.GDB:
             return pwn.gdb.debug((self._binary,) + argv, ssh=self._ssh, gdbscript=gdbscript, *a, **kw)

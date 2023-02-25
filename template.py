@@ -28,6 +28,5 @@ def get_target():
     return vm.start(argv=ARGS, env=ENV, gdbscript=GDB, aslr=ASLR)
 
 
-
 t = get_target()
 t.interactive()
