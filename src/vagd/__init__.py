@@ -1,17 +1,14 @@
-import fileinput
 import os
 import re
-from typing import Collection, Union, Tuple, Dict
-
 import pwn
 import vagrant
-from vtemplate import VAGRANT_TEMPLATE
-
+import fileinput
+from vagd import vtemplate, box
+from typing import Collection, Union, Tuple, Dict
 
 class Vagd:
     VAGRANTFILE_PATH = './Vagrantfile'
-    VAGRANT_BOX = 'ubuntu/focal64'
-    GDBSERVER_PORT = 28641
+    VAGRANT_BOX = box.UBUNTU_FOCAL64
 
     _binary: str
     _box: str
@@ -39,7 +36,7 @@ class Vagd:
         """
 
         if not os.path.isfile(self._vagrantfile):
-            vagrant_config = VAGRANT_TEMPLATE.format(self._box)
+            vagrant_config = vtemplate.VAGRANT_TEMPLATE.format(self._box)
             with open(self._vagrantfile, 'w') as file:
                 file.write(vagrant_config)
 
@@ -63,13 +60,22 @@ class Vagd:
             keyfile=self._v.keyfile(),
             ignore_config=True
         )
-        self._ssh.set_working_directory()
+
+    def _sync(self, file: str) -> None:
+        """
+        check if file exists on remote and upload if not
+        :rtype: None
+        """
+        _, status = self._ssh.run_to_end(f'test -e {os.path.basename(file)}')
+        if status != 0:
+            self._ssh.put(file)
 
     def __init__(self,
                  binary: str,
                  box: str = VAGRANT_BOX,
                  vagrantfile: str = VAGRANTFILE_PATH,
-                 files: Union[str, tuple[str]] = tuple()):
+                 files: Union[str, tuple[str]] = tuple(),
+                 tmp: bool = False):
         """
 
         :param binary: binary for VM debugging
@@ -77,6 +83,7 @@ class Vagd:
         :param vagrantfile: location of Vagrantfile
         :param files: other files or directory that need to be uploaded to VM
         """
+        self._path = binary
         self._binary = './' + os.path.basename(binary)
         self._box = box
         self._vagrantfile = vagrantfile
@@ -84,20 +91,22 @@ class Vagd:
 
         self._vagrant_setup()
         self._ssh_setup()
+        if tmp:
+            self._ssh.set_working_directory()
 
-        self._ssh.put(binary)
-        self._ssh.run('chmod +x ' + self._binary)
+        self._sync(binary)
+        self._ssh.system('chmod +x ' + self._binary)
 
         # Copy files to remote
         if isinstance(files, str):
-            self._ssh.put(files)
+            self._sync(files)
         elif isinstance(files, tuple):
             for file in files:
-                self._ssh.put(file)
+                self._sync(file)
 
-    def debug_api(self, args, exe: str = '', env: Dict[str, str] = None,
-                  ssh=None, gdbscript: str = '', aslr: bool = True,
-                  **kwargs) -> pwn.process:
+    def debug(self, args, exe: str = '', env: Dict[str, str] = None,
+              ssh=None, gdbscript: str = '', api: bool = False,
+              sysroot: str = None, gdb_args: list = list(), **kwargs) -> pwn.process:
         """
 
         :param args: binary with command line arguments
@@ -105,7 +114,6 @@ class Vagd:
         :param env: environment variable dictionary
         :param ssh: ignored self._ssh is used instead
         :param gdbscript: used gdbscript
-        :param aslr: if aslr should be enabled
         :param kwargs: pwntool arguments
         :return: Tuple with (pwn.process, pwn.gdb.Gdb)
         """
@@ -139,9 +147,16 @@ class Vagd:
 
         host = '127.0.0.1'
 
-        tmp = pwn.attach((host, port), exe=exe, gdbscript=gdbscript, ssh=ssh, api=True, aslr=aslr)
-        _, gdb = tmp
-        gdbserver.gdb = gdb
+        gdbscript = "set debug-file-directory /usr/lib/debug\n" + gdbscript
+        gdb_args += ["-ex", f"file -readnow {self._path}"]
+        if sysroot:
+            gdb_args += ["-ex", f"set sysroot = {sysroot}"]
+
+        tmp = pwn.gdb.attach((host, port), exe=exe, gdbscript=gdbscript,
+                             gdb_args=gdb_args, ssh=ssh, api=api)
+        if api:
+            _, gdb = tmp
+            gdbserver.gdb = gdb
 
         # gdbserver outputs a message when a client connects
         garbage = gdbserver.recvline(timeout=1)
@@ -151,9 +166,9 @@ class Vagd:
 
         return gdbserver
 
-    def debug(self, argv: Collection = tuple(), *a, **kw) -> pwn.process:
+    def pwn_debug(self, argv: Collection = tuple(), *a, **kw) -> pwn.process:
         """
-        run binary in vm with gdb
+        run binary in vm with gdb (pwnlib feature set)
         :param argv: comandline arguments for binary
         :param a: pwntool parameters
         :param kw: pwntool parameters
@@ -171,8 +186,8 @@ class Vagd:
         """
         return self._ssh.process((self._binary,) + argv, *a, **kw)
 
-    def start(self, argv: Collection = tuple(), gdbscript: str = '', api: bool = None,
-              *a, **kw) -> pwn.process:
+    def start(self, argv: Collection = tuple(), gdbscript: str = '', api: bool = None, sysroot: str = None,
+              gdb_args: list = list(), pwnlib: bool = True, *a, **kw) -> pwn.process:
         """
         start binary on remote and return pwn.process
         :param argv: commandline arguments for binary
@@ -183,9 +198,10 @@ class Vagd:
         :return: pwntools process, if api=True tuple with gdb api
         """
         if pwn.args.GDB:
-            if api:
-                return self.debug_api((self._binary,) + argv, gdbscript=gdbscript, *a, **kw)
+            if pwnlib:
+                return self.pwn_debug(argv=argv, gdbscript=gdbscript, sysroot=sysroot, *a, **kw)
             else:
-                return self.debug(argv=argv, gdbscript=gdbscript, *a, **kw)
+                return self.debug((self._binary,) + argv, gdbscript=gdbscript, gdb_args=gdb_args, sysroot=sysroot,
+                                  api=api, *a, **kw)
         else:
             return self.process(argv=argv, *a, **kw)
