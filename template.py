@@ -1,6 +1,4 @@
 #!/bin/python
-import os.path
-
 from vagd import Vagd, wrapper, box
 from pwn import *
 
@@ -26,8 +24,8 @@ def get_target(*a, **kwargs):
         context.log_level = 'debug'
         return remote(IP, PORT)
 
-    vm = Vagd(exe.path, box=BOX)
-    return vm.start(argv=ARGS, env=ENV, gdbscript=GDB, pwnlib=False, *a, **kwargs)
+    vm = Vagd(exe.path, vbox=BOX)
+    return vm.start(argv=ARGS, env=ENV, gdbscript=GDB, ex=False, *a, **kwargs)
 
 
 t = get_target()
