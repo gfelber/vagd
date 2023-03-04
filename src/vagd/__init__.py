@@ -42,18 +42,25 @@ class Vagd:
         """
 
         if not os.path.isfile(self._vagrantfile):
+            pwn.log.info('creating new Vagrantfile')
             vagrant_config = vtemplate.VAGRANT_TEMPLATE.format(self._box)
             with open(self._vagrantfile, 'w') as file:
                 file.write(vagrant_config)
+            pwn.log.info('initialing new vagrant vm might take a while')
+            self._v.up()
 
         elif self._get_box() != self._box:
+            pwn.log.info('new box detected destroying old machine')
             self._v.destroy()
             for line in fileinput.input(self._vagrantfile, inplace=True):
                 if Vagd.VAGRANTFILE_BOX in line:
                     line = f'{Vagd.VAGRANTFILE_BOX} = "{self._box}"\n'
                 print(line, end='')
+            pwn.log.info('initialing new vagrant vm might take a while')
+            self._v.up()
 
         if self._v.status()[0].state != 'running':
+            pwn.log.info('starting existing vagrant machine')
             self._v.up()
 
     def _ssh_setup(self) -> None:
@@ -126,7 +133,6 @@ class Vagd:
         if not which('vagrant'):
             pwn.log.error('vagrant isn\'t installed')
 
-        
         self._path = binary
         self._binary = './' + os.path.basename(binary)
         self._box = vbox

@@ -13,6 +13,7 @@ BOX = box.UBUNTU_FOCAL64
 GDB = f"""
 
 c"""
+
 context.binary = exe = ELF(BINARY, checksec=False)
 context.aslr = False
 
@@ -29,7 +30,7 @@ def get_target(*a, **kwargs):
 
 
 t = get_target()
-g = t.gdb if hasattr(t, 'gdb') else wrapper.Empty()
+g = wrapper.GDB(t)
 g.execute('p "PWN"')
 
 t.interactive()
