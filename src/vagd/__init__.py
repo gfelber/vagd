@@ -25,7 +25,7 @@ class Vagd:
     def _get_box(self) -> str:
         """
         returns box of current vagrantfile
-        @:rtype box str of Vagrantfile
+        @:rtype box name of Vagrantfile
         """
         with open(self._vagrantfile, 'r') as vagrantfile:
             for line in vagrantfile.readlines():
