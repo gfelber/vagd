@@ -9,7 +9,7 @@ BINARY = './bin/sysinfo'
 ARGS = ()
 ENV = {}
 API = True
-BOX = box.UBUNTU_JAMMY64
+BOX = box.UBUNTU_FOCAL64
 GDB = f"""
 b main
 c"""
