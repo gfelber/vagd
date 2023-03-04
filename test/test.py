@@ -8,7 +8,7 @@ PORT = 0
 BINARY = './bin/sysinfo'
 ARGS = ()
 ENV = {}
-API = False
+API = True
 BOX = box.UBUNTU_FOCAL64
 GDB = f"""
 b main
