@@ -174,7 +174,7 @@ class Vagd:
             self._ssh.set_working_directory()
 
         self._sync(self._path)
-        self._ssh.system('chmod +x ' + self._binary)
+        self.system('chmod +x ' + self._binary)
 
         # Copy files to remote
         if isinstance(files, str):
