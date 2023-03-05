@@ -127,7 +127,7 @@ class Vagd:
                  binary: str,
                  vagrantfile: str = VAGRANTFILE_PATH,
                  vbox: str = None,
-                 files: Union[str, tuple[str]] = tuple(),
+                 files: Union[str, list[str]] = None,
                  tmp: bool = False,
                  fast: bool = False,
                  ex: bool = False):
@@ -210,7 +210,7 @@ class Vagd:
             argv = []
         args = [self._binary, ] + argv
         if gdb_args is None:
-            gdb_args = tuple()
+            gdb_args = list()
         pwn.log.warn('using experimental features')
         ssh = self._ssh
         if isinstance(args, (bytes, pwn.six.text_type)):
@@ -307,10 +307,6 @@ class Vagd:
         :param kwargs: pwntool parameters
         :return: pwntools process, if api=True tuple with gdb api
         """
-        if gdb_args is None:
-            gdb_args = list()
-        if argv is None:
-            argv = list()
         if pwn.args.GDB:
             if ex or self._experimental:
                 return self.debug(argv=argv, gdbscript=gdbscript, gdb_args=gdb_args, sysroot=sysroot,
