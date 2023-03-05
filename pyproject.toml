@@ -1,6 +1,6 @@
 [project]
 name = "vagd"
-version = "0.0.3"
+version = "0.1.0"
 authors = [
   { name="0x6fe1be2", email="author@example.com" },
 ]
@@ -8,10 +8,14 @@ description = "pwntools with vagrant integration"
 readme = "README.md"
 requires-python = ">=3.7"
 classifiers = [
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
     "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: GNU License",
-    "Operating System :: Linux",
+    "Operating System :: POSIX :: Linux",
 ]
+[build-system]
+requires = ["setuptools", "pwntools", "python-vagrant"]
+
 
 [project.urls]
 "Homepage" = "https://github.com/gfelber/vagd"
+"Bug Tracker" = "https://github.com/gfelber/vagd/issues"
