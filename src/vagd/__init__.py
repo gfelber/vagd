@@ -4,8 +4,8 @@ import pwn
 import vagrant
 import fileinput
 from shutil import which
-from vagd import vtemplate, box
 from typing import Union, Dict
+from vagd import vtemplate, box, wrapper, gdb
 
 
 class Vagd:
