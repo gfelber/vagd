@@ -82,10 +82,7 @@ class Vagd:
         """
         sshpath = pwn.SSHPath(os.path.basename(file))
         if not sshpath.exists():
-            if os.path.isdir(file):
-                self._ssh.upload_dir(file)
-            else:
-                self._ssh.put(file)
+            self.put(file)
 
     SSHFS_TEMPLATE = \
         'sshfs -p {port} -o StrictHostKeyChecking=no,ro,IdentityFile={keyfile} {user}@{host}:{remote_dir} {local_dir}'
@@ -122,6 +119,17 @@ class Vagd:
         :return: returns
         """
         return self._ssh.system(cmd)
+
+    def put(self, file: str, remote: str = None):
+        """
+        executes command on vm, interface to  pwnlib.tubes.ssh.ssh.system
+        :param cmd: command to execute on vm
+        :return: returns
+        """
+        if os.path.isdir(file):
+            self._ssh.upload_dir(file, remote=remote)
+        else:
+            self._ssh.upload(file, remote=remote)
 
     def __init__(self,
                  binary: str,
