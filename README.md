@@ -30,7 +30,7 @@ I recommend using [pwndbg](https://github.com/pwndbg/pwndbg).
 
 ## Features
 
-**Vagd**
+**vagd.Vagd**
 
 Constructor for Vagd, initializes a new vagrant machine (if non existent)
 
@@ -48,7 +48,7 @@ Parameters:
 
 
 
-**Vagd.put**
+**vagd.Vagd.put**
 
 upload file or directory to vm
 
@@ -63,7 +63,7 @@ Return: None
 
 
 
-**Vagd.system**
+**vagd.Vagd.system**
 
 executes command on vm, interface to  `pwnlib.tubes.ssh.ssh.system`
 
@@ -77,7 +77,7 @@ Return: `pwnlib.tubes.ssh.ssh.system`
 
 
 
-**Vagd.debug** Experimental
+**vagd.Vagd.debug** Experimental
 
 Executes the provided binary with gdbserver on the vm and and attaches gdb.
 
@@ -99,7 +99,7 @@ Return: `pwn.process`
 
 
 
-**Vagd.process**
+**vagd.Vagd.process**
 
 Executes the provided binary as process on vm
 
@@ -110,7 +110,7 @@ Executes the provided binary as process on vm
 
 Return: `pwn.process` 
 
-**Vagd.pwn_debug**
+**vagd.Vagd.pwn_debug**
 
 Executes the provided binary with gdbserver on the vm and and attaches gdb.
 
@@ -123,7 +123,7 @@ Return: `pwn.process`
 
 
 
-**Vagd.start**
+**vagd.Vagd.start**
 
 uses `pwn.args` to swap between `Vagd.process`, `Vagd.pwn_debug` and `Vagd.debug` if experimental is enabled (in constructor or via `ex=True`)
 
@@ -141,7 +141,7 @@ Parameters:
 
 Return: `pwn.process` 
 
-**wrapper.GDB**
+**vagd.wrapper.GDB**
 
 receives `target: pwn.process` and returns gdb python api with type hinting from [types-gdb](https://pypi.org/project/types-gdb/) or a `wrapper.Empty` object, that returns None for every methode.
 
@@ -151,9 +151,13 @@ receives `target: pwn.process` and returns gdb python api with type hinting from
 
 Return: gdb python api or wrapper.Empty
 
+**vagd.gdb**
+
+Empty module, can be used for gdb type hinting
+
 ## Boxes
 
-the following boxes were tested and work, box constants are inside `Vagd.box`
+the following boxes were tested and work, box constants are inside `vagd.box`
 
 * ubuntu/jammy64
 * ubuntu/focal64
@@ -166,4 +170,14 @@ currently Vagrantfile generation is only compatible distributions that use `apt`
 
 ## Future plans
 
-### preconfigured Vagrant boxes
+### pre configured Vagrant boxes
+
+created pre configured Vagrant boxes with preinstalled lib debug symbols and gdbserver to lower runtime.
+
+### Template generation
+
+in order to get template.py u either need to download the file manually or download the repo. If possible the option of generating a template with `python -m vagd` should be added.
+
+### package installation
+
+It should be possible to specify a list of packages in the Vagd constructor that are to be installed. It should also be checked if provided packages are already installed inside of the vm.
