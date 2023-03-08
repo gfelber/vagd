@@ -8,7 +8,6 @@ import fileinput
 from typing import Iterable
 from shutil import which, copyfile
 from urllib.parse import urlparse
-from multiprocessing import Process
 from vagd import vtemplate, box, wrapper, gdb, pwngd
 
 
@@ -108,9 +107,9 @@ class Vagd(pwngd.Pwngd):
 
 
 class Qegd(pwngd.Pwngd):
-    DEFAULT_IMG = 'https://cloud-images.ubuntu.com/focal/current/focal-server-cloudimg-amd64.img'
+    DEFAULT_IMG = box.CLOUDIMAGE_FOCAL
     QEMU_DIR = './.qemu/'
-    IMG_DIR = os.path.expanduser('~/.qemu-imgs/')
+    IMGS_DIR = os.path.expanduser('~/.qemu-imgs/')
     DEFAULT_USER = 'ubuntu'
     DEFAULT_HOST = '0.0.0.0'
     DEFAULT_PORT = 2222
@@ -157,9 +156,9 @@ class Qegd(pwngd.Pwngd):
             pwn.log.info("Using local image")
             self._local_img = self._img
         else:
-            if not os.path.exists(Qegd.IMG_DIR):
-                os.makedirs(Qegd.IMG_DIR)
-            self._local_img = Qegd.IMG_DIR + urlparse(self._img).path.rsplit('/', 1)[-1]
+            if not os.path.exists(Qegd.IMGS_DIR):
+                os.makedirs(Qegd.IMGS_DIR)
+            self._local_img = Qegd.IMGS_DIR + urlparse(self._img).path.rsplit('/', 1)[-1]
             if not os.path.exists(self._local_img):
                 pwn.log.info("online qemu image starting download")
                 img = requests.get(self._img)
