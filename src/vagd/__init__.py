@@ -110,7 +110,7 @@ class Vagd(pwngd.Pwngd):
 class Qegd(pwngd.Pwngd):
     DEFAULT_IMG = 'https://cloud-images.ubuntu.com/focal/current/focal-server-cloudimg-amd64.img'
     QEMU_DIR = './.qemu/'
-    IMG_DIR = '~/.qemu-imgs/'
+    IMG_DIR = os.path.expanduser('~/.qemu-imgs/')
     DEFAULT_USER = 'ubuntu'
     DEFAULT_HOST = '0.0.0.0'
     DEFAULT_PORT = 2222
@@ -164,6 +164,7 @@ class Qegd(pwngd.Pwngd):
                 pwn.log.info("online qemu image starting download")
                 img = requests.get(self._img)
                 with open(self._local_img, 'wb') as imgfile:
+                    pwn.log.info(f"saving image to {self._local_img}")
                     imgfile.write(img.content)
         copyfile(self._local_img, Qegd.CURRENT_IMG)
 
@@ -230,7 +231,7 @@ ssh_authorized_keys:
         """
         start qemu machine
         """
-        pwn.log.info("starting qemu machine")
+        pwn.log.info(f"starting qemu machine, ssh port {self._port}")
         with open(Qegd.LOCKFILE, 'w') as lockfile:
             lockfile.write(str(self._port))
         pid = os.fork()
@@ -246,15 +247,15 @@ ssh_authorized_keys:
         create new vm
         """
         self._new = True
+
+        pwn.log.info(f"no Lockfile in {Qegd.LOCKFILE}")
+        self._set_local_img()
+        self._setup_seed()
+        # start qemu in independent process
         for i in range(101):
             if not self._is_port_in_use(Qegd.DEFAULT_PORT + i):
                 self._port = Qegd.DEFAULT_PORT + i
                 break
-
-        pwn.log.info(f"no Lockfile in {Qegd.LOCKFILE}, new qemu instance is started at port {self._port}")
-        self._set_local_img()
-        self._setup_seed()
-        # start qemu in independent process
         self._qemu_start()
         time.sleep(20)
 
