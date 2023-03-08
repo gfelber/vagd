@@ -1,6 +1,5 @@
 import os
 import pwn
-import subprocess
 from shutil import which
 from abc import ABC, abstractmethod
 from typing import Union, Dict
