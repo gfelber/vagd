@@ -24,6 +24,7 @@ def get_target(**kw):
         return remote(IP, PORT)
 
     vm = Vagd(exe.path, vbox=BOX, ex=True, fast=True)
+    # vm = Qegd(exe.path, vbox=BOX, ex=True)
     return vm.start(argv=ARGS, env=ENV, gdbscript=GDB, **kw)
 
 
