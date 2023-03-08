@@ -26,7 +26,7 @@ def get_target(**kw):
         return remote(IP, PORT)
 
     # vm = Vagd(exe.path, vbox=BOX, tmp=True, fast=True, ex=True)
-    vm = Qegd(exe.path, img='http://cloud-images.ubuntu.com/xenial/current/xenial-server-cloudimg-amd64-disk1.img', tmp=True)
+    vm = Qegd(exe.path, tmp=True, ex=True)
     return vm.start(argv=ARGS, env=ENV, gdbscript=GDB, api=API, **kw)
 
 

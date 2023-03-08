@@ -5,7 +5,7 @@ import pwn
 import vagrant
 import requests
 import fileinput
-import subprocess
+from typing import Iterable
 from shutil import which, copyfile
 from urllib.parse import urlparse
 from multiprocessing import Process
@@ -113,10 +113,11 @@ class Qegd(pwngd.Pwngd):
     IMG_DIR = QEMU_DIR + 'qemu-img/'
     DEFAULT_USER = 'ubuntu'
     DEFAULT_HOST = '0.0.0.0'
-    DEFAULT_PORT = 2223
+    DEFAULT_PORT = 2222
     KEYFILE = QEMU_DIR + 'keyfile'
 
     _img: str
+    _new: bool = False
     _local_img: str
     _user: str
     _host: str
@@ -129,6 +130,12 @@ class Qegd(pwngd.Pwngd):
         if url_parsed.scheme in ('file', ''):  # Possibly a local file
             return os.path.exists(url_parsed.path)
         return False
+
+    @staticmethod
+    def _is_port_in_use(port: int) -> bool:
+        import socket
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            return s.connect_ex(('localhost', port)) == 0
 
     CURRENT_IMG = QEMU_DIR + "current.img"
 
@@ -152,7 +159,7 @@ class Qegd(pwngd.Pwngd):
     def _generate_keypair(self):
         if not (os.path.exists(Qegd.KEYFILE) and os.path.exists(Qegd.KEYFILE + '.pub')):
             pwn.log.info("No Keypair was found. Generating new keypair")
-            subprocess.call(Qegd.GENERATE_KEYPAIR.format(keyfile=Qegd.KEYFILE))
+            os.system(Qegd.GENERATE_KEYPAIR.format(keyfile=Qegd.KEYFILE))
 
     METADATA_FILE = QEMU_DIR + 'metadata.yaml'
     METADATA = """instance-id: iid-local01
@@ -184,44 +191,63 @@ ssh_authorized_keys:
                     with open(Qegd.KEYFILE + '.pub', 'r') as pubkey_file:
                         pubkey = pubkey_file.readline()
                     user_data_file.write(Qegd.USER_DATA.format(pubkey=pubkey))
-            subprocess.call(Qegd.GENERATE_SEED_IMG)
+            os.system(Qegd.GENERATE_SEED_IMG)
 
-    QEMU_START = """qemu-system-x86_64  \
-    -machine accel=kvm,type=q35 \
-    -cpu host \
-    -m 2G \
-    -nographic \
-    -device virtio-net-pci,netdev=net0 \
-    -netdev user,id=net0,hostfwd=tcp::{port}-:22 \
-    -drive if=virtio,format=qcow2,file={img} \
-    -drive if=virtio,format=raw,file={seed} \
-    2>&1 > /dev/null"""
+    QEMU_START = "qemu-system-x86_64 " \
+                 + "-machine accel=kvm,type=q35 " \
+                 + "-cpu host " \
+                 + "-m 2G " \
+                 + "-nographic " \
+                 + "-device virtio-net-pci,netdev=net0 " \
+                 + "-netdev user,id=net0,hostfwd=tcp::{port}-:22 " \
+                 + "-drive if=virtio,format=qcow2,file={img} " \
+                 + "-drive if=virtio,format=raw,file={seed} " \
+                 + "> /dev/null; " \
+                 + "rm {lock}"
 
     LOCKFILE = QEMU_DIR + "qemu.lock"
 
     def _qemu_start(self):
-        open(Qegd.LOCKFILE, 'a').close()
         pwn.log.info("starting qemu machine")
-        subprocess.call(Qegd.QEMU_START.format(port=self._port, img=Qegd.CURRENT_IMG, seed=Qegd.SEED_FILE))
-        pwn.log.info("stopping qemu machine")
-        os.remove(Qegd.LOCKFILE)
+        with open(Qegd.LOCKFILE, 'w') as lockfile:
+            lockfile.write(str(self._port))
+        pid = os.fork()
+        if pid == 0:
+            os.system(Qegd.QEMU_START.format(port=self._port,
+                                             img=Qegd.CURRENT_IMG,
+                                             seed=Qegd.SEED_FILE,
+                                             lock=Qegd.LOCKFILE)
+                      )
+
+    def _new_vm(self) -> None:
+        self._new = True
+        for i in range(101):
+            if not self._is_port_in_use(Qegd.DEFAULT_PORT + i):
+                self._port = Qegd.DEFAULT_PORT + i
+                break
+
+        pwn.log.info(f"no Lockfile in {Qegd.LOCKFILE}, new qemu instance is started at port {self._port}")
+        self._set_local_img()
+        self._setup_seed()
+        # start qemu in independent process
+        self._qemu_start()
+        time.sleep(20)
 
     def _vm_setup(self) -> None:
         """
         setup qemu machine
         """
         self._host = Qegd.DEFAULT_HOST
-        self._port = Qegd.DEFAULT_PORT
         if not os.path.exists(Qegd.LOCKFILE):
-            pwn.log.info(f"no Lockfile in {Qegd.LOCKFILE}, new qemu instance is started")
-            self._set_local_img()
-            self._setup_seed()
-            # start qemu in independent process
-            p = Process(target=Qegd._qemu_start, args=[self])
-            p.start()
-            time.sleep(1)
+            self._new_vm()
         else:
-            pwn.log.info(f'Lockfile in {Qegd.LOCKFILE}. Using running qemu instance')
+            with open(Qegd.LOCKFILE, 'r') as lockfile:
+                self._port = int(lockfile.readline())
+            if not Qegd._is_port_in_use(self._port):
+                pwn.log.info(f'Lockfile in {Qegd.LOCKFILE}, but no running machine detected. Creating new one')
+                os.remove(Qegd.LOCKFILE)
+                self._new_vm()
+            pwn.log.info(f'Lockfile in {Qegd.LOCKFILE}. Using running qemu instance at port {self._port}')
 
     def _ssh_setup(self) -> None:
         """
@@ -235,16 +261,25 @@ ssh_authorized_keys:
             ignore_config=True
         )
 
+    def _install_packages(self, packages: Iterable):
+        self.system("sudo apt update").recvall()
+        packages_str = " ".join(packages)
+        self.system(f"sudo apt install -y {packages_str}").recvall()
+
+    DEFAULT_PACKAGES = ['gdbserver', 'libc6-dbg']
+
     def __init__(self,
                  binary: str,
                  img: str = DEFAULT_IMG,
                  user: str = DEFAULT_USER,
+                 packages: Iterable = None,
                  **kwargs):
         """
 
         :param binary: binary for VM debugging
         :param img: qemu image to use (requires ssh)
         :param user: user inside qemu image
+        :param packages: packages to install
         :param kwargs: parameters to pass through to super
         """
 
@@ -260,5 +295,9 @@ ssh_authorized_keys:
 
         self._vm_setup()
         self._ssh_setup()
+        if self._new:
+            self._install_packages(Qegd.DEFAULT_PACKAGES)
+        if packages:
+            self._install_packages(packages)
 
         super().__init__(binary=binary, **kwargs)
