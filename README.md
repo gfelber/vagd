@@ -57,13 +57,12 @@ SSH from cmd:
 ssh -o "StrictHostKeyChecking=no" -i .qemu/keyfile -p $(cat .qemu/qemu.lock) ubuntu@0.0.0.0
 ````
 
-| required | name     | type     | descripton                                                   |
-| -------- | -------- | -------- | ------------------------------------------------------------ |
-| X        | binary   | str      | binary to debug on  vagrant vm                               |
-|          | img      | str      | Location of qemu cloudimage local or remote (URL) (Default: [Cloudimage-Ubuntu-Focal](https://cloud-images.ubuntu.com/focal/current/)) |
-|          | user     | str      | Default user (depended on image) (Default: ubuntu)           |
-|          | packages | Iterable | Other packages to install on remote system                   |
-|          | **kwargs | Any      | Parameters to pass through to super constructor              |
+| required | name     | type | descripton                                                   |
+| -------- | -------- | ---- | ------------------------------------------------------------ |
+| X        | binary   | str  | binary to debug on  vagrant vm                               |
+|          | img      | str  | Location of qemu cloudimage local or remote (URL) (Default: [Cloudimage-Ubuntu-Focal](https://cloud-images.ubuntu.com/focal/current/)) |
+|          | user     | str  | Default user (depended on image) (Default: ubuntu)           |
+|          | **kwargs | Any  | Parameters to pass through to super constructor              |
 
 **vagd.pwngd.Pwngd**
 
@@ -71,13 +70,14 @@ Abstract Class for Vagd, setups vm
 
 Parameters:
 
-| required | experimental | name   | type         | description                                                  |
-| -------- | ------------ | ------ | ------------ | ------------------------------------------------------------ |
-| X        |              | binary | str          | binary to debug on  vagrant vm                               |
-|          |              | files  | str \| tuple | other files to upload to vm, all files are uploaded to current working directory (home or tmp) |
-|          |              | tmp    | bool         | if the created directory in the vm should be temporary, requires new upload after each execution |
-|          | X            | fast   | bool         | fast debug, mounts library files locally with **sshfs** in newly created directory ./sysroot/lib/ for faster symbol reading |
-|          | x            | ex     | bool         | enables experimental features for the whole object           |
+| required | experimental | name     | type         | description                                                  |
+| -------- | ------------ | -------- | ------------ | ------------------------------------------------------------ |
+| X        |              | binary   | str          | binary to debug on  vagrant vm                               |
+|          |              | files    | str \| tuple | other files to upload to vm, all files are uploaded to current working directory (home or tmp) |
+|          |              | packages | Iterable     | Other packages to install on remote system                   |
+|          |              | tmp      | bool         | if the created directory in the vm should be temporary, requires new upload after each execution |
+|          | X            | fast     | bool         | fast debug, mounts library files locally with **sshfs** in newly created directory ./sysroot/lib/ for faster symbol reading |
+|          | x            | ex       | bool         | enables experimental features for the whole object           |
 
 
 
