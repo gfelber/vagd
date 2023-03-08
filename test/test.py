@@ -1,5 +1,5 @@
 #!/bin/python
-from vagd import Vagd, wrapper, box
+from vagd import Vagd, Qegd, wrapper, box
 from pwn import *
 
 GDB_OFF = 0x555555555000
@@ -25,7 +25,8 @@ def get_target(**kw):
         context.log_level = 'debug'
         return remote(IP, PORT)
 
-    vm = Vagd(exe.path, vbox=BOX, tmp=True, fast=True, ex=True)
+    # vm = Vagd(exe.path, vbox=BOX, tmp=True, fast=True, ex=True)
+    vm = Qegd(exe.path, img='http://cloud-images.ubuntu.com/xenial/current/xenial-server-cloudimg-amd64-disk1.img', tmp=True)
     return vm.start(argv=ARGS, env=ENV, gdbscript=GDB, api=API, **kw)
 
 

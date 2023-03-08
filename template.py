@@ -8,7 +8,6 @@ PORT = 0
 BINARY = ''
 ARGS = []
 ENV = {}
-API = False
 BOX = box.UBUNTU_FOCAL64
 GDB = f"""
 c"""
@@ -25,11 +24,9 @@ def get_target(**kw):
         return remote(IP, PORT)
 
     vm = Vagd(exe.path, vbox=BOX, ex=True, fast=True)
-    return vm.start(argv=ARGS, env=ENV, gdbscript=GDB, api=API, **kw)
+    return vm.start(argv=ARGS, env=ENV, gdbscript=GDB, **kw)
 
 
 t = get_target()
-g = wrapper.GDB(t)
-g.execute('p "PWN"')
 
 t.interactive()

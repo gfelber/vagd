@@ -1,5 +1,6 @@
 import os
 import pwn
+import subprocess
 from shutil import which
 from abc import ABC, abstractmethod
 from typing import Union, Dict
@@ -49,7 +50,7 @@ class Pwngd(ABC):
         """
         if not which('sshfs'):
             pwn.log.error('sshfs isn\'t installed')
-        os.system(Pwngd.SSHFS_TEMPLATE.format(port=self._ssh.port,
+        subprocess.call(Pwngd.SSHFS_TEMPLATE.format(port=self._ssh.port,
                                               keyfile=self._ssh.keyfile,
                                               user=self._ssh.user,
                                               host=self._ssh.host,
