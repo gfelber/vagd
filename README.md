@@ -1,3 +1,5 @@
+[![PyPI](https://img.shields.io/pypi/v/vagd?style=flat)](https://pypi.org/project/vagd/)
+
 # VAGD
 
 virtualization integrations in pwntools
