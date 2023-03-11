@@ -222,7 +222,7 @@ ssh_authorized_keys:
                  + "-drive if=virtio,format=qcow2,file={img} " \
                  + "-drive if=virtio,format=raw,file={seed} " \
                  + "> /dev/null; " \
-                 + "rm {lock}"
+                 + "rm {lock} {current}"
 
     LOCKFILE = QEMU_DIR + "qemu.lock"
 
@@ -238,7 +238,8 @@ ssh_authorized_keys:
             os.system(Qegd.QEMU_START.format(port=self._port,
                                              img=Qegd.CURRENT_IMG,
                                              seed=Qegd.SEED_FILE,
-                                             lock=Qegd.LOCKFILE)
+                                             lock=Qegd.LOCKFILE,
+                                             current=Qegd.CURRENT_IMG)
                       )
 
     def _new_vm(self) -> None:

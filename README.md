@@ -51,6 +51,8 @@ vagrant ssh
 
 Child of `vagd.pwngd.Pwngd` setups a qemu machine
 
+Images are cached in `~/.qemu-imgs/`
+
 SSH from cmd:
 
 ````bash
