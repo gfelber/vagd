@@ -28,7 +28,7 @@ use `python -m vagd` to generate a template
 ./exploit.py REMOTE
 ```
 
-I recommend using [pwngdg](https://github.com/pwngdg/pwngdg).
+I recommend using [pwndbg](https://github.com/pwndbg/pwndbg).
 
 ## Features
 
