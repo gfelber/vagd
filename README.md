@@ -42,6 +42,20 @@ SSH from cmd:
 vagrant ssh
 ```
 
+halt from cmd
+
+```bash
+vagrant halt
+```
+
+destroy from cmd
+
+```bash
+vagrant destroy
+```
+
+
+
 | required | name        | type | descripton                                          |
 | -------- | ----------- | ---- | --------------------------------------------------- |
 | X        | binary      | str  | binary to debug on  vagrant vm                      |
@@ -60,6 +74,14 @@ SSH from cmd:
 ````bash
 ssh -o "StrictHostKeyChecking=no" -i .qemu/keyfile -p $(cat .qemu/qemu.lock) ubuntu@0.0.0.0
 ````
+
+Kill from cmd:
+
+```bash
+kill $(pgrep qemu)
+```
+
+
 
 | required | name     | type | descripton                                                   |
 | -------- | -------- | ---- | ------------------------------------------------------------ |
@@ -196,25 +218,26 @@ Empty module, can be used for gdb type hinting
 
 the following boxes were tested and work, box constants are inside `vagd.box`
 
-* ubuntu/jammy64
-* ubuntu/focal64
-* ubuntu/bionic64
-* ubuntu/xenial64
+* Vagrant
+  * UBUNTU_JAMMY64 = 'ubuntu/jammy64'
+  * UBUNTU_FOCAL64 = 'ubuntu/focal64'
+  * UBUNTU_BIONIC64 = 'ubuntu/bionic64'
+  * UBUNTU_XENIAL64 = 'ubuntu/xenial64'
 
-currently Vagrantfile generation is only compatible distributions that use `apt`
+* QEMU
+  * [CLOUDIMAGE_JAMMY](https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img)
+  * [CLOUDIMAGE_FOCAL](https://cloud-images.ubuntu.com/focal/current/focal-server-cloudimg-amd64.img)
+  * [CLOUDIMAGE_BIONIC](https://cloud-images.ubuntu.com/bionic/current/bionic-server-cloudimg-amd64.img)
+  * [CLOUDIMAGE_XENIAL](https://cloud-images.ubuntu.com/xenial/current/xenial-server-cloudimg-amd64-disk1.img)
+
+
+currently only distributions that use `apt` are supported
 
 
 
 ## Future plans
 
-### pre configured Vagrant boxes
+### pre configured Vagrant boxes / QEMU Images
 
-created pre configured Vagrant boxes with preinstalled lib debug symbols and gdbserver to lower runtime.
+created pre configured Vagrant boxes with preinstalled lib debug symbols and gdbserver to lower init runtime.
 
-### Template generation
-
-in order to get template.py u either need to download the file manually or download the repo. If possible the option of generating a template with `python -m vagd` should be added.
-
-### package installation
-
-It should be possible to specify a list of packages in the Vagd constructor that are to be installed. It should also be checked if provided packages are already installed inside of the vm.
