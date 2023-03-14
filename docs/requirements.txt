@@ -1,2 +1,3 @@
 pwntools
 vagd
+python-vagrant
