@@ -15,5 +15,7 @@ jobs:
       pages: write
       id-token: write
     steps:
+    - id: setup
+      run: sudo apt-get update && sudo apt-get install -y sphinx-rtd-theme-common
     - id: deployment
       uses: sphinx-notes/pages@v3
