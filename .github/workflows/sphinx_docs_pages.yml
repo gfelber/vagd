@@ -8,6 +8,9 @@ on:
 jobs:
   pages:
     runs-on: ubuntu-20.04
+    run: |
+        apt-get update
+        apt-get install -y python3-sphinx-rtd-theme
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
