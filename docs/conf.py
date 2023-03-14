@@ -19,11 +19,13 @@ release = '0.2.0'
 
 extensions = [
   'sphinx.ext.autodoc', 
+   'sphinx.ext.autosummary',
   'sphinx.ext.napoleon', 
   'sphinxcontrib.jquery'
 ]
 
-sys.path.insert(0, os.path.abspath('../../src'))
+sys.path.insert(0, os.path.abspath('../src'))
+autoclass_content = 'both'
 
 templates_path = ['_templates']
 exclude_patterns = []

@@ -40,7 +40,7 @@ class Pwngd(ABC):
         if not sshpath.exists():
             self.put(file)
 
-    SSHFS_TEMPLATE = \
+    _SSHFS_TEMPLATE = \
         'sshfs -p {port} -o StrictHostKeyChecking=no,ro,IdentityFile={keyfile} {user}@{host}:{remote_dir} {local_dir}'
 
     def _mount(self, remote_dir: str, local_dir: str) -> None:
@@ -51,12 +51,12 @@ class Pwngd(ABC):
         """
         if not which('sshfs'):
             pwn.log.error('sshfs isn\'t installed')
-        os.system(Pwngd.SSHFS_TEMPLATE.format(port=self._ssh.port,
-                                              keyfile=self._ssh.keyfile,
-                                              user=self._ssh.user,
-                                              host=self._ssh.host,
-                                              remote_dir=remote_dir,
-                                              local_dir=local_dir))
+        os.system(Pwngd._SSHFS_TEMPLATE.format(port=self._ssh.port,
+                                               keyfile=self._ssh.keyfile,
+                                               user=self._ssh.user,
+                                               host=self._ssh.host,
+                                               remote_dir=remote_dir,
+                                               local_dir=local_dir))
 
     def _mount_lib(self, remote_lib: str = '/usr/lib') -> None:
         """
@@ -71,6 +71,7 @@ class Pwngd(ABC):
     def system(self, cmd: str) -> pwn.tubes.ssh.ssh_channel:
         """
         executes command on vm, interface to  pwnlib.tubes.ssh.ssh.system
+
         :param cmd: command to execute on vm
         :return: returns
         """
@@ -81,6 +82,7 @@ class Pwngd(ABC):
     def _install_packages(self, packages: Iterable):
         """
         install packages on remote machine
+
         :param packages: packages to install on remote machine
         """
         self.system("sudo apt update").recvall()
@@ -90,6 +92,7 @@ class Pwngd(ABC):
     def put(self, file: str, remote: str = None):
         """
         upload file or vm on vm,
+
         :param file: file to upload
         :param remote: remote location of file, working directory if not specified
         :return: returns
@@ -107,6 +110,7 @@ class Pwngd(ABC):
                  fast: bool = False,
                  ex: bool = False):
         """
+        Default init setups provided ssh machine
 
         :param binary: binary for VM debugging
         :param files: other files or directories that need to be uploaded to VM
@@ -157,6 +161,7 @@ class Pwngd(ABC):
               **kwargs) -> pwn.process:
         """
         run binary in vm with gdb and experimental features
+
         :param argv: command line arguments
         :param exe: exe to execute
         :param env: environment variable dictionary
@@ -166,7 +171,7 @@ class Pwngd(ABC):
         :param sysroot: sysroot directory
         :param gdb_args: additional gdb arguments
         :param kwargs: pwntool arguments
-        :return: Tuple with (pwn.process, pwn.gdb.Gdb)
+        :rtype: pwn.process
         """
         if argv is None:
             argv = []
@@ -231,6 +236,7 @@ class Pwngd(ABC):
     def pwn_debug(self, argv: list[str] = None, ssh=None, **kwargs) -> pwn.process:
         """
         run binary in vm with gdb (pwnlib feature set)
+
         :param argv: comandline arguments for binary
         :param ssh: ignored self._ssh is used instead
         :param kwargs: pwntool parameters
@@ -243,6 +249,7 @@ class Pwngd(ABC):
     def process(self, argv: list[str] = None, **kwargs) -> pwn.process:
         """
         run binary in vm as process
+
         :param argv: comandline arguments for binary
         :param kwargs: pwntool parameters
         :return: pwntools process
@@ -261,6 +268,7 @@ class Pwngd(ABC):
               **kwargs) -> pwn.process:
         """
         start binary on remote and return pwn.process
+
         :param argv: commandline arguments for binary
         :param gdbscript: GDB script for GDB
         :param api: if GDB API should be enabled (experimental)

@@ -1,5 +1,6 @@
 #!/bin/python
-from vagd import Vagd, Qegd, wrapper, box
+from vagd import Vagd, Qegd, wrapper
+from vagd.box import Box
 from pwn import *
 
 GDB_OFF = 0x555555555000
@@ -9,7 +10,7 @@ BINARY = './bin/sysinfo'
 ARGS = []
 ENV = {}
 API = True
-BOX = box.UBUNTU_FOCAL64
+BOX = Box.UBUNTU_FOCAL64
 GDB = f"""
 b main
 c"""
@@ -26,7 +27,7 @@ def get_target(**kw):
         return remote(IP, PORT)
 
     # vm = Vagd(exe.path, vbox=BOX, tmp=True, fast=True, ex=True)
-    vm = Qegd(exe.path, img=box.CLOUDIMAGE_FOCAL, tmp=True, ex=True, fast=True)
+    vm = Qegd(exe.path, img=Box.CLOUDIMAGE_FOCAL, tmp=True, ex=True, fast=True)
     return vm.start(argv=ARGS, env=ENV, gdbscript=GDB, api=API, **kw)
 
 

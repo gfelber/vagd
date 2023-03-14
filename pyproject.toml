@@ -1,10 +1,10 @@
 [project]
 name = "vagd"
-version = "0.2.0"
+version = "0.2.1"
 authors = [
   { name="0x6fe1be2", email="author@example.com" },
 ]
-description = "pwntools with vagrant integration"
+description = "VirtuAlization GDb integrations in pwntools"
 readme = "README.md"
 requires-python = ">=3.7"
 classifiers = [
@@ -27,4 +27,5 @@ where = ["src"]
 
 [project.urls]
 "Homepage" = "https://github.com/gfelber/vagd"
+"Documentation" = "https://gfelber.github.io/vagd/"
 "Bug Tracker" = "https://github.com/gfelber/vagd/issues"

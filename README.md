@@ -1,4 +1,4 @@
-[![PyPI](https://img.shields.io/pypi/v/vagd?style=flat)](https://pypi.org/project/vagd/)
+[![PyPI](https://img.shields.io/pypi/v/vagd?style=flat)](https://pypi.org/project/vagd/)[![docs](https://img.shields.io/badge/docs-passing-success)](https://gfelber.github.io/vagd/index.html)
 
 # VAGD
 

@@ -1,4 +1,3 @@
 #!/bin/sh
-source venv/bin/activate
-pip install ../.
+pip install ../
 python test.py GDB
