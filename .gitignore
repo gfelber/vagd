@@ -8,5 +8,5 @@ bin
 dist
 .gdb_history
 sysroot/
-.qemu
-test/
+.vagd
+__pycache__/
