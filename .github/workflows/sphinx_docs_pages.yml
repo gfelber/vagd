@@ -8,6 +8,7 @@ on:
 jobs:
   pages:
     runs-on: ubuntu-20.04
+    container: ubuntu:focal
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
