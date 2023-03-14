@@ -96,7 +96,7 @@ kill $(pgrep qemu)
 
 **vagd.pwngd.Pwngd**
 
-Abstract Class for Vagd, setups vm
+Abstract Class for Vagd, setups vm. Requires a valid ssh connection: hostname, port, user and keyfile (not password)
 
 Parameters:
 
@@ -241,7 +241,14 @@ currently only distributions that use `apt` are supported
 
 ## Future plans
 
-### pre configured Vagrant boxes / QEMU Images
+### pre configured Vagrant boxes / QEMU Images / Docker Image
 
 created pre configured Vagrant boxes with preinstalled lib debug symbols and gdbserver to lower init runtime.
 
+### Docker integration
+
+created a Docker integration that allows loading existing Dockerfiles, also add a feature that additionally virtualizes (Vagrant/Qemu) them to change the used kernel.
+
+#### SSH integration
+
+Add a ssh integration to allows specifying a remote machine with hostname, port, user and keyfile. ssh config integration would be nice.
