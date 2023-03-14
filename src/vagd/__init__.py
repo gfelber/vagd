@@ -5,14 +5,13 @@ import pwn
 import vagrant
 import requests
 import fileinput
-from typing import Iterable
 from shutil import which, copyfile
 from urllib.parse import urlparse
 from vagd import vtemplate, box, wrapper, gdb, pwngd
 
 
 class Vagd(pwngd.Pwngd):
-    VAGRANTFILE_PATH = './Vagrantfile'
+    VAGRANTFILE_PATH = pwngd.Pwngd.LOCAL_DIR + './Vagrantfile'
     VAGRANTFILE_BOX = 'config.vm.box'
     VAGRANT_BOX = box.UBUNTU_FOCAL64
 
@@ -108,8 +107,8 @@ class Vagd(pwngd.Pwngd):
 
 class Qegd(pwngd.Pwngd):
     DEFAULT_IMG = box.CLOUDIMAGE_FOCAL
-    QEMU_DIR = './.qemu/'
-    IMGS_DIR = os.path.expanduser('~/.qemu-imgs/')
+    QEMU_DIR = pwngd.Pwngd.LOCAL_DIR
+    IMGS_DIR = pwngd.Pwngd.HOME_DIR + 'qemu-imgs/'
     DEFAULT_USER = 'ubuntu'
     DEFAULT_HOST = '0.0.0.0'
     DEFAULT_PORT = 2222
@@ -317,4 +316,24 @@ ssh_authorized_keys:
         if self._new:
             self._install_packages(Qegd.DEFAULT_PACKAGES)
 
+        super().__init__(binary=binary, **kwargs)
+
+
+class Dogd(pwngd.Pwngd):
+
+    def _ssh_setup(self) -> None:
+        pass
+
+    def __int__(self, binary: str, **kwargs):
+        pwn.log.error('NOT IMPLEMENTED YET')
+        super().__init__(binary=binary, **kwargs)
+
+
+class Shgd(pwngd.Pwngd):
+
+    def _ssh_setup(self) -> None:
+        pass
+
+    def __int__(self, binary: str, **kwargs):
+        pwn.log.error('NOT IMPLEMENTED YET')
         super().__init__(binary=binary, **kwargs)

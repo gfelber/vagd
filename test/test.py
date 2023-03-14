@@ -26,7 +26,7 @@ def get_target(**kw):
         return remote(IP, PORT)
 
     # vm = Vagd(exe.path, vbox=BOX, tmp=True, fast=True, ex=True)
-    vm = Qegd(exe.path, tmp=True, ex=True)
+    vm = Qegd(exe.path, img=box.CLOUDIMAGE_FOCAL, tmp=True, ex=True, fast=True)
     return vm.start(argv=ARGS, env=ENV, gdbscript=GDB, api=API, **kw)
 
 

@@ -6,7 +6,9 @@ from typing import Union, Dict, Iterable
 
 
 class Pwngd(ABC):
-    SYSROOT = './sysroot/'
+    LOCAL_DIR = './.vagd/'
+    HOME_DIR = os.path.expanduser('~/.vagd/')
+    SYSROOT = LOCAL_DIR + 'sysroot/'
     SYSROOT_LIB = SYSROOT + 'lib/'
 
     _path: str
