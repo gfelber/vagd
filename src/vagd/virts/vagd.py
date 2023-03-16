@@ -5,8 +5,7 @@ import vagrant
 import fileinput
 from shutil import which
 
-from vagd import templates
-from vagd.box import Box
+from vagd import box, templates
 from vagd.virts.pwngd import Pwngd
 from vagd.virts.shgd import Shgd
 
@@ -16,7 +15,7 @@ class Vagd(Shgd):
 
     VAGRANTFILE_PATH = Pwngd.LOCAL_DIR + 'Vagrantfile'
     VAGRANTFILE_BOX = 'config.vm.box'
-    VAGRANT_BOX = Box.UBUNTU_FOCAL64
+    VAGRANT_BOX = box.UBUNTU_FOCAL64
 
     _box: str
     _vagrantfile: str

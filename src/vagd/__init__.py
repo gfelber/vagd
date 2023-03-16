@@ -1,4 +1,4 @@
-from vagd.box import Box
+from vagd import box
 from vagd.virts import *
 
 
