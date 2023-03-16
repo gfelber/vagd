@@ -77,7 +77,6 @@ tomli==2.0.1
 twine==4.0.2
 unicorn==2.0.1.post1
 urllib3==1.26.14
-vagd @ file:///home/gfelber/Projects/CTF/tools/vagd
 webencodings==0.5.1
 z3-solver==4.10.2.0
 zipp==3.15.0

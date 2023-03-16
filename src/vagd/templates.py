@@ -19,6 +19,6 @@ end'''
 DOCKER_TEMPLATE = '''FROM {}
 
 RUN apt-get update && \
-    apt-get install -y libc6-dbg gdbserver
+    apt-get install -y libc6-dbg gdbserver ssh
     
 '''

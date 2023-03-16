@@ -10,6 +10,7 @@ class Pwngd(ABC):
     HOME_DIR = os.path.expanduser('~/.vagd/')
     SYSROOT = LOCAL_DIR + 'sysroot/'
     SYSROOT_LIB = SYSROOT + 'lib/'
+    KEYFILE = LOCAL_DIR + 'keyfile'
 
     _path: str
     _binary: str
