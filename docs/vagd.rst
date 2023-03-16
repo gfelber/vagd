@@ -1,6 +1,14 @@
 vagd package
 ============
 
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   vagd.virts
+
 Submodules
 ----------
 
@@ -20,10 +28,10 @@ vagd.gdb module
    :undoc-members:
    :show-inheritance:
 
-vagd.pwngd module
------------------
+vagd.helper module
+------------------
 
-.. automodule:: vagd.pwngd
+.. automodule:: vagd.helper
    :members:
    :undoc-members:
    :show-inheritance:
