@@ -1,9 +1,11 @@
 import os
 import docker
 
-from vagd import templates, helper, box
+from vagd import templates, helper
+from vagd.box import Box
 from vagd.virts.shgd import Shgd
 from vagd.virts.pwngd import Pwngd
+
 
 class Dogd(Shgd):
     """ Docker virtualization for pwntools """
@@ -11,6 +13,8 @@ class Dogd(Shgd):
     _image: str
     _dockerfile: str
     _client: docker.client
+    DEFAULT_PORT = 2222
+    DEFAULT_IMAGE = Box.DOCKER_FOCAL
 
     DEFAULT_PACKAGES = Pwngd.DEFAULT_PACKAGES + ["ssh"]
     DEFAULT_DOCKERFILE = Pwngd.LOCAL_DIR + "Dockerfile"
@@ -22,10 +26,12 @@ class Dogd(Shgd):
 
         with open(Pwngd.KEYFILE + '.pub') as pubkeyfile:
             pubkey = pubkeyfile.readline()
+            self._port = helper.first_free_port(Dogd.DEFAULT_PORT)
 
         with open(Dogd.DEFAULT_DOCKERFILE, 'w') as dockerfile:
             dockerfile.write(
-                templates.DOCKER_TEMPLATE.format(image=self._image, packages=Dogd.DEFAULT_PACKAGES, pubkey=pubkey))
+                templates.DOCKER_TEMPLATE.format(image=self._image, packages=Dogd.DEFAULT_PACKAGES, home='/root/',
+                                                 pubkey=pubkey))
 
     def _create_docker_instance(self):
         container = self._client.containers.run(Dogd.LOCKFILE, detach=True)
@@ -42,10 +48,10 @@ class Dogd(Shgd):
             self._create_docker_instance()
 
     def __init__(self,
-                binary: str,
-                image: str = box.DOCKER_FOCAL,
-                dockerfile: str = DEFAULT_DOCKERFILE,
-                **kwargs):
+                 binary: str,
+                 image: str = DEFAULT_IMAGE,
+                 dockerfile: str = DEFAULT_DOCKERFILE,
+                 **kwargs):
         self._image = image
         self._dockerfile = dockerfile
 

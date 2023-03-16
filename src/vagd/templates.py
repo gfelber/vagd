@@ -23,5 +23,5 @@ RUN apt-get update && \
     apt-get install -y {packages}
     
 # init ssh
-RUN echo "{pubkey}" >> 
+RUN echo "{pubkey}" >> {home}.ssh/authorized_keys
 '''
