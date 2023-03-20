@@ -13,18 +13,21 @@ from vagd.virts.shgd import Shgd
 
 class Vagd(Shgd):
     """
-    Vagrant Virtualization for pwntools
+    | Vagrant Virtualization for pwntools
+    |
+    | SSH from cmd:
+    .. code-block::  bash
 
-    SSH from cmd:
-    .. code-block::
         VAGRANT_CWD=.vagd vagrant ssh
 
-    halt from cmd
-    .. code-block::
+    | halt from cmd
+    .. code-block:: bash
+
         VAGRANT_CWD=.vagd vagrant halt
 
-    destroy from cmd
-    .. code-block::
+    | destroy from cmd
+    .. code-block:: bash
+
         VAGRANT_CWD=.vagd vagrant destroy
     """
 
@@ -92,6 +95,9 @@ class Vagd(Shgd):
 
         if not which('vagrant'):
             pwn.log.error('vagrant isn\'t installed')
+
+        if not os.path.exists(Pwngd.LOCAL_DIR):
+            os.makedirs(Pwngd.LOCAL_DIR)
 
         self._vagrantfile = vagrantfile
 

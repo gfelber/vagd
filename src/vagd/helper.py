@@ -32,8 +32,8 @@ def first_free_port(start: int = 2222, tries: int = 101) -> int:
     :return: first free port
     """
     for i in range(tries):
-        port = start + tries
+        port = start + i
         if not is_port_in_use(port):
             return port
 
-    pwn.log.error('No free port inside range')
+    pwn.log.error(f'No free port inside range {start}-{start+tries}')

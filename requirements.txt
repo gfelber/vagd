@@ -1,6 +1,7 @@
 ailment==9.2.39
 angr==9.2.39
 archinfo==9.2.39
+attrs==22.2.0
 bcrypt==4.0.1
 bitstring==4.0.1
 bleach==6.0.0
@@ -16,6 +17,10 @@ colored-traceback==0.3.0
 CppHeaderParser==2.7.4
 cryptography==39.0.1
 decorator==5.1.1
+distro==1.8.0
+docker==6.0.1
+dockerpty==0.4.1
+docopt==0.6.2
 docutils==0.19
 dpkt==1.9.8
 future==0.18.3
@@ -28,6 +33,7 @@ invoke==2.0.0
 itanium-demangler==1.1
 jaraco.classes==3.2.3
 jeepney==0.8.0
+jsonschema==3.2.0
 keyring==23.13.1
 Mako==1.2.4
 markdown-it-py==2.2.0
@@ -53,13 +59,16 @@ pyelftools==0.29
 Pygments==2.14.0
 PyNaCl==1.5.0
 pyproject_hooks==1.0.0
+pyrsistent==0.19.3
 pyserial==3.5
 PySMT==0.9.5
 PySocks==1.7.1
 python-dateutil==2.8.2
+python-dotenv==0.21.1
 python-utils==3.5.2
 python-vagrant==1.0.0
 pyvex==9.2.39
+PyYAML==5.4.1
 readme-renderer==37.3
 requests==2.28.2
 requests-toolbelt==0.10.1
@@ -73,10 +82,12 @@ smmap==5.0.0
 sortedcontainers==2.4.0
 sphinxcontrib.jquery==3.0.0
 sympy==1.11.1
+texttable==1.6.7
 tomli==2.0.1
 twine==4.0.2
 unicorn==2.0.1.post1
 urllib3==1.26.14
 webencodings==0.5.1
+websocket-client==0.59.0
 z3-solver==4.10.2.0
 zipp==3.15.0

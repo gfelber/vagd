@@ -10,13 +10,18 @@ from vagd.box import Box
 from vagd.virts.pwngd import Pwngd
 class Qegd(Pwngd):
     """
-    QEMU Virtualization for pwntools
-    SSH from cmd:
-    .. code-block::
+    | QEMU Virtualization for pwntools
+    | SSH from cmd
+    .. code-block:: bash
+
         ssh -o "StrictHostKeyChecking=no" -i .vagd/keyfile -p $(cat .vagd/qemu.lock) ubuntu@0.0.0.0
-    Kill from cmd:
-    .. code-block::
+    | Kill from cmd:
+    .. code-block:: bash
+
         kill $(pgrep qemu)
+
+    | Qemu images are cached in
+    :code:`~/.vagd/qemu-imgs/`
     """
 
     DEFAULT_IMG = Box.CLOUDIMAGE_FOCAL

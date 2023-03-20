@@ -46,7 +46,6 @@ class Shgd(Pwngd):
         :param keyfile: ssh keyfile (default in .vagd)
         :param kwargs: parameters to pass through to super
         """
-        print('test')
         self._user = user
         self._host = host
         self._port = port

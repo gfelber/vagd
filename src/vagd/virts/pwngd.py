@@ -147,7 +147,7 @@ class Pwngd(ABC):
         # Copy files to remote
         if isinstance(files, str):
             self._sync(files)
-        elif isinstance(files, tuple):
+        elif hasattr(files, '__iter__'):
             for file in files:
                 self._sync(file)
 
