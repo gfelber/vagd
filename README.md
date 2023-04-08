@@ -7,12 +7,12 @@ VirtuAlization GDb integrations in pwntools
 ## Installation
 
 ```bash
-pip install vagd pwntools
+pip install vagd
 ```
-or
+or from repo with
  ```bash
- pip install .
- pip install -r requirements.txt
+ git clone https://github.com/gfelber/vagd
+ pip install ./vagd/
  ```
 
 ## Usage
@@ -49,12 +49,16 @@ the following boxes were tested and work, box constants are inside `vagd.box.Box
   * UBUNTU_FOCAL64 = 'ubuntu/focal64'
   * UBUNTU_BIONIC64 = 'ubuntu/bionic64'
   * UBUNTU_XENIAL64 = 'ubuntu/xenial64'
-
 * QEMU (cached in `~/.vagd/qemu-imgs`)
   * [CLOUDIMAGE_JAMMY](https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img)
   * [CLOUDIMAGE_FOCAL](https://cloud-images.ubuntu.com/focal/current/focal-server-cloudimg-amd64.img)
   * [CLOUDIMAGE_BIONIC](https://cloud-images.ubuntu.com/bionic/current/bionic-server-cloudimg-amd64.img)
   * [CLOUDIMAGE_XENIAL](https://cloud-images.ubuntu.com/xenial/current/xenial-server-cloudimg-amd64-disk1.img)
+* Docker
+  * DOCKER_JAMMY = 'ubuntu:jammy'
+  * DOCKER_FOCAL = 'ubuntu:focal'
+  * DOCKER_BIONIC = 'ubuntu:bionic'
+  * DOCKER_XENIAL = 'ubuntu:xenial'
 
 
 currently only distributions that use `apt` are supported
@@ -65,12 +69,8 @@ currently only distributions that use `apt` are supported
 
 ### pre configured Vagrant boxes / QEMU Images / Docker Image
 
-created pre configured Vagrant boxes with preinstalled lib debug symbols and gdbserver to lower init runtime.
+created pre configured environments with preinstalled lib debug symbols and gdbserver to lower init runtime.
 
-### Docker integration
+### Better Docker integration
 
-created a Docker integration that allows loading existing Dockerfiles, also add a feature that additionally virtualizes (Vagrant/Qemu) them to change the used kernel.
-
-#### SSH integration
-
-Add a ssh integration to allows specifying a remote machine with hostname, port, user and keyfile. ssh config integration would be nice.
+created a Docker integration that allows loading existing Dockerfiles (maybe docker-compose), also add a feature that additionally virtualizes (Vagrant/Qemu) them to change the used kernel.

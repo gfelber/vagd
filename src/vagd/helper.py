@@ -1,3 +1,4 @@
+import os
 import pwn
 from vagd.virts.pwngd import Pwngd
 
