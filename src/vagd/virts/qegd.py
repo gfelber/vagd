@@ -1,7 +1,11 @@
 import os
+import sys
+
 import pwn
 import time
 import requests
+
+from typing import Dict
 from urllib.parse import urlparse
 from shutil import which, copyfile
 
@@ -63,6 +67,7 @@ class Qegd(Pwngd):
     _user: str
     _host: str
     _port: int
+    _ports: Dict[int, int]
     _qemu: str
     _cpu: str
     _machine: str
@@ -136,6 +141,7 @@ ssh_authorized_keys:
                     user_data_file.write(Qegd._USER_DATA.format(pubkey=pubkey))
             os.system(Qegd._GENERATE_SEED_IMG)
 
+    _QEMU_PORT_FORWARDING = ',hostfwd=tcp::{host}-:{guest}'
     _QEMU_START = "{qemu} " \
                   + "{machine} " \
                   + "{cpu} " \
@@ -143,7 +149,8 @@ ssh_authorized_keys:
                   + "-nographic " \
                   + "{pflash} " \
                   + "-device virtio-net-pci,netdev=net0 " \
-                  + "-netdev user,id=net0,hostfwd=tcp::{port}-:22 " \
+                  + "-netdev user,id=net0,hostfwd=tcp::{port}-:22" \
+                  + "{ports} " \
                   + "-drive if=virtio,format=qcow2,file={img} " \
                   + "-drive if=virtio,format=raw,file={seed} " \
                   + "{custom} " \
@@ -164,17 +171,24 @@ ssh_authorized_keys:
         if pid == 0:
             copyfile(Qegd.ARM_FLASH, Qegd.DEFAULT_QEMU_ARM_PFLASH)
             qemu_cmd = Qegd._QEMU_START.format(qemu=self._qemu,
-                                              machine=" ".join((Qegd.DEFAULT_QEMU_MACHINE_PREFIX, self._machine)) if self._machine else '',
-                                              cpu=" ".join((Qegd.DEFAULT_QEMU_CPU_PREFIX, self._cpu)) if self._cpu else '',
-                                              pflash=" ".join((Qegd.DEFAULT_QEMU_PFLASH_PREFIX, self._pflash)) if self._pflash else '',
-                                              port=self._port,
-                                              img=Qegd.CURRENT_IMG,
-                                              custom='',
-                                              seed=Qegd.SEED_FILE,
-                                              lock=Qegd.LOCKFILE,
-                                              current=Qegd.CURRENT_IMG)
+                                               machine=" ".join((Qegd.DEFAULT_QEMU_MACHINE_PREFIX,
+                                                                 self._machine)) if self._machine else '',
+                                               cpu=" ".join(
+                                                   (Qegd.DEFAULT_QEMU_CPU_PREFIX, self._cpu)) if self._cpu else '',
+                                               pflash=" ".join((Qegd.DEFAULT_QEMU_PFLASH_PREFIX,
+                                                                self._pflash)) if self._pflash else '',
+                                               port=self._port,
+                                               ports="".join(
+                                                   [Qegd._QEMU_PORT_FORWARDING.format(host=host, guest=guest) for
+                                                    host, guest in self._ports.items()]),
+                                               img=Qegd.CURRENT_IMG,
+                                               custom='',
+                                               seed=Qegd.SEED_FILE,
+                                               lock=Qegd.LOCKFILE,
+                                               current=Qegd.CURRENT_IMG)
             pwn.log.info(qemu_cmd)
             os.system(qemu_cmd)
+            sys.exit(0)
 
     def _new_vm(self) -> None:
         """
@@ -233,6 +247,7 @@ ssh_authorized_keys:
                  binary: str,
                  img: str = DEFAULT_IMG,
                  user: str = DEFAULT_USER,
+                 ports: Dict[int, int] = None,
                  arm: bool = False,
                  qemu: str = DEFAULT_QEMU_CMD,
                  machine: str = DEFAULT_QEMU_MACHINE,
@@ -244,6 +259,7 @@ ssh_authorized_keys:
         :param binary: binary for VM debugging
         :param img: qemu image to use (requires ssh)
         :param user: user inside qemu image
+        :param ports: forwarded ports
         :param arm: if qemu is arm
         :param qemu: qemu cmd
         :param cpu: value for :code -cpu
@@ -259,7 +275,7 @@ ssh_authorized_keys:
             pwn.log.info(f"Generating {Qegd.QEMU_DIR} dir")
             os.makedirs(Qegd.QEMU_DIR)
 
-        if arm :
+        if arm:
             qemu = Qegd.DEFAULT_QEMU_ARM_CMD if qemu == Qegd.DEFAULT_QEMU_CMD else qemu
             cpu = Qegd.DEFAULT_QEMU_ARM_CPU if cpu == Qegd.DEFAULT_QEMU_CPU else cpu
             machine = Qegd.DEFAULT_QEMU_ARM_MACHINE if machine == Qegd.DEFAULT_QEMU_MACHINE else machine
@@ -267,6 +283,7 @@ ssh_authorized_keys:
 
         self._img = img
         self._user = user
+        self._ports = ports if ports else dict()
         self._arm = arm
         self._qemu = qemu
         self._cpu = cpu
