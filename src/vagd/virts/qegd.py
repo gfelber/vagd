@@ -44,11 +44,18 @@ class Qegd(Pwngd):
     DEFAULT_USER = 'ubuntu'
     DEFAULT_HOST = '0.0.0.0'
     DEFAULT_PORT = 2222
+    ARM_FLASH = "/usr/share/AAVMF/AAVMF_CODE.fd"
+    DEFAULT_QEMU_ARM_PFLASH_OPTIONS = ""
+    DEFAULT_QEMU_ARM_PFLASH = QEMU_DIR + "flash.img"
     DEFAULT_QEMU_CMD = "qemu-system-x86_64"
+    DEFAULT_QEMU_ARM_CMD = "qemu-system-aarch64"
     DEFAULT_QEMU_MACHINE_PREFIX = "-machine"
     DEFAULT_QEMU_MACHINE = "accel=kvm,type=q35"
+    DEFAULT_QEMU_ARM_MACHINE = "virt"
     DEFAULT_QEMU_CPU_PREFIX = "-cpu"
     DEFAULT_QEMU_CPU = "host"
+    DEFAULT_QEMU_ARM_CPU = "cortex-a57"
+    DEFAULT_QEMU_PFLASH_PREFIX = "-pflash"
 
     _img: str
     _new: bool = False
@@ -134,13 +141,16 @@ ssh_authorized_keys:
                   + "{cpu} " \
                   + "-m 2G " \
                   + "-nographic " \
+                  + "{pflash} " \
                   + "-device virtio-net-pci,netdev=net0 " \
                   + "-netdev user,id=net0,hostfwd=tcp::{port}-:22 " \
                   + "-drive if=virtio,format=qcow2,file={img} " \
                   + "-drive if=virtio,format=raw,file={seed} " \
+                  + "{custom} " \
                   + "> /dev/null; " \
                   + "rm {lock} {current}"
 
+    _QEMU_ARM_START = ""
     LOCKFILE = QEMU_DIR + "qemu.lock"
 
     def _qemu_start(self):
@@ -152,11 +162,14 @@ ssh_authorized_keys:
             lockfile.write(str(self._port))
         pid = os.fork()
         if pid == 0:
+            copyfile(Qegd.ARM_FLASH, Qegd.DEFAULT_QEMU_ARM_PFLASH)
             qemu_cmd = Qegd._QEMU_START.format(qemu=self._qemu,
                                               machine=" ".join((Qegd.DEFAULT_QEMU_MACHINE_PREFIX, self._machine)) if self._machine else '',
                                               cpu=" ".join((Qegd.DEFAULT_QEMU_CPU_PREFIX, self._cpu)) if self._cpu else '',
+                                              pflash=" ".join((Qegd.DEFAULT_QEMU_PFLASH_PREFIX, self._pflash)) if self._pflash else '',
                                               port=self._port,
                                               img=Qegd.CURRENT_IMG,
+                                              custom='',
                                               seed=Qegd.SEED_FILE,
                                               lock=Qegd.LOCKFILE,
                                               current=Qegd.CURRENT_IMG)
@@ -220,18 +233,22 @@ ssh_authorized_keys:
                  binary: str,
                  img: str = DEFAULT_IMG,
                  user: str = DEFAULT_USER,
+                 arm: bool = False,
                  qemu: str = DEFAULT_QEMU_CMD,
                  machine: str = DEFAULT_QEMU_MACHINE,
                  cpu: str = DEFAULT_QEMU_CPU,
+                 pflash: str = None,
                  **kwargs):
         """
 
         :param binary: binary for VM debugging
         :param img: qemu image to use (requires ssh)
         :param user: user inside qemu image
+        :param arm: if qemu is arm
         :param qemu: qemu cmd
         :param cpu: value for :code -cpu
         :param machine: value for :code -machine
+        :param pflash: value for :code -pflash
         :param kwargs: parameters to pass through to super
         """
 
@@ -242,11 +259,19 @@ ssh_authorized_keys:
             pwn.log.info(f"Generating {Qegd.QEMU_DIR} dir")
             os.makedirs(Qegd.QEMU_DIR)
 
+        if arm :
+            qemu = Qegd.DEFAULT_QEMU_ARM_CMD if qemu == Qegd.DEFAULT_QEMU_CMD else qemu
+            cpu = Qegd.DEFAULT_QEMU_ARM_CPU if cpu == Qegd.DEFAULT_QEMU_CPU else cpu
+            machine = Qegd.DEFAULT_QEMU_ARM_MACHINE if machine == Qegd.DEFAULT_QEMU_MACHINE else machine
+            pflash = Qegd.DEFAULT_QEMU_ARM_PFLASH_OPTIONS + Qegd.DEFAULT_QEMU_ARM_PFLASH if pflash is None else pflash
+
         self._img = img
         self._user = user
+        self._arm = arm
         self._qemu = qemu
         self._cpu = cpu
         self._machine = machine
+        self._pflash = pflash
 
         self._vm_setup()
         self._ssh_setup()
