@@ -1,5 +1,6 @@
 import os
 import pwn
+import pathlib
 from shutil import which
 from abc import ABC, abstractmethod
 from typing import Union, Dict, Iterable
@@ -10,6 +11,7 @@ class Pwngd(ABC):
     HOME_DIR = os.path.expanduser('~/.vagd/')
     SYSROOT = LOCAL_DIR + 'sysroot/'
     SYSROOT_LIB = SYSROOT + 'lib/'
+    SYSROOT_LIB_DEBUG = SYSROOT + 'lib/debug'
     KEYFILE = LOCAL_DIR + 'keyfile'
     DEFAULT_PORT = 2222
 
@@ -53,12 +55,14 @@ class Pwngd(ABC):
         """
         if not which('sshfs'):
             pwn.log.error('sshfs isn\'t installed')
-        os.system(Pwngd._SSHFS_TEMPLATE.format(port=self._ssh.port,
-                                               keyfile=self._ssh.keyfile,
+        cmd = Pwngd._SSHFS_TEMPLATE.format(port=self._ssh.port,
+                                               keyfile="$PWD/" + self._ssh.keyfile,
                                                user=self._ssh.user,
                                                host=self._ssh.host,
                                                remote_dir=remote_dir,
-                                               local_dir=local_dir))
+                                               local_dir=local_dir)
+        pwn.log.info(cmd)
+        os.system(cmd)
 
     def _mount_lib(self, remote_lib: str = '/usr/lib') -> None:
         """
@@ -211,10 +215,10 @@ class Pwngd(ABC):
         host = '127.0.0.1'
 
         if self._fast:
-            gdb_args += ["-ex", f"set sysroot = ./sysroot"]
-            gdbscript = "set debug-file-directory ./sysroot/lib/debug\n" + gdbscript
+            gdb_args += ["-ex", f"set sysroot {pathlib.Path().resolve()}/{Pwngd.SYSROOT}"]
+            gdbscript = f"set debug-file-directory {Pwngd.SYSROOT_LIB_DEBUG}\n" + gdbscript
         elif sysroot:
-            gdb_args += ["-ex", f"set sysroot = {sysroot}"]
+            gdb_args += ["-ex", f"set sysroot {sysroot}"]
             gdbscript = f"set debug-file-directory ./{sysroot}/lib/debug\n" + gdbscript
         else:
             gdbscript = "set debug-file-directory /lib/debug\n" + gdbscript
