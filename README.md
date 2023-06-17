@@ -59,6 +59,7 @@ the following boxes were tested and work, box constants are inside `vagd.box.Box
   * DOCKER_FOCAL = 'ubuntu:focal'
   * DOCKER_BIONIC = 'ubuntu:bionic'
   * DOCKER_XENIAL = 'ubuntu:xenial'
+  * DOCKER_ALPINE_316 = 'alpine:3.16.6'
 
 
 currently only distributions that use `apt` are supported

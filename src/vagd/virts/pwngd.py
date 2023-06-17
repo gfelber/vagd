@@ -14,8 +14,10 @@ class Pwngd(ABC):
     SYSROOT_LIB_DEBUG = SYSROOT + 'lib/debug'
     KEYFILE = LOCAL_DIR + 'keyfile'
     DEFAULT_PORT = 2222
+    STATIC_GDBSRV_PORT = 42069
 
     _path: str
+    _gdbsrvport: int
     _binary: str
     _ssh: pwn.ssh
     _experimental: bool
@@ -56,11 +58,11 @@ class Pwngd(ABC):
         if not which('sshfs'):
             pwn.log.error('sshfs isn\'t installed')
         cmd = Pwngd._SSHFS_TEMPLATE.format(port=self._ssh.port,
-                                               keyfile="$PWD/" + self._ssh.keyfile,
-                                               user=self._ssh.user,
-                                               host=self._ssh.host,
-                                               remote_dir=remote_dir,
-                                               local_dir=local_dir)
+                                           keyfile="$PWD/" + self._ssh.keyfile,
+                                           user=self._ssh.user,
+                                           host=self._ssh.host,
+                                           remote_dir=remote_dir,
+                                           local_dir=local_dir)
         pwn.log.info(cmd)
         os.system(cmd)
 
@@ -113,6 +115,7 @@ class Pwngd(ABC):
                  files: Union[str, list[str]] = None,
                  packages: Iterable = None,
                  tmp: bool = False,
+                 gdbsrvport: int = None,
                  fast: bool = False,
                  ex: bool = False):
         """
@@ -122,6 +125,7 @@ class Pwngd(ABC):
         :param files: other files or directories that need to be uploaded to VM
         :param packages: packages to install on vm
         :param tmp: if a temporary directory should be created for files
+        :param gdbsrvport: specify static gdbserver port, REQURIES port forwarding to localhost
         :param fast: mounts libs locally for faster symbol extraction (experimental)
         :param ex: if experimental features should be enabled
         """
@@ -130,6 +134,7 @@ class Pwngd(ABC):
             self._install_packages(packages)
 
         self._path = binary
+        self._gdbsrvport = gdbsrvport
         self._binary = './' + os.path.basename(binary)
 
         self._fast = fast
@@ -198,6 +203,13 @@ class Pwngd(ABC):
 
         args = pwn.gdb._gdbserver_args(args=args, which=which, env=env)
 
+        # set static port if wanted
+        if self._gdbsrvport is not None:
+            for i in range(len(args)):
+                if args[i] == 'localhost:0':
+                    args[i] = f':{self._gdbsrvport}'
+                    break
+
         # Make sure gdbserver/qemu is installed
         if not which(args[0]):
             pwn.log.error("%s is not installed" % args[0])
@@ -210,7 +222,7 @@ class Pwngd(ABC):
         gdbserver.executable = exe
 
         # Find what port we need to connect to
-        port = pwn.gdb._gdbserver_port(gdbserver, ssh)
+        port = pwn.gdb._gdbserver_port(gdbserver, ssh) if self._gdbsrvport is None else self._gdbsrvport
 
         host = '127.0.0.1'
 
@@ -270,7 +282,6 @@ class Pwngd(ABC):
               api: bool = None,
               sysroot: str = None,
               gdb_args: list = None,
-              ex: bool = False,
               **kwargs) -> pwn.process:
         """
         start binary on remote and return pwn.process
@@ -280,17 +291,16 @@ class Pwngd(ABC):
         :param api: if GDB API should be enabled (experimental)
         :param sysroot: sysroot dir (experimental)
         :param gdb_args: extra gdb args (experimental)
-        :param ex: enable experimental features (if not set in constructor)
         :param kwargs: pwntool parameters
         :return: pwntools process, if api=True tuple with gdb api
         """
         if pwn.args.GDB:
-            if ex or self._experimental:
+            if self._experimental:
                 return self.debug(argv=argv, gdbscript=gdbscript, gdb_args=gdb_args, sysroot=sysroot,
                                   api=api, **kwargs)
             else:
                 if gdb_args or sysroot or api:
-                    pwn.error('requires experimental features, activate with ex=True')
+                    pwn.error('requires experimental features, activate with ex=True in constructor')
                 return self.pwn_debug(argv=argv, gdbscript=gdbscript, sysroot=sysroot, **kwargs)
         else:
             return self.process(argv=argv, **kwargs)
