@@ -34,6 +34,46 @@ I recommend using [pwndbg](https://github.com/pwndbg/pwndbg).
 
 All created files ares stored in the local `./.vagd/` directory. Additional large files (e.g. cloudimages) are stored in the home directory `~/.vagd/` or handled by tools themselfs (e.g. Vagrant, Docker).
 
+## Recommendations
+
+Consider adding these aliases to either `~./.bash_aliases`, `~./.bashrc` or other
+
+```bash
+alias vagd='python -m vagd'
+# example use to ssh to guest
+# vagdssh
+alias vagdssh='VAGRANT_CWD=.vagd vagrant ssh'
+# example use to copy flag.txt from host to guest (only works if Port is 2222)
+# vagdscp ./flag.txt ./
+vagdscp() {
+  scp -P 2222 -o StrictHostKeyChecking=no -i ./vagd/.vagrant/machines/default/virtualbox/private_key ${@:3} $1 vagrant@localhost:$2
+}
+# example use to ssh to guest
+# dogdssh
+alias dogdssh='ssh -o "StrictHostKeyChecking=no" -i ~/.vagd/keyfile -p $(cut -d":" -f 2 .vagd/docker.lock) vagd@0.0.0.0'
+# example use to copy flag.txt from host to guest
+# dogdscp ./flag.txt
+dogdscp() {
+  scp -P $(cut -d":" -f 2 .vagd/docker.lock) -o StrictHostKeyChecking=no -i ~/.vagd/keyfile ${@:3} $1 vagd@localhost:$2
+}
+# example use to spawn shell in guest 
+# dogdexec sh
+alias dogdexec='docker exec -it $(cut ./.vagd/docker.lock -d":" -f 1)'
+# example use to copy /etc/passwd from guest to host
+# dogdcp /etc/passwd ./
+dogdcp() {
+  docker cp "$(cut ./.vagd/docker.lock -d":" -f 1):$1" $2
+}
+# example use to ssh to guest
+# qegdssh
+alias qegdssh='ssh -o "StrictHostKeyChecking=no" -i ~/.vagd/keyfile -p $(cat .vagd/qemu.lock) ubuntu@0.0.0.0'
+# example use to copy flag.txt from host to guest
+# qegdscp ./flag.txt
+qegdscp() {
+  scp -P $(cat .vagd/qemu.lock) -o StrictHostKeyChecking=no -i ~/.vagd/keyfile ${@:3} $1 ubuntu@localhost:$2
+}
+```
+
 
 
 ## [Documentation](https://gfelber.github.io/vagd/index.html)
