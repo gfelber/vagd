@@ -15,7 +15,7 @@ class Dogd(Shgd):
     | SSH from cmd
     .. code-block:: bash
 
-        ssh -o "StrictHostKeyChecking=no" -i .vagd/keyfile -p $(cut .vagd/docker.lock -d":" -f 2) vagd@0.0.0.0
+        ssh -o "StrictHostKeyChecking=no" -i ~/.vagd/keyfile -p $(cut .vagd/docker.lock -d":" -f 2) vagd@0.0.0.0
 
     | connect with docker exec
     .. code-block:: bash
@@ -61,6 +61,8 @@ class Dogd(Shgd):
         if not os.path.exists(Pwngd.KEYFILE):
             helper.generate_keypair()
 
+        if not os.path.exists(self._dockerdir + "keyfile.pub"):
+            os.link(Pwngd.PUBKEYFILE, self._dockerdir + "keyfile.pub")
         template = templates.DOCKER_ALPINE_TEMPLATE if self._isalpine else templates.DOCKER_TEMPLATE
 
         with open(self._dockerfile, 'w') as dockerfile:
@@ -68,7 +70,7 @@ class Dogd(Shgd):
                 template.format(image=self._image,
                                 packages=' '.join(Dogd.DEFAULT_PACKAGES),
                                 user=self._user,
-                                keyfile=os.path.basename(Pwngd.KEYFILE + '.pub')))
+                                keyfile=os.path.basename(self._dockerdir + "keyfile.pub")))
 
     def _create_docker_instance(self):
         pwn.log.info('starting docker instance')
@@ -84,7 +86,7 @@ class Dogd(Shgd):
 
     def _build_image(self):
         pwn.log.info('building docker image')
-        return self._client.images.build(path=os.path.dirname(self._dockerfile))[0]
+        return self._client.images.build(path=os.path.dirname(self._dockerfile), tag=f'vagd/{self._image}')[0]
 
     def _vm_create(self):
 
@@ -105,8 +107,8 @@ class Dogd(Shgd):
                 data = lockfile.readline().split(':')
                 self._id = data[0]
                 self._port = int(data[1])
-            if not helper.is_port_in_use(self._port):
-                pwn.log.info(f'Lockfile {Dogd.LOCKFILE} found, port not used, creating new container')
+            if not self._client.containers.list(filters={'id':self._id}):
+                pwn.log.info(f'Lockfile {Dogd.LOCKFILE} found, container not running, creating new one')
                 self._vm_create()
             else:
                 pwn.log.info(
@@ -145,9 +147,10 @@ class Dogd(Shgd):
 
         self._vm_setup()
 
+        gdbsrvport = Pwngd.STATIC_GDBSRV_PORT if self._isalpine else None
         super().__init__(binary=binary,
                          user=self._user,
                          port=self._port,
                          ex=ex,
-                         gdbsrvport=Pwngd.STATIC_GDBSRV_PORT,
+                         gdbsrvport=gdbsrvport,
                          **kwargs)

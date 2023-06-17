@@ -70,8 +70,7 @@ RUN mkdir gdb-build ;\
 RUN apk add --no-cache openssh
 
 EXPOSE 22
-EXPOSE 22
-RUN adduser -h /home/vagd -s /bin/sh -D vagd
+RUN adduser -h /home/vagd -s /bin/ash -D vagd
 RUN echo "vagd:vagd" | chpasswd
 
 USER vagd

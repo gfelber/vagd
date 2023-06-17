@@ -21,7 +21,7 @@ class Qegd(Pwngd):
 
     .. code-block:: bash
 
-        ssh -o "StrictHostKeyChecking=no" -i .vagd/keyfile -p $(cat .vagd/qemu.lock) ubuntu@0.0.0.0
+        ssh -o "StrictHostKeyChecking=no" -i ~/.vagd/keyfile -p $(cat .vagd/qemu.lock) ubuntu@0.0.0.0
 
     | Kill from cmd:
 
@@ -136,7 +136,7 @@ ssh_authorized_keys:
                 pwn.log.info(f"{Qegd.USER_DATA_FILE} not found generating new one")
                 helper.generate_keypair()
                 with open(Qegd.USER_DATA_FILE, 'w') as user_data_file:
-                    with open(Pwngd.KEYFILE + '.pub', 'r') as pubkey_file:
+                    with open(Pwngd.PUBKEYFILE, 'r') as pubkey_file:
                         pubkey = pubkey_file.readline()
                     user_data_file.write(Qegd._USER_DATA.format(pubkey=pubkey))
             os.system(Qegd._GENERATE_SEED_IMG)
