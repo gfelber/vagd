@@ -46,6 +46,7 @@ DOCKER_ALPINE_TEMPLATE = '''FROM {image}
 RUN apk update
 # we need make and linux-headers to compile gdb
 RUN apk add python3
+RUN apk add --no-cache musl-dbg
 RUN apk add --no-cache make
 RUN apk add --no-cache linux-headers
 RUN apk add --no-cache texinfo
