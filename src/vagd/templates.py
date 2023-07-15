@@ -20,8 +20,7 @@ DOCKER_TEMPLATE = '''FROM {image}
 
 # install packages
 RUN apt-get update && \\
-    apt-get install -y {packages} \\
-    systemctl 
+    apt-get install -y {packages}
 
 # init user and ssh
 EXPOSE 22
