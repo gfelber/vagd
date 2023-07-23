@@ -1,8 +1,8 @@
 [project]
 name = "vagd"
-version = "0.4.7"
+version = "0.4.8"
 authors = [
-  { name="0x6fe1be2", email="author@example.com" },
+  { name="0x6fe1be2"},
 ]
 description = "VirtuAlization GDb integrations in pwntools"
 readme = "README.md"
