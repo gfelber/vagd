@@ -17,7 +17,7 @@ b main
 c"""
 
 context.binary = exe = ELF(BINARY, checksec=False)
-context.aslr = True
+context.aslr = False
 
 byt = lambda x: str(x).encode()
 

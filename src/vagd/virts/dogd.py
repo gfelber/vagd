@@ -1,5 +1,6 @@
 import os
 import pwn
+import json
 import docker
 
 from vagd import templates, helper
@@ -78,7 +79,12 @@ class Dogd(Shgd):
         self._forward.update({'22/tcp': self._port})
         if self._isalpine:
             self._forward.update({f'{Pwngd.STATIC_GDBSRV_PORT}/tcp': Pwngd.STATIC_GDBSRV_PORT})
-        container = self._client.containers.run(self._bimage, ports=self._forward, detach=True, remove=True)
+
+        dir = os.path.dirname(os.path.realpath(__file__))
+        with open(dir[:dir.rfind('/')] + '/res/seccomp.json', 'r') as seccomp_file:
+            seccomp_rules = seccomp_file.read().strip()
+
+        container = self._client.containers.run(self._bimage, ports=self._forward, detach=True, remove=True, security_opt=[f'seccomp:{seccomp_rules}'])
         self._id = container.id
         pwn.log.info(f'started docker instance {container.short_id}')
         with open(Dogd.LOCKFILE, 'w') as lockfile:
