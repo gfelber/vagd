@@ -1,1 +1,1 @@
-src/vagd/template.txt
+src/vagd/res/template.txt
