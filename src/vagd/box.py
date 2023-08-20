@@ -13,4 +13,7 @@ class Box:
     DOCKER_FOCAL = 'ubuntu:focal'
     DOCKER_BIONIC = 'ubuntu:bionic'
     DOCKER_XENIAL = 'ubuntu:xenial'
+    DOCKER_I386_FOCAL = 'i386/ubuntu:focal'
+    DOCKER_I386_BIONIC = 'i386/ubuntu:bionic'
+    DOCKER_I386_XENIAL = 'i386/ubuntu:xenial'
     DOCKER_ALPINE_316 = 'alpine:3.16.6'
