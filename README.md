@@ -82,27 +82,9 @@ qegdscp() {
 
 ## Boxes
 
-the following boxes were tested and work, box constants are inside `vagd.box.Box`
-
-* Vagrant
-  * UBUNTU_JAMMY64 = 'ubuntu/jammy64'
-  * UBUNTU_FOCAL64 = 'ubuntu/focal64'
-  * UBUNTU_BIONIC64 = 'ubuntu/bionic64'
-  * UBUNTU_XENIAL64 = 'ubuntu/xenial64'
-* QEMU (cached in `~/.vagd/qemu-imgs`)
-  * [CLOUDIMAGE_JAMMY](https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img)
-  * [CLOUDIMAGE_FOCAL](https://cloud-images.ubuntu.com/focal/current/focal-server-cloudimg-amd64.img)
-  * [CLOUDIMAGE_BIONIC](https://cloud-images.ubuntu.com/bionic/current/bionic-server-cloudimg-amd64.img)
-  * [CLOUDIMAGE_XENIAL](https://cloud-images.ubuntu.com/xenial/current/xenial-server-cloudimg-amd64-disk1.img)
-* Docker
-  * DOCKER_JAMMY = 'ubuntu:jammy'
-  * DOCKER_FOCAL = 'ubuntu:focal'
-  * DOCKER_BIONIC = 'ubuntu:bionic'
-  * DOCKER_XENIAL = 'ubuntu:xenial'
-  * DOCKER_ALPINE_316 = 'alpine:3.16.6'
-
-
-currently only distributions that use `apt` and alpine for Docker are supported
+A listed of known working Boxes can be found in the [Documentation](https://gfelber.github.io/vagd/vagd.html#module-vagd.box).
+Other images might also work but currently only distributions that use `apt` and alpine for Docker are supported.
+This limitation may be circumvented by create a container yourself (with the dependencies gdbserver, python, openssh) and creating a ssh connection via Shgd.
 
 
 

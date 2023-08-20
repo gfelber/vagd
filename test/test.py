@@ -1,4 +1,6 @@
 #!/bin/python
+import os
+
 from vagd import Vagd, Qegd, Shgd, Dogd, Logd, wrapper, Box
 from pwn import *
 
@@ -24,7 +26,7 @@ def vms():
     vm = Logd(exe.path)
     yield vm
     log.info("Testing Vagrant")
-    vm = Vagd(exe.path, vbox=Box.UBUNTU_FOCAL64, tmp=True, fast=True, ex=True)
+    vm = Vagd(exe.path, vbox=Box.VAGRANT_FOCAL64, tmp=True, fast=True, ex=True)
     yield vm
     vm._v.halt()
     if os.path.exists(Dogd.LOCKFILE):
@@ -39,7 +41,7 @@ def vms():
     yield vm
     vm._client.containers.get(vm._id).kill()
     log.info("Testing Qemu")
-    vm = Qegd(exe.path, img=Box.CLOUDIMAGE_FOCAL, tmp=True, ex=True, fast=True)
+    vm = Qegd(exe.path, img=Box.QEMU_FOCAL, tmp=True, ex=True, fast=True)
     yield vm
     log.info("Testing SSH")
     yield Shgd(exe.path, user=vm._user, port=vm._port, tmp=True, ex=True, fast=True)
@@ -56,5 +58,6 @@ for vm in vms():
 
     log.info(t.recvall().decode())
     t.close()
+    os.system('tmux kill-pane')
 
 print("Everything executed without errors")

@@ -43,7 +43,7 @@ class Qegd(Shgd):
 
     """
 
-    DEFAULT_IMG = Box.CLOUDIMAGE_FOCAL
+    DEFAULT_IMG = Box.QEMU_JAMMY
     QEMU_DIR = Pwngd.LOCAL_DIR
     IMGS_DIR = Pwngd.HOME_DIR + 'qemu-imgs/'
     DEFAULT_USER = 'ubuntu'
