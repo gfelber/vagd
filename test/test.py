@@ -1,8 +1,5 @@
 #!/bin/python
-import os
-import time
-
-from vagd import Vagd, Qegd, Shgd, Dogd, wrapper, Box
+from vagd import Vagd, Qegd, Shgd, Dogd, Logd, wrapper, Box
 from pwn import *
 
 GDB_OFF = 0x555555555000
@@ -23,6 +20,9 @@ byt = lambda x: str(x).encode()
 
 
 def vms():
+    log.info("Testing Local")
+    vm = Logd(exe.path)
+    yield vm
     log.info("Testing Vagrant")
     vm = Vagd(exe.path, vbox=Box.UBUNTU_FOCAL64, tmp=True, fast=True, ex=True)
     yield vm

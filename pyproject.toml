@@ -1,13 +1,13 @@
 [project]
 name = "vagd"
-version = "0.4.8"
+version = "1.0.0"
 authors = [
   { name="0x6fe1be2"},
 ]
 description = "VirtuAlization GDb integrations in pwntools"
 readme = "README.md"
 requires-python = ">=3.7"
-dependencies = ['pwntools', 'python-vagrant', 'docker']
+dependencies = ['pwntools', 'python-vagrant', 'docker', "typer"]
 classifiers = [
     "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
     "Programming Language :: Python :: 3",
@@ -15,14 +15,14 @@ classifiers = [
 ]
 
 [build-system]
-requires = ["setuptools", "wheel", "pwntools", "python-vagrant", "docker"]
+requires = ["setuptools", "wheel", "pwntools", "python-vagrant", "docker", "typer"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.setuptools.package-data]
-"vagd.res" = ["template.txt", "seccomp.json"]
+"vagd.res" = ["template.txt", "seccomp.json", "local_template.txt"]
 "vagd.gdb" = ["*.pyi"]
 
 

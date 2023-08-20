@@ -1,1 +1,0 @@
-src/vagd/res/template.txt
