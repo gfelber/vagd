@@ -6,4 +6,4 @@ publish: build
 	python3 -m twine upload --repository pypi dist/*
 
 clean:
-	rm -r build dist *.egg-info || true
+	rm -r build dist src/*.egg-info || true

@@ -82,7 +82,7 @@ qegdscp() {
 
 ## Boxes
 
-A listed of known working Boxes can be found in the [Documentation](https://gfelber.github.io/vagd/docs/_build/html/autoapi/vagd/box/index.html#module-vagd.box).
+A listed of known working Boxes can be found in the [Documentation](https://gfelber.github.io/vagd/autoapi/vagd/box/index.html#module-vagd.box).
 Other images might also work but currently only distributions that use `apt` and alpine for Docker are supported.
 This limitation may be circumvented by creating a target yourself (with the dependencies gdbserver, python, openssh) and creating a ssh connection via Shgd.
 

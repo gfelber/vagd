@@ -1,13 +1,13 @@
 import os
-import pwn
-import json
+from typing import Dict
+
 import docker
+import pwn
 
 from vagd import templates, helper
 from vagd.box import Box
-from vagd.virts.shgd import Shgd
 from vagd.virts.pwngd import Pwngd
-from typing import Dict
+from vagd.virts.shgd import Shgd
 
 
 class Dogd(Shgd):
