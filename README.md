@@ -17,8 +17,9 @@ pip install ./vagd/
 
 ## Usage
 
-use `vagd template [OPTIONS] [BINARY] [IP] [PORT]` to generate a template, list OPTIONS with help `-h`
-use `vagd info BINARY` to print info about binary
++ `vagd template [OPTIONS] [BINARY] [IP] [PORT]` to generate a template, list OPTIONS with help `-h`
+
++ `vagd info BINARY` to print info about binary
 
 ```bash
 # run as process in VM
