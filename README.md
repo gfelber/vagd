@@ -17,7 +17,8 @@ pip install ./vagd/
 
 ## Usage
 
-use `python -m vagd` to generate a template
+use `vagd template [OPTIONS] [BINARY] [IP] [PORT]` to generate a template, list OPTIONS with help `-h`
+use `vagd info BINARY` to print info about binary
 
 ```bash
 # run as process in VM
@@ -39,7 +40,6 @@ All created files ares stored in the local `./.vagd/` directory. Additional larg
 Consider adding these aliases to either `~./.bash_aliases`, `~./.bashrc` or other
 
 ```bash
-alias vagd='python -m vagd'
 # example use to ssh to guest
 # vagdssh
 alias vagdssh='VAGRANT_CWD=.vagd vagrant ssh'
