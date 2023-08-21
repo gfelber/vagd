@@ -94,7 +94,7 @@ class Logd(Pwngd):
               api: bool = None,
               **kwargs) -> pwn.process:
         """
-        start binary on remote and return pwn.process
+        start binary locally and return pwn.process
         :param argv: commandline arguments for binary
         :param gdbscript: GDB script for GDB
         :param api: if GDB API should be enabled (experimental)

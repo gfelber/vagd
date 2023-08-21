@@ -2,5 +2,8 @@ pwntools
 python-vagrant
 sphinxcontrib.jquery
 sphinx-rtd-theme
+sphinx-autoapi
+recommonmark
 docker
 typer
+toml
