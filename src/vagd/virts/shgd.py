@@ -2,7 +2,16 @@ import pwn
 import time
 from vagd.virts.pwngd import Pwngd
 class Shgd(Pwngd):
-    """ ssh interface for pwntools """
+    """ 
+    ssh interface for pwntools
+
+    :param binary: binary to execute
+    :param user: ssh user
+    :param host: ssh hostname
+    :param port: ssh port
+    :param keyfile: ssh keyfile (default in .vagd)
+    :param kwargs: parameters to pass through to super
+    """
 
     DEFAULT_HOST = 'localhost'
     DEFAULT_PORT = 22

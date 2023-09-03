@@ -38,7 +38,7 @@ All created files ares stored in the local `./.vagd/` directory. Additional larg
 
 ## Recommendations
 
-Consider adding these aliases to either `~./.bash_aliases`, `~./.bashrc` or other
+Consider adding these aliases to either `~./bash_aliases`, `~./bashrc` or other
 
 ```bash
 # example use to ssh to guest

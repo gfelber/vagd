@@ -26,13 +26,13 @@ def vms():
     vm = Logd(exe.path)
     yield vm
     log.info("Testing Vagrant")
-    vm = Vagd(exe.path, vbox=Box.VAGRANT_FOCAL64, tmp=True, fast=True, ex=True)
+    vm = Vagd(exe.path, vbox=Box.VAGRANT_JAMMY64, tmp=True, fast=True, ex=True)
     yield vm
     vm._v.halt()
     if os.path.exists(Dogd.LOCKFILE):
         os.remove(Dogd.LOCKFILE)
     log.info("Testing Docker for Ubuntu")
-    vm = Dogd(exe.path, image=Box.DOCKER_FOCAL, tmp=True, ex=True, fast=True)
+    vm = Dogd(exe.path, image=Box.DOCKER_JAMMY, tmp=True, ex=True, fast=True)
     yield vm
     vm._client.containers.get(vm._id).kill()
     os.remove(Dogd.LOCKFILE)
@@ -41,7 +41,7 @@ def vms():
     yield vm
     vm._client.containers.get(vm._id).kill()
     log.info("Testing Qemu")
-    vm = Qegd(exe.path, img=Box.QEMU_FOCAL, tmp=True, ex=True, fast=True)
+    vm = Qegd(exe.path, img=Box.QEMU_JAMMY, tmp=True, ex=True, fast=True)
     yield vm
     log.info("Testing SSH")
     yield Shgd(exe.path, user=vm._user, port=vm._port, tmp=True, ex=True, fast=True)

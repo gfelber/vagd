@@ -4,7 +4,11 @@ from vagd.virts.pwngd import Pwngd
 
 
 class Logd(Pwngd):
-    """ local execution of binary """
+    """
+    local execution of binary
+
+    :param binary: binary to execute
+    """
 
     _binary: str
 
