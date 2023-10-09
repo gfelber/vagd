@@ -97,7 +97,7 @@ class Pwngd(ABC):
         """
         return self._ssh.system(cmd)
 
-    DEFAULT_PACKAGES = ['gdbserver', 'libc6-dbg', 'python3']
+    DEFAULT_PACKAGES = ['gdbserver', 'libc6-dbg', 'python3', 'sudo']
 
     def _install_packages(self, packages: Iterable):
         """

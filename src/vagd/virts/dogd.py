@@ -114,8 +114,8 @@ class Dogd(Shgd):
         if not os.path.exists(Pwngd.LOCAL_DIR):
             os.makedirs(Pwngd.LOCAL_DIR)
 
-        if not os.path.exists(self._dockerfile):
-            self._create_dockerfile()
+        # enfore changes to Dockerfile are always rebuild by docker
+        self._create_dockerfile()
 
         self._bimage = self._build_image()
 

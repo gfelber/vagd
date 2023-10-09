@@ -1,6 +1,6 @@
 [project]
 name = "vagd"
-version = "1.0.10"
+version = "1.0.11"
 authors = [
   { name="0x6fe1be2"},
 ]

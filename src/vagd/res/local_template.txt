@@ -12,7 +12,7 @@ GDB = f"""
 c"""
 
 context.binary = exe = ELF(BINARY, checksec=False)
-libc = ELF({libc}, checksec=False)
+libc = ELF('{libc}', checksec=False)
 context.aslr = False
 
 byt = lambda x: x if isinstance(x, bytes) else x.encode() if isinstance(x, str) else repr(x).encode()
