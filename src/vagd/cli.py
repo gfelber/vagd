@@ -1,16 +1,22 @@
-import os
-import pwn
-import stat
-import typer
 import importlib.metadata
-from typing import Optional
+import os
+import stat
+from typing import Optional, Dict
+
+import pwn
+import typer
+from rich.console import Console
+
+from vagd import Dogd, Qegd, Vagd
+from vagd.virts.pwngd import Pwngd
 
 DOGD = "vm = Dogd(exe.path, image=Box.DOCKER_JAMMY, ex=True, fast=True)  # Docker"
 VAGD = "vm = Vagd(exe.path, vbox=Box.VAGRANT_JAMMY64, ex=True, fast=True)  # Vagrant"
-QEGD = "vm = Qegd(exe.path, img=Box.QEMU_JAMMY, user='ubuntu', ex=True, fast=True)  # Qemu"
-SHGD = "vm = Shgd(exe.path, user='user', port=22, ex=True, fast=True)  # SSH"
+QEGD = "vm = Qegd(exe.path, img=Box.QEMU_JAMMY, ex=True, fast=True)  # Qemu"
+SHGD = "vm = Shgd(exe.path, user='user', host='localhost', port=22, ex=True, fast=True)  # SSH"
 
 app = typer.Typer(context_settings={"help_option_names": ["-h", "--help"]})
+stderr = Console(stderr=True)
 
 def _version(value: bool) -> None:
     if value:
@@ -106,6 +112,130 @@ def info(
     """
     elf = pwn.ELF(binary)
     pwn.log.info(elf.section('.comment').decode().replace('\0', '\n'))
+
+
+def _get_type() -> str:
+    if os.path.exists(Pwngd.LOCKFILE):
+        with open(Pwngd.LOCKFILE) as lfile:
+            return lfile.read()
+    stderr.print("no vagd instance is running")
+    exit(1)
+
+
+def _exec(cmd: str, env: Dict = None):
+    if env is None:
+        env = os.environ
+    else:
+        env.update(os.environ)
+    os.execvpe("sh", ('sh', '-c', cmd), env)
+
+
+def _ssh(port, user):
+    os.system(
+        f'ssh -o "StrictHostKeyChecking=no" -i {Pwngd.KEYFILE} -p {port} {user}@0.0.0.0')
+
+
+@app.command()
+def ssh(
+        user: Optional[str] = typer.Option(None, '--user', '-u', help='ssh user'),
+):
+    """
+    ssh to current vagd instance (must be in exploit dir)
+    """
+    typ = _get_type()
+    if typ == Dogd.TYPE:
+        if user is None:
+            user = Dogd.DEFAULT_USER
+        with open(Dogd.LOCKFILE, 'r') as lfile:
+            port = lfile.read().split(':')[1]
+            _ssh(int(port), user)
+    elif typ == Qegd.TYPE:
+        if user is None:
+            user = Qegd.DEFAULT_USER
+        with open(Qegd.LOCKFILE, 'r') as lfile:
+            _ssh(int(lfile.read()), user)
+    elif typ == Vagd.TYPE:
+        os.system(f'VAGRANT_CWD={Pwngd.LOCAL_DIR} vagrant ssh')
+    else:
+        stderr.print(f"Unknown type in {Pwngd.LOCKFILE}: {typ}")
+        exit(1)
+
+
+def _scp(port: int, user: str, source: str, target: str, recursive: bool, keyfile: str = Pwngd.KEYFILE):
+    options = '-R' if recursive else ''
+    if ':' in source:
+        file = source[source.find(':') + 1:]
+        source = f'{user}@0.0.0.0:{file}'
+    if ':' in target:
+        file = target[target.find(':') + 1:]
+        target = f'{user}@0.0.0.0:{file}'
+    os.system(f'scp -P {port} -o StrictHostKeyChecking=no -i {keyfile} {options} {source} {target}')
+
+
+@app.command()
+def scp(
+        source: str = typer.Argument(..., help='source file'),
+        target: str = typer.Argument('vagd:./', help='target file'),
+        recursive: bool = typer.Option(False, '-r', '--recursive', help='recursive copy'),
+        user: Optional[str] = typer.Option(None, '--user', '-u', help='ssh user'),
+):
+    """
+    scp to from current vagd instance (must be in exploit dir)
+    """
+    typ = _get_type()
+    if typ == Dogd.TYPE:
+        if user is None:
+            user = Dogd.DEFAULT_USER
+        with open(Dogd.LOCKFILE, 'r') as lfile:
+            port = lfile.read().split(':')[1]
+            _scp(int(port), user, source, target, recursive)
+    elif typ == Qegd.TYPE:
+        if user is None:
+            user = Qegd.DEFAULT_USER
+        with open(Qegd.LOCKFILE, 'r') as lfile:
+            _scp(int(lfile.read()), user, source, target, recursive)
+    elif typ == Vagd.TYPE:
+        import vagrant
+        v = vagrant.Vagrant(os.path.dirname(Vagd.VAGRANTFILE_PATH))
+        _scp(2222, v.user(), source, target, recursive, v.keyfile())
+    else:
+        stderr.print(f"Unknown type in {Pwngd.LOCKFILE}: {typ}")
+        exit(1)
+
+
+@app.command()
+def clean():
+    """
+    clean current vagd instance (stop/kill/remove/destroy)
+    """
+    typ = _get_type()
+    if typ == Dogd.TYPE:
+        if os.path.exists(Dogd.LOCKFILE):
+            with open(Dogd.LOCKFILE, 'r') as lockfile:
+                data = lockfile.readline().split(':')
+                id = data[0]
+            import docker
+            client = docker.from_env()
+            if not client.containers.list(filters={'id': id}):
+                stderr.print(f'Lockfile {Dogd.LOCKFILE} found, container not running')
+                exit(1)
+            else:
+                container = client.containers.get(id)
+                typer.echo(f'Lockfile {Dogd.LOCKFILE} found, Docker Instance f{container.short_id}')
+                container.kill()
+        os.remove(Dogd.LOCKFILE)
+        os.remove(Pwngd.LOCKFILE)
+    elif typ == Qegd.TYPE:
+        os.system("kill $(pgrep qemu)")
+    elif typ == Vagd.TYPE:
+        import vagrant
+        v = vagrant.Vagrant(os.path.dirname(Vagd.VAGRANTFILE_PATH))
+        v.halt()
+        v.destroy()
+        os.remove(Pwngd.LOCKFILE)
+    else:
+        stderr.print(f"Unknown type in {Pwngd.LOCKFILE}: {typ}")
+        exit(1)
 
 def start():
     app()

@@ -26,6 +26,8 @@ class Dogd(Shgd):
 
     .. code-block:: bash
 
+        vagd ssh
+        # or
         ssh -o "StrictHostKeyChecking=no" -i ~/.vagd/keyfile -p $(cut .vagd/docker.lock -d":" -f 2) vagd@0.0.0.0
 
     | connect with docker exec
@@ -38,6 +40,8 @@ class Dogd(Shgd):
 
     .. code-block:: bash
 
+        vagd clean
+        #or
         docker kill $(cut ./.vagd/docker.lock -d":" -f 1)
 
     | Docker containers are automatically removed after they stop
@@ -62,6 +66,7 @@ class Dogd(Shgd):
     _ex: bool
     _forward: Dict[str, int]
 
+    TYPE = 'dogd'
     DOCKERHOME = Pwngd.HOME_DIR + "docker/"
     DEFAULT_USER = 'vagd'
     DEFAULT_PORT = 2222
@@ -110,6 +115,7 @@ class Dogd(Shgd):
         return self._client.images.build(path=os.path.dirname(self._dockerfile), tag=f'vagd/{self._image}')[0]
 
     def _vm_create(self):
+        self._lock(Dogd.TYPE)
 
         if not os.path.exists(Pwngd.LOCAL_DIR):
             os.makedirs(Pwngd.LOCAL_DIR)

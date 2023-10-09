@@ -5,7 +5,7 @@ VAGRANTFILE_API_VERSION = "2"
 
 $script = <<SCRIPT
     sudo apt update
-    sudo apt install {packages}  -y
+    sudo NEEDRESTART_MODE=a apt install {packages}  -y
 SCRIPT
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
@@ -20,7 +20,7 @@ DOCKER_TEMPLATE = '''FROM {image}
 
 # install packages
 RUN apt-get update && \\
-    apt-get install -y {packages}
+    NEEDRESTART_MODE=a apt-get install -y {packages}
 
 # init user and ssh
 EXPOSE 22
@@ -44,7 +44,7 @@ DOCKER_ALPINE_TEMPLATE = '''FROM {image}
 
 # install packages
 RUN apk update
-RUN apk add python3
+RUN apk add --no-cache python3
 RUN apk add --no-cache musl-dbg
 # install gdb
 RUN apk add --no-cache gdb
