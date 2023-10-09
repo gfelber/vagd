@@ -269,6 +269,7 @@ users:
         :param pflash: value for :code -pflash
         :param kwargs: parameters to pass through to super
         """
+        self._init()
 
         if not which('qemu-system-x86_64'):
             pwn.log.error('qemu-system-x86_64 isn\'t installed')

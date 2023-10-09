@@ -36,7 +36,7 @@ I recommend using [pwndbg](https://github.com/pwndbg/pwndbg).
 
 All created files ares stored in the local `./.vagd/` directory. Additional large files (e.g. cloudimages) are stored in the home directory `~/.vagd/` or handled by tools themselfs (e.g. Vagrant, Docker).
 
-## CLi
+## CLI
 
 ```bash
 alias vagd="python -m vagd" # or install with pip / pipx
