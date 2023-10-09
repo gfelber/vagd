@@ -1,6 +1,6 @@
 [project]
 name = "vagd"
-version = "1.0.9"
+version = "1.0.10"
 authors = [
   { name="0x6fe1be2"},
 ]
@@ -19,7 +19,7 @@ keywords = ['vagd', 'exploit', 'ctf', 'capture', 'the', 'flag', 'binary', 'vagra
 vagd = "vagd:cli.start"
 
 [build-system]
-requires = ["setuptools", "wheel", "pwntools", "python-vagrant", "docker", "typer"]
+requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]

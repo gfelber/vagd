@@ -92,6 +92,7 @@ class Dogd(Shgd):
         self._port = helper.first_free_port(Dogd.DEFAULT_PORT)
         self._forward.update({'22/tcp': self._port})
         if self._isalpine:
+            self._gdbsrvport = helper.first_free_port(Pwngd.STATIC_GDBSRV_PORT)
             self._forward.update({f'{self._gdbsrvport}/tcp': self._gdbsrvport})
 
         dir = os.path.dirname(os.path.realpath(__file__))
@@ -102,7 +103,7 @@ class Dogd(Shgd):
         self._id = container.id
         pwn.log.info(f'started docker instance {container.short_id}')
         with open(Dogd.LOCKFILE, 'w') as lockfile:
-            lockfile.write(container.id + ':' + str(self._port))
+            lockfile.write(':'.join((container.id, str(self._port), str(self._gdbsrvport))))
 
     def _build_image(self):
         pwn.log.info('building docker image')
@@ -130,6 +131,8 @@ class Dogd(Shgd):
                 data = lockfile.readline().split(':')
                 self._id = data[0]
                 self._port = int(data[1])
+                if self._isalpine:
+                    self._gdbsrvport = int(data[2])
             if not self._client.containers.list(filters={'id':self._id}):
                 pwn.log.info(f'Lockfile {Dogd.LOCKFILE} found, container not running, creating new one')
                 self._vm_create()
@@ -158,7 +161,7 @@ class Dogd(Shgd):
 
         self._image = image
         self._isalpine = 'alpine' in image
-        self._gdbsrvport = helper.first_free_port(Pwngd.STATIC_GDBSRV_PORT) if self._isalpine else None
+        self._gdbsrvport = None
         self._dockerdir = Dogd.DOCKERHOME + f'{self._image}/'
         if not (os.path.exists(Dogd.DOCKERHOME) and os.path.exists(self._dockerdir)):
             os.makedirs(self._dockerdir)
