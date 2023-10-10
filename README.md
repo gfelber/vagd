@@ -113,6 +113,24 @@ This limitation may be circumvented by creating a target yourself (with the depe
 
 
 
+## Troubleshooting
+
+**background processes**
+
+all instances continue to run in the background (after a vagd object has been started), this improves the runtime greatly after the first execution of the exploit. But this means that instances must be killed manually e.g.: `vagd clean`
+
+### gdb & gdbserver
+
+Because gdbserver is used to run binaries on the instances it is advised to use [pwndbg](https://github.com/pwndbg/pwndbg). Other well known gdb plugins like [peda](https://github.com/longld/peda) and [gef](https://github.com/hugsy/gef) aren't compatible with gdbserver and therefore won't work.
+
+### files
+
+files on the virtual instance are never overwritten this has performance reason (so files aren't always copied if the exploit is run). If you need to updated files on the remote either use `vagd scp` or create temporary work instances `Dogd(exe.path, image="ubuntu:jammy", tmp=True)`
+
+### gdb performance
+
+Using gdbserver and gdb to index libraries can be very slow. Therefore an experimental feature is available that mounts libraries locally: `Dogd(exe.path, image="ubuntu:jammy", ex=True, fast=True)` 
+
 ## Future plans
 
 ### pre configured Vagrant boxes / QEMU Images / Docker Image
