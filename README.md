@@ -24,17 +24,18 @@ pip install ./vagd/
 from pwn import *
 from vagd import Dogd, Qegd, Vagd, Shgd
 
-GDB_OFF = 0x555555555000
-IP = ''
-PORT = 0
-BINARY = ''
-ARGS = []
-ENV = {}
+IP = ''         # remote IP
+PORT = 0        # remote PORT
+BINARY = ''     # PATH to local binary e.g. ./chal
+ARGS = []       # ARGS supplied to binary 
+ENV = {}        # ENVs supplied to binary
+# GDB SCRIPT, executed at start of GDB session (set breakpoint here)
 GDB = f"""
 
 c"""
 
 context.binary = exe = ELF(BINARY, checksec=False)
+# enable disable ASLR (works for GDB)
 context.aslr = False
 
 vm = None
@@ -54,12 +55,12 @@ def get_target(**kw):
         vm = Vagd(exe.path, vbox=Box.VAGRANT_JAMMY64, ex=True, fast=True)
         # or SSH
         vm = Shgd(exe.path, user='user', host='localhost', port=22, ex=True, fast=True)
-    return vm.start(argv=ARGS, env=ENV, gdbscript=GDB, **kw)
+    return vm.start(argv=ARGS, env=ENV, gdbscript=GDB, **kw) # returns a pwn.process (similar to pwn.process())
 
 
 t = get_target()
 
-it() # or t.interactive()
+t.interactive()
 
 
 ```
