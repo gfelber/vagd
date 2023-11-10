@@ -26,7 +26,6 @@ pip install ./vagd/
 ```python
 #!/usr/bin/env python
 from pwn import *
-from vagd import Dogd, Qegd, Vagd, Shgd
 
 IP = ''         # remote IP
 PORT = 0        # remote PORT
@@ -50,6 +49,7 @@ def get_target(**kw):
         context.log_level = 'debug'
         return remote(IP, PORT)
 
+    from vagd import Dogd, Qegd, Vagd, Shgd
     if not vm:
         # Docker 
         vm = Dogd(exe.path, image="ubuntu:jammy", ex=True, fast=True)
@@ -82,7 +82,7 @@ t.interactive()
 
 I recommend using [pwndbg](https://github.com/pwndbg/pwndbg).
 
-
+ 
 
 ## Files
 

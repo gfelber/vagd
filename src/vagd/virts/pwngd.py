@@ -1,5 +1,10 @@
 import os
-import pwn
+
+import pwnlib.tubes
+import pwnlib.filesystem
+import pwnlib.args
+import pwnlib.gdb
+from vagd import helper
 import pathlib
 from shutil import which
 from abc import ABC, abstractmethod
@@ -8,7 +13,7 @@ from typing import Union, Dict, Iterable
 
 class Pwngd(ABC):
     """
-    start binary on remote and return pwn.process
+    start binary on remote and return pwnlib.tubes.process.process
 
     :param argv: commandline arguments for binary
     :param gdbscript: GDB script for GDB
@@ -32,7 +37,7 @@ class Pwngd(ABC):
     _path: str
     _gdbsrvport: int
     _binary: str
-    _ssh: pwn.ssh
+    _ssh: pwnlib.tubes.ssh.ssh
     _experimental: bool
     _fast: bool
 
@@ -55,7 +60,7 @@ class Pwngd(ABC):
         upload file on remote if not exist
         :type file: file to upload
         """
-        sshpath = pwn.SSHPath(os.path.basename(file))
+        sshpath = pwnlib.filesystem.SSHPath(os.path.basename(file))
         if not sshpath.exists():
             self.put(file)
 
@@ -69,14 +74,14 @@ class Pwngd(ABC):
         :param local_dir: local mount point
         """
         if not which('sshfs'):
-            pwn.log.error('sshfs isn\'t installed')
+            self._error('sshfs isn\'t installed')
         cmd = Pwngd._SSHFS_TEMPLATE.format(port=self._ssh.port,
                                            keyfile=self._ssh.keyfile,
                                            user=self._ssh.user,
                                            host=self._ssh.host,
                                            remote_dir=remote_dir,
                                            local_dir=local_dir)
-        pwn.log.info(cmd)
+        helper.info(cmd)
         os.system(cmd)
 
     def _lock(self, typ: str):
@@ -93,10 +98,10 @@ class Pwngd(ABC):
         if not (os.path.exists(Pwngd.SYSROOT) and os.path.exists(Pwngd.SYSROOT_LIB)):
             os.makedirs(Pwngd.SYSROOT_LIB)
         if not os.path.ismount(Pwngd.SYSROOT_LIB):
-            pwn.log.info('mounting libs in sysroot')
+            helper.info('mounting libs in sysroot')
             self._mount(remote_lib, Pwngd.SYSROOT_LIB)
 
-    def system(self, cmd: str) -> pwn.tubes.ssh.ssh_channel:
+    def system(self, cmd: str) -> pwnlib.tubes.ssh.ssh_channel:
         """
         executes command on vm, interface to  pwnlib.tubes.ssh.ssh.system
 
@@ -119,7 +124,7 @@ class Pwngd(ABC):
 
     def put(self, file: str, remote: str = None):
         """
-        upload file or vm on vm,
+        upload file or dir on vm,
 
         :param file: file to upload
         :param remote: remote location of file, working directory if not specified
@@ -130,18 +135,26 @@ class Pwngd(ABC):
         else:
             self._ssh.upload(file, remote=remote)
 
-    def _init(self):
-        # unset PWNLIB_NOTERM (set in vagd.__init__) to create init pwnlib stdin
-        if 'PWNLIB_NOTERM' in os.environ:
-            os.environ.pop('PWNLIB_NOTERM')
-        pwn.term.init()
+    def pull(self, file: str, local: str = None):
+        """
+        download file or dir on vm,
+
+        :param file: remote location of file, working directory if not specified
+        :param local: local location of file, current directory if not specified
+        :return: returns
+        """
+        sshpath = pwnlib.filesystem.SSHPath(os.path.basename(file))
+        if sshpath.is_dir():
+            self._ssh.download_dir(file, local=local)
+        else:
+            self._ssh.download_file(file, local=local)
 
     def __init__(self,
                  binary: str,
                  files: Union[str, list[str]] = None,
                  packages: Iterable = None,
                  tmp: bool = False,
-                 gdbsrvport: int = None,
+                 gdbsrvport: int = -1,
                  fast: bool = False,
                  ex: bool = False):
         """
@@ -155,7 +168,6 @@ class Pwngd(ABC):
         :param fast: mounts libs locally for faster symbol extraction (experimental)
         :param ex: if experimental features should be enabled
         """
-        self._init()
 
         if packages is not None:
             self._install_packages(packages)
@@ -171,9 +183,9 @@ class Pwngd(ABC):
             if self._experimental:
                 self._mount_lib()
             else:
-                pwn.error('requires experimental features, activate with ex=True')
+                helper.error('requires experimental features, activate with ex=True')
 
-        pwn.context.ssh_session = self._ssh
+        pwnlib.context.context.ssh_session = self._ssh
         if tmp:
             self._ssh.set_working_directory()
 
@@ -196,7 +208,7 @@ class Pwngd(ABC):
               api: bool = False,
               sysroot: str = None,
               gdb_args: list[str] = None,
-              **kwargs) -> pwn.process:
+              **kwargs) -> pwnlib.tubes.process:
         """
         run binary in vm with gdb and experimental features
 
@@ -209,29 +221,29 @@ class Pwngd(ABC):
         :param sysroot: sysroot directory
         :param gdb_args: additional gdb arguments
         :param kwargs: pwntool arguments
-        :rtype: pwn.process
+        :rtype: pwnlib.tubes.process.process
         """
         if argv is None:
             argv = []
         args = [self._binary, ] + argv
         if gdb_args is None:
             gdb_args = list()
-        pwn.log.warn('using experimental features')
+        helper.warn('using experimental features')
         ssh = self._ssh
-        if isinstance(args, (bytes, pwn.six.text_type)):
+        if isinstance(args, (bytes, pwnlib.gdb.six.text_type)):
             args = [args]
 
-        runner = pwn.gdb._get_runner(ssh)
-        which = pwn.gdb._get_which(ssh)
+        runner = pwnlib.gdb._get_runner(ssh)
+        which = pwnlib.gdb._get_which(ssh)
 
-        args, env = pwn.gdb.misc.normalize_argv_env(args, env, pwn.log)
+        args, env = pwnlib.gdb.misc.normalize_argv_env(args, env, helper)
         if env:
             env = {bytes(k): bytes(v) for k, v in env}
 
-        args = pwn.gdb._gdbserver_args(args=args, which=which, env=env)
+        args = pwnlib.gdb._gdbserver_args(args=args, which=which, env=env)
 
         # set static port if wanted
-        if self._gdbsrvport is not None:
+        if self._gdbsrvport != -1:
             for i in range(len(args)):
                 if args[i] == 'localhost:0':
                     args[i] = f':{self._gdbsrvport}'
@@ -239,7 +251,7 @@ class Pwngd(ABC):
 
         # Make sure gdbserver/qemu is installed
         if not which(args[0]):
-            pwn.log.error("%s is not installed" % args[0])
+            helper.error("%s is not installed" % args[0])
 
         # Start gdbserver/qemu
         # (Note: We override ASLR here for the gdbserver process itself.)
@@ -249,7 +261,7 @@ class Pwngd(ABC):
         gdbserver.executable = exe
 
         # Find what port we need to connect to
-        port = pwn.gdb._gdbserver_port(gdbserver, ssh) if self._gdbsrvport is None else self._gdbsrvport
+        port = pwnlib.gdb._gdbserver_port(gdbserver, ssh) if self._gdbsrvport == -1 else self._gdbsrvport
 
         host = '127.0.0.1'
 
@@ -264,7 +276,7 @@ class Pwngd(ABC):
 
         gdb_args += ["-ex", f"file -readnow {self._path}"]
 
-        tmp = pwn.gdb.attach((host, port), exe=exe, gdbscript=gdbscript,
+        tmp = pwnlib.gdb.attach((host, port), exe=exe, gdbscript=gdbscript,
                              gdb_args=gdb_args, ssh=ssh, api=api)
         if api:
             _, gdb = tmp
@@ -278,7 +290,7 @@ class Pwngd(ABC):
 
         return gdbserver
 
-    def pwn_debug(self, argv: list[str] = None, ssh=None, **kwargs) -> pwn.process:
+    def pwn_debug(self, argv: list[str] = None, ssh=None, **kwargs) -> pwnlib.tubes.process.process:
         """
         run binary in vm with gdb (pwnlib feature set)
 
@@ -289,9 +301,9 @@ class Pwngd(ABC):
         """
         if argv is None:
             argv = list()
-        return pwn.gdb.debug([self._binary] + argv, ssh=self._ssh, **kwargs)
+        return pwnlib.gdb.debug([self._binary] + argv, ssh=self._ssh, **kwargs)
 
-    def process(self, argv: list[str] = None, **kwargs) -> pwn.process:
+    def process(self, argv: list[str] = None, **kwargs) -> pwnlib.tubes.process.process:
         """
         run binary in vm as process
 
@@ -309,9 +321,9 @@ class Pwngd(ABC):
               api: bool = None,
               sysroot: str = None,
               gdb_args: list = None,
-              **kwargs) -> pwn.process:
+              **kwargs) -> pwnlib.tubes.process.process:
         """
-        start binary on remote and return pwn.process
+        start binary on remote and return pwnlib.tubes.process.process
 
         :param argv: commandline arguments for binary
         :param gdbscript: GDB script for GDB
@@ -321,13 +333,13 @@ class Pwngd(ABC):
         :param kwargs: pwntool parameters
         :return: pwntools process, if api=True tuple with gdb api
         """
-        if pwn.args.GDB:
+        if pwnlib.args.args.GDB:
             if self._experimental:
                 return self.debug(argv=argv, gdbscript=gdbscript, gdb_args=gdb_args, sysroot=sysroot,
                                   api=api, **kwargs)
             else:
                 if gdb_args or sysroot or api:
-                    pwn.error('requires experimental features, activate with ex=True in constructor')
+                    helper.error('requires experimental features, activate with ex=True in constructor')
                 return self.pwn_debug(argv=argv, gdbscript=gdbscript, sysroot=sysroot, **kwargs)
         else:
             return self.process(argv=argv, **kwargs)

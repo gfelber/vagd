@@ -1,11 +1,10 @@
 import os
 import re
-import pwn
 import vagrant
 import fileinput
 from shutil import which
 
-from vagd import templates
+from vagd import templates, helper
 from vagd.box import Box
 from vagd.virts.pwngd import Pwngd
 from vagd.virts.shgd import Shgd
@@ -74,25 +73,25 @@ class Vagd(Shgd):
 
         self._lock(Vagd.TYPE)
         if not os.path.isfile(self._vagrantfile):
-            pwn.log.info('creating new Vagrantfile')
+            helper.info('creating new Vagrantfile')
             vagrant_config = templates.VAGRANT_TEMPLATE.format(box=self._box, packages=' '.join(Pwngd.DEFAULT_PACKAGES))
             with open(self._vagrantfile, 'w') as file:
                 file.write(vagrant_config)
-            pwn.log.info('initialing new vagrant vm might take a while')
+            helper.info('initialing new vagrant vm might take a while')
             self._v.up()
 
         elif self._get_box() != self._box:
-            pwn.log.info('new box detected destroying old machine')
+            helper.info('new box detected destroying old machine')
             self._v.destroy()
             for line in fileinput.input(self._vagrantfile, inplace=True):
                 if Vagd.VAGRANTFILE_BOX in line:
                     line = f'{Vagd.VAGRANTFILE_BOX} = "{self._box}"\n'
                 print(line, end='')
-            pwn.log.info('initialing new vagrant vm might take a while')
+            helper.info('initialing new vagrant vm might take a while')
             self._v.up()
 
         if self._v.status()[0].state != 'running':
-            pwn.log.info('starting existing vagrant machine')
+            helper.info('starting existing vagrant machine')
             self._v.up()
 
     def __init__(self,
@@ -107,10 +106,9 @@ class Vagd(Shgd):
         :param vagrantfile: location of Vagrantfile
         :param kwargs: arguments to pass through to super
         """
-        self._init()
 
         if not which('vagrant'):
-            pwn.log.error('vagrant isn\'t installed')
+            helper.error('vagrant isn\'t installed')
 
         if not os.path.exists(Pwngd.LOCAL_DIR):
             os.makedirs(Pwngd.LOCAL_DIR)

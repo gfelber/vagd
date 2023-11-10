@@ -1,8 +1,8 @@
 import os
 import sys
 
-import pwn
 import time
+import pwnlib
 import requests
 
 from typing import Dict
@@ -109,17 +109,17 @@ class Qegd(Shgd):
         get local image for qemu machine
         """
         if Qegd._is_local(self._img):
-            pwn.log.info("Using local image")
+            helper.info("Using local image")
             self._local_img = self._img
         else:
             if not os.path.exists(Qegd.IMGS_DIR):
                 os.makedirs(Qegd.IMGS_DIR)
             self._local_img = Qegd.IMGS_DIR + urlparse(self._img).path.rsplit('/', 1)[-1]
             if not os.path.exists(self._local_img):
-                pwn.log.info("online qemu image starting download")
+                helper.info("online qemu image starting download")
                 img = requests.get(self._img)
                 with open(self._local_img, 'wb') as imgfile:
-                    pwn.log.info(f"saving image to {self._local_img}")
+                    helper.info(f"saving image to {self._local_img}")
                     imgfile.write(img.content)
         copyfile(self._local_img, Qegd.CURRENT_IMG)
 
@@ -148,15 +148,15 @@ users:
         create seed.img with config data like ssh keypair in .qemu
         """
         if not which('cloud-localds'):
-            pwn.log.error("cloud-image-utils is not installed")
+            helper.error("cloud-image-utils is not installed")
         if not os.path.exists(Qegd.SEED_FILE):
-            pwn.log.info(f"{Qegd.SEED_FILE} not found generating new one")
+            helper.info(f"{Qegd.SEED_FILE} not found generating new one")
             if not os.path.exists(Qegd.METADATA_FILE):
-                pwn.log.info(f"{Qegd.METADATA_FILE} not found generating new one")
+                helper.info(f"{Qegd.METADATA_FILE} not found generating new one")
                 with open(Qegd.METADATA_FILE, 'w') as metadata_file:
                     metadata_file.write(Qegd._METADATA)
             if not os.path.exists(Qegd.USER_DATA_FILE):
-                pwn.log.info(f"{Qegd.USER_DATA_FILE} not found generating new one")
+                helper.info(f"{Qegd.USER_DATA_FILE} not found generating new one")
                 helper.generate_keypair()
                 with open(Qegd.USER_DATA_FILE, 'w') as user_data_file:
                     with open(Pwngd.PUBKEYFILE, 'r') as pubkey_file:
@@ -188,7 +188,7 @@ users:
         start qemu machine
         """
         self._lock(Qegd.TYPE)
-        pwn.log.info(f"starting qemu machine, ssh port {self._port}")
+        helper.info(f"starting qemu machine, ssh port {self._port}")
         with open(Qegd.LOCKFILE, 'w') as lockfile:
             lockfile.write(str(self._port))
         pid = os.fork()
@@ -210,7 +210,7 @@ users:
                                                seed=Qegd.SEED_FILE,
                                                lock="".join((Qegd.LOCKFILE, Pwngd.LOCKFILE)),
                                                current=Qegd.CURRENT_IMG)
-            pwn.log.info(qemu_cmd)
+            helper.info(qemu_cmd)
             os.system(qemu_cmd)
             sys.exit(0)
 
@@ -220,7 +220,7 @@ users:
         """
         self._new = True
 
-        pwn.log.info(f"no Lockfile in {Qegd.LOCKFILE}")
+        helper.info(f"no Lockfile in {Qegd.LOCKFILE}")
         self._set_local_img()
         self._setup_seed()
         # start qemu in independent process
@@ -239,10 +239,10 @@ users:
             with open(Qegd.LOCKFILE, 'r') as lockfile:
                 self._port = int(lockfile.readline())
             if not helper.is_port_in_use(self._port):
-                pwn.log.info(f'Lockfile in {Qegd.LOCKFILE}, but no running machine detected. Creating new one')
+                helper.info(f'Lockfile in {Qegd.LOCKFILE}, but no running machine detected. Creating new one')
                 os.remove(Qegd.LOCKFILE)
                 self._new_vm()
-            pwn.log.info(f'Lockfile in {Qegd.LOCKFILE}. Using running qemu instance at port {self._port}')
+            helper.info(f'Lockfile in {Qegd.LOCKFILE}. Using running qemu instance at port {self._port}')
 
 
     def __init__(self,
@@ -269,13 +269,12 @@ users:
         :param pflash: value for :code -pflash
         :param kwargs: parameters to pass through to super
         """
-        self._init()
 
         if not which('qemu-system-x86_64'):
-            pwn.log.error('qemu-system-x86_64 isn\'t installed')
+            helper.error('qemu-system-x86_64 isn\'t installed')
 
         if not os.path.exists(Qegd.QEMU_DIR):
-            pwn.log.info(f"Generating {Qegd.QEMU_DIR} dir")
+            helper.info(f"Generating {Qegd.QEMU_DIR} dir")
             os.makedirs(Qegd.QEMU_DIR)
 
         if arm:
