@@ -4,16 +4,14 @@ import stat
 import sys
 from typing import Optional, Dict, List
 
-import pwnlib
 import typer
 
-import vagd
 from vagd import helper
 # prevents term.init
 from vagd.virts.dogd import Dogd
+from vagd.virts.pwngd import Pwngd
 from vagd.virts.qegd import Qegd
 from vagd.virts.vagd import Vagd
-from vagd.virts.pwngd import Pwngd
 
 DOGD = "vm = Dogd(exe.path, image=Box.DOCKER_JAMMY, ex=True, fast=True{files})  # Docker"
 VAGD = "vm = Vagd(exe.path, vbox=Box.VAGRANT_JAMMY64, ex=True, fast=True{files})  # Vagrant"
@@ -235,8 +233,6 @@ def clean():
                 container = client.containers.get(id)
                 typer.echo(f'Lockfile {Dogd.LOCKFILE} found, Docker Instance f{container.short_id}')
                 container.kill()
-        os.remove(Dogd.LOCKFILE)
-        os.remove(Pwngd.LOCKFILE)
     elif typ == Qegd.TYPE:
         os.system("kill $(pgrep qemu)")
     elif typ == Vagd.TYPE:
@@ -244,10 +240,10 @@ def clean():
         v = vagrant.Vagrant(os.path.dirname(Vagd.VAGRANTFILE_PATH))
         v.halt()
         v.destroy()
-        os.remove(Pwngd.LOCKFILE)
     else:
         sys.stderr.write(f"Unknown type in {Pwngd.LOCKFILE}: {typ}\n")
         exit(1)
+    os.remove(Pwngd.LOCKFILE)
 
 def start():
     app()

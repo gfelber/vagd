@@ -1,8 +1,10 @@
-import pwnlib.tubes
-import pwnlib.args
 from typing import Iterable
-from vagd.virts.pwngd import Pwngd
+
+import pwnlib.args
+import pwnlib.tubes
+
 from vagd import helper
+from vagd.virts.pwngd import Pwngd
 
 
 class Logd(Pwngd):
@@ -19,6 +21,7 @@ class Logd(Pwngd):
         NOT IMPLEMENTED
         """
         helper.error("NOT IMPLEMENTED")
+
     def _ssh_setup(self) -> None:
         """
         NOT IMPLEMENTED
@@ -32,6 +35,7 @@ class Logd(Pwngd):
         :param binary: binary to execute
         """
         self._binary = binary
+
     def _sync(self, file: str) -> None:
         """
         NOT IMPLEMENTED
@@ -107,6 +111,7 @@ class Logd(Pwngd):
         :param kwargs: pwntool parameters
         :return: pwntools process, if api=True tuple with gdb api
         """
+        helper.warn("running locally, only limited functions are supported")
         if pwnlib.args.args.GDB:
             return self.pwn_debug(argv=argv, gdbscript=gdbscript, api=api, **kwargs)
         else:

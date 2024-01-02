@@ -1,8 +1,9 @@
+import fileinput
 import os
 import re
-import vagrant
-import fileinput
 from shutil import which
+
+import vagrant
 
 from vagd import templates, helper
 from vagd.box import Box
@@ -70,6 +71,9 @@ class Vagd(Shgd):
         """
         setup vagrant machine creates new one if no Vagrantfile is specified or box does not match
         """
+
+        if self._v.status()[0].state == 'not_created':
+            self.is_new = True
 
         self._lock(Vagd.TYPE)
         if not os.path.isfile(self._vagrantfile):

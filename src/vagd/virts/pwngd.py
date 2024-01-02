@@ -1,14 +1,15 @@
 import os
-
-import pwnlib.tubes
-import pwnlib.filesystem
-import pwnlib.args
-import pwnlib.gdb
-from vagd import helper
 import pathlib
-from shutil import which
 from abc import ABC, abstractmethod
+from shutil import which
 from typing import Union, Dict, Iterable
+
+import pwnlib.args
+import pwnlib.filesystem
+import pwnlib.gdb
+import pwnlib.tubes
+
+from vagd import helper
 
 
 class Pwngd(ABC):
@@ -34,6 +35,7 @@ class Pwngd(ABC):
     DEFAULT_PORT = 2222
     STATIC_GDBSRV_PORT = 42069
 
+    is_new: bool = False
     _path: str
     _gdbsrvport: int
     _binary: str
@@ -169,7 +171,7 @@ class Pwngd(ABC):
         :param ex: if experimental features should be enabled
         """
 
-        if packages is not None:
+        if self.is_new and packages is not None:
             self._install_packages(packages)
 
         self._path = binary

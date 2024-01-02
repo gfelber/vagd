@@ -40,12 +40,14 @@ def get_target(**kw):
     global vm
 
     if args.REMOTE:
-        context.log_level = 'debug'
+        # context.log_level = 'debug'
         return remote(IP, PORT)
 
     from vagd import {dependencies}, Box # only load vagd if needed
     if not vm:
         {vms}
+    if vm.is_new:
+        log.info("new vagd instance") # additional setup here
     return vm.start(argv=ARGS, env=ENV, gdbscript=GDB, **kw)
 
 
