@@ -176,7 +176,7 @@ users:
                   + "-drive if=virtio,format=qcow2,file={img} " \
                   + "-drive if=virtio,format=raw,file={seed} " \
                   + "{custom} " \
-                  + "> /dev/null; " \
+                  + "&> /dev/null; " \
                   + "rm {lock} {current}"
 
     _QEMU_ARM_START = ""

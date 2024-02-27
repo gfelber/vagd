@@ -1,6 +1,6 @@
 [project]
 name = "vagd"
-version = "1.2.1"
+version = "1.2.2"
 authors = [
   { name="0x6fe1be2"},
 ]
@@ -26,7 +26,7 @@ build-backend = "setuptools.build_meta"
 where = ["src"]
 
 [tool.setuptools.package-data]
-"vagd.res" = ["template.txt", "seccomp.json", "local_template.txt"]
+"vagd.res" = ["template.txt", "seccomp.json", "local_template.txt", "aliases.txt"]
 "vagd.gdb" = ["*.pyi"]
 
 
