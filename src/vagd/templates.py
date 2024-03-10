@@ -25,6 +25,8 @@ RUN apt-get update && \\
 # init user and ssh
 EXPOSE 22
 RUN useradd --create-home --shell /bin/bash -g sudo {user}
+RUN chown -R vagd:sudo /home/vagd
+RUN chmod u+s /bin/sudo
 RUN echo "vagd ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/vagd && chmod 0440 /etc/sudoers.d/vagd
 USER {user}
 

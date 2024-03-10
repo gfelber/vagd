@@ -91,7 +91,7 @@ def template(
         add_virt(dependencies, vms, 'Shgd', SHGD, files, multi)
 
     with open(aliasesPath, 'r') as aliases_file:
-        aliases = aliases_file.read();
+        aliases = aliases_file.read()
 
     with open(templatePath, 'r') as templateFile:
         for line in templateFile.readlines():
@@ -108,7 +108,7 @@ def template(
                                                   libc=libc,
                                                   aslr=aslr,
                                                   dependencies=', '.join(dependencies),
-                                                  vms=('\n' + ' ' * 8).join(vms))
+                                                  vms=('\n' + ' ' * 4).join(vms))
 
         if output_exploit:
             output = 'exploit.py'
