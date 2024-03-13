@@ -1,18 +1,18 @@
-byt = lambda x: x if isinstance(x, bytes) else x.encode() if isinstance(x, str) else repr(x).encode()
-phex = lambda x, y='': print(y + hex(x))
-lhex = lambda x, y='': log.info(y + hex(x))
-pad = lambda x, s=8, v=b'\0', o='r': byt(x).ljust(s, v) if o == 'r' else byt(x).rjust(s, v)
-padhex = lambda x, s: pad(hex(x)[2:], s, '0', 'l')
-upad = lambda x: u64(pad(x))
-
 linfo = lambda x: log.info(x)
 lwarn = lambda x: log.warn(x)
 lerror = lambda x: log.error(x)
 lprog = lambda x: log.progress(x)
 
+byt = lambda x: x if isinstance(x, bytes) else x.encode() if isinstance(x, str) else repr(x).encode()
+phex = lambda x, y='': print(y + hex(x))
+lhex = lambda x, y='': linfo(y + hex(x))
+pad = lambda x, s=8, v=b'\0', o='r': byt(x).ljust(s, v) if o == 'r' else byt(x).rjust(s, v)
+padhex = lambda x, s: pad(hex(x)[2:], s, '0', 'l')
+upad = lambda x: u64(pad(x))
+
 gelf = lambda elf=None: elf if elf else exe
 srh = lambda x, elf=None: gelf(elf).search(byt(x)).__next__()
-sasm = lambda x, elf=None: gelf(elf).search(asm(x)).__next__()
+sasm = lambda x, elf=None: gelf(elf).search(asm(x), executable=True).__next__()
 lsrh = lambda x: srh(x, libc)
 lasm = lambda x: sasm(x, libc)
 
@@ -28,6 +28,7 @@ sla = lambda x, y, t=None: gt(t).sendlineafter(byt(x), byt(y))
 sa = lambda x, y, t=None: gt(t).sendafter(byt(x), byt(y))
 ra = lambda t=None: gt(t).recvall()
 rl = lambda t=None: gt(t).recvline()
+rls = lambda t=None: rl(t)[:-1]
 re = lambda x, t=None: gt(t).recv(x)
 ru = lambda x, t=None: gt(t).recvuntil(byt(x))
 it = lambda t=None: gt(t).interactive()
