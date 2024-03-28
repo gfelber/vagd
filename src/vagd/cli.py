@@ -96,9 +96,10 @@ def template(
     with open(templatePath, 'r') as templateFile:
         for line in templateFile.readlines():
 
-            if not libc and line.startswith('libc'):
-                continue
-            templateChunks.append(line)
+            if libc and line.startswith('# libc'):
+                templateChunks.append(line[2:])
+            else:
+                templateChunks.append(line)
 
         template = ''.join(templateChunks).format('{}',
                                                   aliases=aliases,

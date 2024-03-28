@@ -67,13 +67,13 @@ def virts():
     if os.path.exists(Dogd.LOCKFILE):
         os.remove(Dogd.LOCKFILE)
     log.info("Testing Docker for Ubuntu")
-    vm = Dogd(exe.path, image=Box.DOCKER_JAMMY, tmp=True, ex=True, fast=True)
+    vm = Dogd(exe.path, image=Box.DOCKER_NOBLE, tmp=True, ex=True, fast=True)
     assert vm.is_new, "vm should be new"
     yield vm
     vm._ssh.close()
 
     log.info("Testing Docker for Ubuntu restore")
-    vm = Dogd(exe.path, image=Box.DOCKER_JAMMY, tmp=True, ex=True, fast=True)
+    vm = Dogd(exe.path, image=Box.DOCKER_NOBLE, tmp=True, ex=True, fast=True)
     assert not vm.is_new, "vm shouldn't be new, restored"
     yield vm
     vm._ssh.close()
@@ -93,13 +93,13 @@ def virts():
 
     os.system("vagd clean")
     log.info("Testing Qemu")
-    vm = Qegd(exe.path, img=Box.QEMU_JAMMY, tmp=True, ex=True, fast=True)
+    vm = Qegd(exe.path, img=Box.QEMU_NOBLE, tmp=True, ex=True, fast=True)
     assert vm.is_new, "vm should be new"
     yield vm
     vm._ssh.close()
 
     log.info("Testing Qemu restore")
-    vm = Qegd(exe.path, img=Box.QEMU_JAMMY, tmp=True, ex=True, fast=True)
+    vm = Qegd(exe.path, img=Box.QEMU_NOBLE, tmp=True, ex=True, fast=True)
     assert not vm.is_new, "vm shouldn't be new, restored"
     yield vm
     vm._ssh.close()
@@ -114,20 +114,19 @@ for virt in virts():
     t = virt.start(argv=ARGS, env=ENV, gdbscript=GDB, api=API)
 
     sleep(1)
-    g = wrapper.GDB(t)
-    g.execute('p "PWN"')
-    g.execute('c')
+    if args.GDB:
+        g = wrapper.GDB(t)
+        g.execute('p "PWN"')
+        g.execute('c')
 
-    out = t.recvline()
-    out += t.recvline()
-    out += t.recvline()
+    out = b''.join(t.recvlines(3))
 
     log.info(out.decode())
     t.close()
     os.system('tmux kill-pane')
 
 os.system("vagd clean")
+sleep(1)
 assert not os.path.exists(LOCKFILE), "lockfile shouldn't exist"
 
 print("Everything executed without errors")
-sys.exit(0)

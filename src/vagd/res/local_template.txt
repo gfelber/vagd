@@ -13,13 +13,12 @@ set follow-fork-mode parent
 c"""
 
 context.binary = exe = ELF(BINARY, checksec=False)
-libc = ELF('{libc}', checksec=False)
+# libc = ELF('{libc}', checksec=False)
 context.aslr = False
 
 {aliases}
 
 def get_target(**kw):
-  global vm
 
   if args.GDB:
     return gdb.debug([exe.path] + ARGS, env=ENV, gdbscript=GDB, **kw)
