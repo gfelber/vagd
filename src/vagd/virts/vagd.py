@@ -3,8 +3,6 @@ import os
 import re
 from shutil import which
 
-import vagrant
-
 from vagd import templates, helper
 from vagd.box import Box
 from vagd.virts.pwngd import Pwngd
@@ -51,7 +49,7 @@ class Vagd(Shgd):
 
     _box: str
     _vagrantfile: str
-    _v: vagrant
+    _v: object
 
     def _get_box(self) -> str:
         """
@@ -110,6 +108,7 @@ class Vagd(Shgd):
         :param vagrantfile: location of Vagrantfile
         :param kwargs: arguments to pass through to super
         """
+        import vagrant
         helper.warn("The 'Vagd' object is deprecated, use 'Qegd' instead")
 
         if not which('vagrant'):

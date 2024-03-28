@@ -62,7 +62,7 @@ class Shgd(Pwngd):
         setup ssh connection
         """
         progress = helper.progress("connecting to ssh")
-        for _ in range(Shgd._TRIES):
+        for i in range(Shgd._TRIES):
             try:
                 self._ssh = pwnlib.tubes.ssh.ssh(
                     user=self._user,
@@ -74,8 +74,9 @@ class Shgd(Pwngd):
                 progress.success("Done")
                 break
             except:
-                if _ + 1 == Shgd._TRIES:
+                if i + 1 == Shgd._TRIES:
                     progress.failure('Failed')
+                    helper.error("Failed to connect to ssh")
                 else:
                     progress.status('Trying again')
                 time.sleep(15)

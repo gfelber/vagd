@@ -1,16 +1,15 @@
 import os
-import sys
 import time
 from shutil import which, copyfile
 from typing import Dict
 from urllib.parse import urlparse
 
-import requests
-
 from vagd import helper
 from vagd.box import Box
 from vagd.virts.pwngd import Pwngd
 from vagd.virts.shgd import Shgd
+from urllib.request import urlretrieve
+import pwnlib
 
 
 class Qegd(Shgd):
@@ -21,11 +20,15 @@ class Qegd(Shgd):
     :param img: qemu image to use (requires ssh)
     :param user: user inside qemu image
     :param ports: forwarded ports
-    :param arm: if qemu is arm
+    :param arm: emulate arm in qemu
     :param qemu: qemu cmd
     :param cpu: value for :code -cpu
+    :param memory: value for :code -m
+    :param cores: value for :code -smp
     :param machine: value for :code -machine
-    :param pflash: value for :code -pflash
+    :param bios: value for :code -bios
+    :param custom: custom qemu arguments
+    :param detach: run qemu in new terminal
     :param kwargs: parameters to pass through to super
 
     | SSH from cmd
@@ -64,18 +67,27 @@ class Qegd(Shgd):
     DEFAULT_HOST = '0.0.0.0'
     TYPE = 'qegd'
     DEFAULT_PORT = 2222
-    ARM_FLASH = "/usr/share/AAVMF/AAVMF_CODE.fd"
-    DEFAULT_QEMU_ARM_PFLASH_OPTIONS = ""
-    DEFAULT_QEMU_ARM_PFLASH = QEMU_DIR + "flash.img"
+
     DEFAULT_QEMU_CMD = "qemu-system-x86_64"
     DEFAULT_QEMU_ARM_CMD = "qemu-system-aarch64"
+
     DEFAULT_QEMU_MACHINE_PREFIX = "-machine"
     DEFAULT_QEMU_MACHINE = "accel=kvm,type=q35"
     DEFAULT_QEMU_ARM_MACHINE = "virt"
+
     DEFAULT_QEMU_CPU_PREFIX = "-cpu"
     DEFAULT_QEMU_CPU = "host"
-    DEFAULT_QEMU_ARM_CPU = "cortex-a57"
-    DEFAULT_QEMU_PFLASH_PREFIX = "-pflash"
+    DEFAULT_QEMU_ARM_CPU = "cortex-a72"
+
+    DEFAULT_QEMU_CORES_PREFIX = "-smp"
+    DEFAULT_QEMU_CORES = "2"
+
+    DEFAULT_QEMU_BIOS_PREFIX = "-bios"
+    DEFAULT_QEMU_ARM_BIOS = "/usr/share/edk2/aarch64/QEMU_EFI.fd"
+
+    DEFAULT_QEMU_MEMORY_PREFIX = "-m"
+    DEFAULT_QEMU_MEMORY = "2G"
+
 
     _img: str
     _local_img: str
@@ -85,8 +97,12 @@ class Qegd(Shgd):
     _ports: Dict[int, int]
     _qemu: str
     _cpu: str
-    _pflash: str
+    _cores: str
+    _memory: str
+    _bios: str
+    _cores: str
     _machine: str
+    _detach: bool
 
     @staticmethod
     def _is_local(url) -> bool:
@@ -115,11 +131,8 @@ class Qegd(Shgd):
             self._local_img = Qegd.IMGS_DIR + urlparse(self._img).path.rsplit('/', 1)[-1]
             if not os.path.exists(self._local_img):
                 helper.info("online qemu image starting download")
-                img = requests.get(self._img)
-                with open(self._local_img, 'wb') as imgfile:
-                    helper.info(f"saving image to {self._local_img}")
-                    os.system(f'qemu-img resize {self._local_img} 10G')  # resize image
-                    imgfile.write(img.content)
+                urlretrieve(self._img, self._local_img)
+                helper.info(f"saved image to {self._local_img}")
         copyfile(self._local_img, Qegd.CURRENT_IMG)
 
     METADATA_FILE = QEMU_DIR + 'metadata.yaml'
@@ -166,18 +179,21 @@ users:
     _QEMU_PORT_FORWARDING = ',hostfwd=tcp::{host}-:{guest}'
     _QEMU_START = "{qemu} " \
                   + "{machine} " \
+                  + "{cores} " \
                   + "{cpu} " \
-                  + "-m 2G " \
+                  + "{memory} " \
                   + "-nographic " \
-                  + "{pflash} " \
+                  + "{bios} " \
                   + "-device virtio-net-pci,netdev=net0 " \
                   + "-netdev user,id=net0,hostfwd=tcp::{port}-:22" \
                   + "{ports} " \
                   + "-drive if=virtio,format=qcow2,file={img} " \
                   + "-drive if=virtio,format=raw,file={seed} " \
-                  + "{custom} " \
-                  + "&> /dev/null; " \
-                  + "rm {lock} {current}"
+                  + "{custom} "
+
+    _QEMU_PIPE = "&> /dev/null; "
+
+    _QEMU_SUFFIX = "rm {lock} {current}"
 
     _QEMU_ARM_START = ""
     LOCKFILE = QEMU_DIR + "qemu.lock"
@@ -190,25 +206,34 @@ users:
         helper.info(f"starting qemu machine, ssh port {self._port}")
         with open(Qegd.LOCKFILE, 'w') as lockfile:
             lockfile.write(str(self._port))
-        pid = os.fork()
-        if pid == 0:
-            copyfile(Qegd.ARM_FLASH, Qegd.DEFAULT_QEMU_ARM_PFLASH)
-            port_forwarding = "".join(Qegd._QEMU_PORT_FORWARDING.format(host=host, guest=guest)
-                                      for host, guest in self._ports.items())
-            qemu_cmd = Qegd._QEMU_START.format(qemu=self._qemu,
-                                               machine=f'{Qegd.DEFAULT_QEMU_MACHINE_PREFIX} {self._machine}' if self._machine else '',
-                                               cpu=f'{Qegd.DEFAULT_QEMU_CPU_PREFIX} {self._cpu}' if self._cpu else '',
-                                               pflash=f'{Qegd.DEFAULT_QEMU_PFLASH_PREFIX} {self._pflash}' if self._pflash else '',
-                                               port=self._port,
-                                               ports=port_forwarding,
-                                               img=Qegd.CURRENT_IMG,
-                                               custom='',
-                                               seed=Qegd.SEED_FILE,
-                                               lock=f'{Qegd.LOCKFILE} {Pwngd.LOCKFILE}',
-                                               current=Qegd.CURRENT_IMG)
-            helper.info(qemu_cmd)
-            os.system(qemu_cmd)
-            exit(0)
+        port_forwarding = "".join(Qegd._QEMU_PORT_FORWARDING.format(host=host, guest=guest)
+                                  for host, guest in self._ports.items())
+        qemu_cmd = Qegd._QEMU_START.format(qemu=self._qemu,
+                                           machine=f'{Qegd.DEFAULT_QEMU_MACHINE_PREFIX} {self._machine}' if self._machine else '',
+                                           cores=f'{Qegd.DEFAULT_QEMU_CORES_PREFIX} {self._cores}' if self._cores else '',
+                                           cpu=f'{Qegd.DEFAULT_QEMU_CPU_PREFIX} {self._cpu}' if self._cpu else '',
+                                           memory=f'{Qegd.DEFAULT_QEMU_MEMORY_PREFIX} {self._memory}' if self._memory else '',
+                                           bios=f'{Qegd.DEFAULT_QEMU_BIOS_PREFIX} {self._bios}' if self._bios else '',
+                                           port=self._port,
+                                           ports=port_forwarding,
+                                           img=Qegd.CURRENT_IMG,
+                                           custom=self._custom if self._custom else '',
+                                           seed=Qegd.SEED_FILE)
+        qemu_suffix =  Qegd._QEMU_SUFFIX.format(lock=f'{Qegd.LOCKFILE} {Pwngd.LOCKFILE}',
+                                                current=Qegd.CURRENT_IMG)
+
+        helper.info(qemu_cmd)
+        if self._detach:
+            pwnlib.util.misc.run_in_new_terminal(qemu_cmd, kill_at_exit=False)
+        else:
+            pid = os.fork()
+            if pid == 0:
+                if self._detach:
+                    pass
+                else:
+                    qemu_cmd += Qegd._QEMU_PIPE + qemu_suffix
+                    os.system(qemu_cmd)
+                exit(0)
 
     def _new_vm(self) -> None:
         """
@@ -219,8 +244,8 @@ users:
         helper.info(f"no Lockfile in {Qegd.LOCKFILE}")
         self._set_local_img()
         self._setup_seed()
-        # start qemu in independent process
         self._port = helper.first_free_port(Qegd.DEFAULT_PORT)
+        # start qemu in independent process
         self._qemu_start()
         time.sleep(15)
 
@@ -248,9 +273,13 @@ users:
                  ports: Dict[int, int] = None,
                  arm: bool = False,
                  qemu: str = DEFAULT_QEMU_CMD,
-                 machine: str = DEFAULT_QEMU_MACHINE,
                  cpu: str = DEFAULT_QEMU_CPU,
-                 pflash: str = None,
+                 memory: str = DEFAULT_QEMU_MEMORY,
+                 machine: str = DEFAULT_QEMU_MACHINE,
+                 cores: str = DEFAULT_QEMU_CORES,
+                 bios: str = None,
+                 detach: bool = False,
+                 custom: str = "",
                  **kwargs):
         """
 
@@ -258,16 +287,20 @@ users:
         :param img: qemu image to use (requires ssh)
         :param user: user inside qemu image
         :param ports: forwarded ports
-        :param arm: if qemu is arm
+        :param arm: emulate arm in qemu
         :param qemu: qemu cmd
         :param cpu: value for :code -cpu
+        :param memory: value for :code -m
+        :param cores: value for :code -smp
         :param machine: value for :code -machine
-        :param pflash: value for :code -pflash
+        :param bios: value for :code -bios
+        :param custom: custom qemu arguments
+        :param detach: run qemu in new terminal
         :param kwargs: parameters to pass through to super
         """
 
-        if not which('qemu-system-x86_64'):
-            helper.error('qemu-system-x86_64 isn\'t installed')
+        if not which(qemu):
+            helper.error(qemu + ' isn\'t installed')
 
         if not os.path.exists(Qegd.QEMU_DIR):
             helper.info(f"Generating {Qegd.QEMU_DIR} dir")
@@ -277,15 +310,18 @@ users:
             qemu = Qegd.DEFAULT_QEMU_ARM_CMD if qemu == Qegd.DEFAULT_QEMU_CMD else qemu
             cpu = Qegd.DEFAULT_QEMU_ARM_CPU if cpu == Qegd.DEFAULT_QEMU_CPU else cpu
             machine = Qegd.DEFAULT_QEMU_ARM_MACHINE if machine == Qegd.DEFAULT_QEMU_MACHINE else machine
-            pflash = Qegd.DEFAULT_QEMU_ARM_PFLASH_OPTIONS + Qegd.DEFAULT_QEMU_ARM_PFLASH if pflash is None else pflash
+            bios = Qegd.DEFAULT_QEMU_ARM_BIOS if bios is None else bios
 
         self._img = img
         self._ports = ports if ports else dict()
-        self._arm = arm
         self._qemu = qemu
         self._cpu = cpu
+        self._memory = memory
+        self._cores = cores
         self._machine = machine
-        self._pflash = pflash
+        self._bios = bios
+        self._custom = custom
+        self._detach = detach
 
         self._vm_setup()
 
