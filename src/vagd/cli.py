@@ -6,7 +6,6 @@ from typing import Optional, Dict, List
 
 import typer
 from rich.console import Console
-+
 from rich.syntax import Syntax
 
 from vagd import helper
@@ -27,6 +26,9 @@ VAGD_BOX = "Box.VAGRANT_JAMMY64"
 VAGD = "vm = Vagd(exe.path, {box}, {args})  # Vagrant"
 
 app = typer.Typer(context_settings={"help_option_names": ["-h", "--help"]})
+
+err_console = Console(stderr=True)
+console = Console()
 
 
 def _version(value: bool) -> None:
@@ -74,6 +76,7 @@ def template(
         output: Optional[str] = typer.Option('', '-o',
                                              help='output file of the template (also add +x), default stdout'),
         libc: Optional[str] = typer.Option('', '--libc', '-l', help='add libc to template'),
+        libs: Optional[bool] = typer.Option(False, '--libs', help='download libraries from virt'),
         files: Optional[List[str]] = typer.Option([], '--files', '-f', help='add files to remote'),
         aslr: Optional[bool] = typer.Option(False, '--aslr', '-a', help='enable gdb ASLR (default: disabled for gdb)'),
         dogd: Optional[bool] = typer.Option(False, '--dogd', '--docker', '-d', help='create docker template'),
@@ -112,12 +115,18 @@ def template(
     if sum((dogd, qegd, vagd, shgd)) > 1:
         multi = True
 
+
+    env = {}
     if libc:
         files.append(libc)
+        env['LD_PRELOAD'] = os.path.basename(libc)
 
     dependencies = []
     vms = []
     args = dict()
+
+    if libs:
+        args['libs'] = True
 
     if files:
         args['files'] = '[' + ','.join(f"'{file}'" for file in files) + ']'
@@ -137,10 +146,14 @@ def template(
     with open(aliasesPath, 'r') as aliases_file:
         aliases = aliases_file.read()
 
+
+    if libc and libs:
+        err_console.print("using --libs and --libc, uncomment libc after init")
+
     with (open(templatePath, 'r') as templateFile):
         for line in templateFile.readlines():
 
-            if libc and line.startswith('# libc'):
+            if libc and not libs and line.startswith('# libc'):
                 templateChunks.append(line[2:])
             else:
                 templateChunks.append(line)
@@ -150,6 +163,7 @@ def template(
                                                   binary=binary,
                                                   ip=ip,
                                                   port=str(port),
+                                                  env=env,
                                                   libc=libc,
                                                   aslr=aslr,
                                                   dependencies=', '.join(dependencies),
@@ -164,7 +178,6 @@ def template(
             new_permissions = current_permissions | (stat.S_IXUSR)
             os.chmod(output, new_permissions)
         else:
-            console = Console()
             syntax = Syntax(template, 'python', theme='ansi_dark')
             console.print(syntax)
 

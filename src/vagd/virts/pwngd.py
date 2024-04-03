@@ -58,14 +58,17 @@ class Pwngd(ABC):
         """
         pass
 
-    def _sync(self, file: str) -> None:
+    def _sync(self, file: str) -> bool:
         """
         upload file on remote if not exist
         :type file: file to upload
+        :return: if the file was uploaded
         """
-        sshpath = pwnlib.filesystem.SSHPath(os.path.basename(file))
+        sshpath = pwnlib.filesystem.SSHPath(file)
         if not sshpath.exists():
             self.put(file)
+            return True
+        return False
 
     _SSHFS_TEMPLATE = \
         'sshfs -p {port} -o StrictHostKeyChecking=no,ro,IdentityFile={keyfile} {user}@{host}:{remote_dir} {local_dir}'
@@ -153,8 +156,21 @@ class Pwngd(ABC):
         else:
             self._ssh.download_file(file, local=local)
 
+    LIBS_DIRECTORY = "libs"
+    def libs(self, directory=None):
+        """
+        Downloads the libraries referred to by a file.
+        This is done by running ldd on the remote server, parsing the output and downloading the relevant files.
+
+        directory(str): Output directory
+        :return:
+        """
+        for lib in self._ssh._libs_remote(self._binary).keys():
+            self.pull(lib, directory + '/' + os.path.basename(lib))
+
     def __init__(self,
                  binary: str,
+                 libs=False,
                  files: Union[str, list[str]] = None,
                  packages: List[str] = None,
                  symbols=True,
@@ -166,6 +182,7 @@ class Pwngd(ABC):
         Default init setups provided ssh machine
 
         :param binary: binary for VM debugging
+        :param libs: download libraries (using ldd) from VM
         :param files: other files or directories that need to be uploaded to VM
         :param packages: packages to install on vm
         :param symbols: additionally install libc6 debug symbols
@@ -175,14 +192,29 @@ class Pwngd(ABC):
         :param ex: if experimental features should be enabled
         """
 
+        self._path = binary
+        self._gdbsrvport = gdbsrvport
+        self._binary = './' + os.path.basename(binary)
+
+
+        pwnlib.context.context.ssh_session = self._ssh
+
+        if tmp:
+            self._ssh.set_working_directory()
+
+        if self._sync(self._path):
+            self.system('chmod +x ' + self._binary)
+
+        if self.is_new and libs:
+            if not (os.path.exists(Pwngd.LIBS_DIRECTORY)):
+                os.makedirs(Pwngd.LIBS_DIRECTORY)
+
+            self.libs(Pwngd.LIBS_DIRECTORY)
+
         if self.is_new and packages is not None:
             if symbols:
                 packages.append(Pwngd.LIBC6_DEBUG)
             self._install_packages(packages)
-
-        self._path = binary
-        self._gdbsrvport = gdbsrvport
-        self._binary = './' + os.path.basename(binary)
 
         self._fast = fast
         self._experimental = ex
@@ -192,13 +224,6 @@ class Pwngd(ABC):
                 self._mount_lib()
             else:
                 helper.error('requires experimental features, activate with ex=True')
-
-        pwnlib.context.context.ssh_session = self._ssh
-        if tmp:
-            self._ssh.set_working_directory()
-
-        self._sync(self._path)
-        self.system('chmod +x ' + self._binary)
 
         # Copy files to remote
         if isinstance(files, str):
