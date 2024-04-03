@@ -13,9 +13,9 @@ from vagd.virts.pwngd import Pwngd
 from vagd.virts.qegd import Qegd
 from vagd.virts.vagd import Vagd
 
-DOGD = "vm = Dogd(exe.path, image=Box.DOCKER_JAMMY, ex=True, fast=True{files})  # Docker"
-QEGD = "vm = Qegd(exe.path, img=Box.QEMU_JAMMY, ex=True, fast=True{files})  # Qemu"
-SHGD = "vm = Shgd(exe.path, user='user', host='localhost', port=22, ex=True, fast=True{files})  # SSH"
+DOGD = "vm = Dogd(exe.path, image=Box.DOCKER_JAMMY, fast=True{files})  # Docker"
+QEGD = "vm = Qegd(exe.path, img=Box.QEMU_JAMMY, fast=True{files})  # Qemu"
+SHGD = "vm = Shgd(exe.path, user='user', host='localhost', port=22, fast=True{files})  # SSH"
 
 # deprecated
 VAGD = "vm = Vagd(exe.path, vbox=Box.VAGRANT_JAMMY64, ex=True, fast=True{files})  # Vagrant"

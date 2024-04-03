@@ -135,7 +135,7 @@ files on the virtual instance are never overwritten this has performance reason 
 
 ### gdb performance
 
-Using gdbserver and gdb to index libraries can be very slow. Therefore an experimental feature is available that mounts libraries locally: `Dogd(..., ex=True, fast=True)` 
+Using gdbserver and gdb to index libraries can be very slow. Therefore a feature is available that tries to mount libraries locally: `Dogd(..., ex=True, fast=True)` 
 
 
 

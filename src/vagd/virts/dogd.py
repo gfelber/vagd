@@ -17,8 +17,8 @@ class Dogd(Shgd):
     :param image: docker base image
     :param user: name of user on docker container
     :param forward: Dictionary of forwarded ports, needs to follow docker api format: 'hostport/(tcp|udp)' : guestport
-    :param ex: if experimental features, e.g. alpine, gdbserver should be enabled
-    :param fast: mounts libs locally for faster symbol extraction (experimental) NOT COMPATIBLE WITH ALPINE
+    :param fast: mounts libs locally for faster symbol extraction
+
     :param kwargs: parameters to pass through to super
 
     | SSH from cmd
@@ -151,7 +151,6 @@ class Dogd(Shgd):
                  image: str = DEFAULT_IMAGE,
                  user: str = DEFAULT_USER,
                  forward: Dict[str, int] = None,
-                 ex: bool = False,
                  fast: bool = False,
                  **kwargs):
         """
@@ -160,23 +159,19 @@ class Dogd(Shgd):
         :param image: docker base image
         :param user: name of user on docker container
         :param forward: Dictionary of forwarded ports, needs to follow docker api format: 'hostport/(tcp|udp)' : guestport
-        :param ex: if experimental features, e.g. alpine, gdbserver should be enabled
-        :param fast: mounts libs locally for faster symbol extraction (experimental) NOT COMPATIBLE WITH ALPINE
+        :param fast: mounts libs locally for faster symbol extraction
         :param kwargs: parameters to pass through to super
         """
 
         self._image = image
         self._isalpine = 'alpine' in image
-        self._gdbsrvport = -1
+        self._gdbsrvport = 0
         self._dockerdir = Dogd.DOCKERHOME + f'{self._image}/'
         if not (os.path.exists(Dogd.DOCKERHOME) and os.path.exists(self._dockerdir)):
             os.makedirs(self._dockerdir)
         self._dockerfile = self._dockerdir + 'Dockerfile'
         self._user = user
         self._forward = forward
-        self._ex = ex
-        if self._isalpine and not self._ex:
-            helper.error("Docker alpine images requires experimental features")
         if self._forward is None:
            self._forward = dict()
 
@@ -185,7 +180,6 @@ class Dogd(Shgd):
         super().__init__(binary=binary,
                          user=self._user,
                          port=self._port,
-                         ex=ex,
                          fast=fast,
                          gdbsrvport=self._gdbsrvport,
                          **kwargs)

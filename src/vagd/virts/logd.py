@@ -107,7 +107,7 @@ class Logd(Pwngd):
         start binary locally and return pwnlib.tubes.process.process
         :param argv: commandline arguments for binary
         :param gdbscript: GDB script for GDB
-        :param api: if GDB API should be enabled (experimental)
+        :param api: if GDB API should be enabled
         :param kwargs: pwntool parameters
         :return: pwntools process, if api=True tuple with gdb api
         """
