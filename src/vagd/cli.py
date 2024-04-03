@@ -13,20 +13,26 @@ from vagd.virts.pwngd import Pwngd
 from vagd.virts.qegd import Qegd
 from vagd.virts.vagd import Vagd
 
-DOGD = "vm = Dogd(exe.path, image=Box.DOCKER_JAMMY, ex=True, fast=True{files})  # Docker"
-QEGD = "vm = Qegd(exe.path, img=Box.QEMU_JAMMY, ex=True, fast=True{files})  # Qemu"
-SHGD = "vm = Shgd(exe.path, user='user', host='localhost', port=22, ex=True, fast=True{files})  # SSH"
+DOGD_BOX = "Box.DOCKER_JAMMY"
+DOGD = "vm = Dogd(exe.path, image={box}, {args})  # Docker"
+QEGD_BOX = "Box.QEMU_JAMMY"
+QEGD = "vm = Qegd(exe.path, img={box}, {args})  # Qemu"
+SHGD = "vm = Shgd(exe.path, user='user', host='localhost', port=22, {args})  # SSH"
 
 # deprecated
-VAGD = "vm = Vagd(exe.path, vbox=Box.VAGRANT_JAMMY64, ex=True, fast=True{files})  # Vagrant"
+VAGD_BOX = "Box.VAGRANT_JAMMY64"
+VAGD = "vm = Vagd(exe.path, {box}, {args})  # Vagrant"
 
 app = typer.Typer(context_settings={"help_option_names": ["-h", "--help"]})
+
 
 def _version(value: bool) -> None:
     if value:
         version = importlib.metadata.version('vagd')
         typer.echo(f"VAGD v{version}")
         raise typer.Exit()
+
+
 @app.callback()
 def main(
         version: Optional[bool] = typer.Option(
@@ -37,43 +43,65 @@ def main(
             callback=_version,
             is_eager=True,
         ),
-    ) -> None:
-        pass
+) -> None:
+    pass
 
-def add_virt(dependencies:List[str], vms:List[str], dependency:str, template:str, files:List[str], multi=False):
-    files_str = '' if len(files) == 0 else ', files=[\''
-    files_str += '\', \''.join(files)
-    files_str += '' if len(files) == 0 else '\']'
+
+def add_virt(dependencies: List[str],
+             vms: List[str],
+             dependency: str,
+             template: str,
+             args: Dict[str, str],
+             multi=False,
+             box=''):
 
     dependencies.append(dependency)
-    vms.append(('# ' if multi else '') + template.format(files=files_str))
+    args_str = ', '.join(f'{k}={v}' for k, v in args.items())
+    vm = template.format(box=box, args=args_str)
+    vms.append(('# ' if multi else '') + vm)
+
 
 @app.command()
 def template(
         binary: Optional[str] = typer.Argument('', help='Binary to Exploit'),
         ip: Optional[str] = typer.Argument('', help='Ip or Domain of the remote target'),
         port: Optional[int] = typer.Argument(0, help='port of the remote target'),
-        output_exploit: Optional[bool] = typer.Option(False, '-e', help='output file of the template (also add +x) to exploit.py'),
-        output: Optional[str] = typer.Option('', '-o', help='output file of the template (also add +x), default stdout'),
+        output_exploit: Optional[bool] = typer.Option(False, '-e',
+                                                      help='output file of the template (also add +x) to exploit.py'),
+        output: Optional[str] = typer.Option('', '-o',
+                                             help='output file of the template (also add +x), default stdout'),
         libc: Optional[str] = typer.Option('', '--libc', '-l', help='add libc to template'),
         files: Optional[List[str]] = typer.Option([], '--files', '-f', help='add files to remote'),
         aslr: Optional[bool] = typer.Option(False, '--aslr', '-a', help='enable gdb ASLR (default: disabled for gdb)'),
         dogd: Optional[bool] = typer.Option(False, '--dogd', '--docker', '-d', help='create docker template'),
+        image: Optional[str] = typer.Option(DOGD_BOX, '--image', help='docker image to use'),
         qegd: Optional[bool] = typer.Option(False, '--qegd', '--qemu', '-q', help='create qemu template'),
+        img: Optional[str] = typer.Option(QEGD_BOX, '--img', help='qemu cloud image to use'),
         vagd: Optional[bool] = typer.Option(False, '--vagd', '--vagrant', help='DEPRECATED: create vagrant template'),
+        vbox: Optional[str] = typer.Option(VAGD_BOX, '--vbox', help='vagrant box to use'),
         shgd: Optional[bool] = typer.Option(False, '--shgd', '--ssh', '-s', help='create ssh template'),
         local: Optional[bool] = typer.Option(False, '--local', help='create local template'),
 ):
     """
     creates a template
     """
+
+    if image != DOGD_BOX:
+        dogd = True
+
+    if img != QEGD_BOX:
+        qegd = True
+
+    if vbox != VAGD_BOX:
+        vagd = True
+
     templatePath = os.path.dirname(os.path.realpath(__file__))
     templateChunks = []
     aliasesPath = templatePath + "/res/aliases.txt"
     templatePath += '/res/local_template.txt' if local else '/res/template.txt'
     multi = False
     if not any((dogd, qegd, vagd, shgd)):
-        dogd = qegd = shgd = True
+        dogd = qegd = True
         multi = True
 
     if libc:
@@ -81,14 +109,22 @@ def template(
 
     dependencies = []
     vms = []
+    args = dict()
+
+    if files:
+        args['files'] = '[' + ','.join(f"'{file}'" for file in files) + ']'
+
+    args['ex'] = 'True'
+    args['fast'] = 'True'
+
     if dogd:
-        add_virt(dependencies, vms, 'Dogd', DOGD, files)
+        add_virt(dependencies, vms, 'Dogd', DOGD, args, box=image)
     if qegd:
-        add_virt(dependencies, vms, 'Qegd', QEGD, files, multi)
+        add_virt(dependencies, vms, 'Qegd', QEGD, args, multi, box=img)
     if vagd:
-        add_virt(dependencies, vms, 'Vagd', VAGD, files, multi)
+        add_virt(dependencies, vms, 'Vagd', VAGD, args, multi, box=vbox)
     if shgd:
-        add_virt(dependencies, vms, 'Shgd', SHGD, files, multi)
+        add_virt(dependencies, vms, 'Shgd', SHGD, args, multi)
 
     with open(aliasesPath, 'r') as aliases_file:
         aliases = aliases_file.read()
@@ -121,10 +157,12 @@ def template(
             os.chmod(output, new_permissions)
         else:
             typer.echo(template)
+
+
 @app.command()
 def info(
         binary: str = typer.Argument(..., help='Binary to analyse'),
-    ):
+):
     """
     analyses the binary, prints checksec and .comment (often includes Distro and Compiler info)
     """
@@ -152,6 +190,7 @@ def _exec(cmd: str, env: Dict = None):
 def _ssh(port, user):
     os.system(
         f'ssh -o "StrictHostKeyChecking=no" -i {Pwngd.KEYFILE} -p {port} {user}@0.0.0.0')
+
 
 @app.command()
 def ssh(
@@ -253,6 +292,7 @@ def clean():
         sys.stderr.write(f"Unknown type in {Pwngd.LOCKFILE}: {typ}\n")
         exit(1)
     os.remove(Pwngd.LOCKFILE)
+
 
 def start():
     app()
