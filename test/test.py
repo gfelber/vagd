@@ -41,9 +41,14 @@ def virts():
     if args.VAGRANT:
 
         log.info("Testing Vagrant")
-        os.system(f"VAGRANT_CWD={Vagd.LOCAL_DIR} vagrant destroy")
-        vm = Vagd(exe.path, vbox=Box.VAGRANT_JAMMY64, tmp=True, fast=True, ex=True)
+
+        if os.path.exists(Vagd.VAGRANTFILE_PATH):
+            os.system(f"VAGRANT_CWD={Vagd.LOCAL_DIR} vagrant destroy -f")
+            os.remove(Vagd.VAGRANTFILE_PATH)
+
+        vm = Vagd(exe.path, vbox=Box.VAGRANT_JAMMY64, packages=['cowsay'], tmp=True, fast=True, ex=True)
         assert vm.is_new, "vm should be new"
+        assert vm._ssh.which('cowsay'), "cowsay wasn't installed"
         test_lockfile(Vagd.TYPE)
         yield vm
         vm._ssh.close()
@@ -67,8 +72,9 @@ def virts():
     if os.path.exists(Dogd.LOCKFILE):
         os.remove(Dogd.LOCKFILE)
     log.info("Testing Docker for Ubuntu")
-    vm = Dogd(exe.path, image=Box.DOCKER_NOBLE, tmp=True, ex=True, fast=True)
+    vm = Dogd(exe.path, image=Box.DOCKER_NOBLE, packages=['cowsay'], tmp=True, ex=True, fast=True)
     assert vm.is_new, "vm should be new"
+    assert vm._ssh.which('cowsay'), "cowsay wasn't installed"
     yield vm
     vm._ssh.close()
 
@@ -93,8 +99,9 @@ def virts():
 
     os.system("vagd clean")
     log.info("Testing Qemu")
-    vm = Qegd(exe.path, img=Box.QEMU_NOBLE, tmp=True, ex=True, fast=True)
+    vm = Qegd(exe.path, img=Box.QEMU_NOBLE, tmp=True, packages=['cowsay'], ex=True, fast=True)
     assert vm.is_new, "vm should be new"
+    assert vm._ssh.which('cowsay'), "cowsay wasn't installed"
     yield vm
     vm._ssh.close()
 
@@ -119,7 +126,7 @@ for virt in virts():
         g.execute('p "PWN"')
         g.execute('c')
 
-    out = b''.join(t.recvlines(3))
+    out = b'\n'.join(t.recvlines(3))
 
     log.info(out.decode())
     t.close()

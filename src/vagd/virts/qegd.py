@@ -1,7 +1,7 @@
 import os
 import time
 from shutil import which, copyfile
-from typing import Dict
+from typing import Dict, List
 from urllib.parse import urlparse
 
 from vagd import helper
@@ -20,6 +20,7 @@ class Qegd(Shgd):
     :param img: qemu image to use (requires ssh)
     :param user: user inside qemu image
     :param ports: forwarded ports
+    :param packages: packages to install on vm
     :param arm: emulate arm in qemu
     :param qemu: qemu cmd
     :param cpu: value for :code -cpu
@@ -60,7 +61,7 @@ class Qegd(Shgd):
 
     """
 
-    DEFAULT_IMG = Box.QEMU_JAMMY
+    DEFAULT_IMG = Box.QEMU_NOBLE
     QEMU_DIR = Pwngd.LOCAL_DIR
     IMGS_DIR = Pwngd.HOME_DIR + 'qemu-imgs/'
     DEFAULT_USER = 'vagd'
@@ -271,6 +272,7 @@ users:
                  img: str = DEFAULT_IMG,
                  user: str = DEFAULT_USER,
                  ports: Dict[int, int] = None,
+                 packages: List[str] = None,
                  arm: bool = False,
                  qemu: str = DEFAULT_QEMU_CMD,
                  cpu: str = DEFAULT_QEMU_CPU,
@@ -287,6 +289,7 @@ users:
         :param img: qemu image to use (requires ssh)
         :param user: user inside qemu image
         :param ports: forwarded ports
+        :param packages: packages to install on vm
         :param arm: emulate arm in qemu
         :param qemu: qemu cmd
         :param cpu: value for :code -cpu
@@ -301,6 +304,9 @@ users:
 
         if not which(qemu):
             helper.error(qemu + ' isn\'t installed')
+
+        if packages is None:
+            packages = list()
 
         if not os.path.exists(Qegd.QEMU_DIR):
             helper.info(f"Generating {Qegd.QEMU_DIR} dir")
@@ -325,7 +331,6 @@ users:
 
         self._vm_setup()
 
-        super().__init__(binary=binary, user=user, host=self._host, port=self._port, **kwargs)
+        packages += Pwngd.DEFAULT_PACKAGES
 
-        if self.is_new:
-            self._install_packages(Pwngd.DEFAULT_PACKAGES)
+        super().__init__(binary=binary, user=user, host=self._host, port=self._port, packages=packages, **kwargs)
