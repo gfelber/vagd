@@ -1,3 +1,4 @@
+import logging
 import os
 import pathlib
 from abc import ABC, abstractmethod
@@ -118,6 +119,7 @@ class Pwngd(ABC):
 
     DEFAULT_PACKAGES = ['gdbserver', 'python3', 'sudo']
     LIBC6_DEBUG = 'libc6-dbg'
+    LIBC6_I386 = 'libc6-i386'
 
     def _install_packages(self, packages: Iterable):
         """
@@ -214,7 +216,14 @@ class Pwngd(ABC):
         if self.is_new and packages is not None:
             if symbols:
                 packages.append(Pwngd.LIBC6_DEBUG)
+            try:
+                elf = pwnlib.elf.ELF(binary)
+                if elf.arch == 'i386':
+                    packages.append(Pwngd.LIBC6_I386)
+            except:
+                helper.warn("failed to get architecture from binary")
             self._install_packages(packages)
+
 
         self._fast = fast
         self._experimental = ex
