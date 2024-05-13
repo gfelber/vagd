@@ -5,6 +5,9 @@ import sys
 from typing import Optional, Dict, List
 
 import typer
+from rich.console import Console
++
+from rich.syntax import Syntax
 
 from vagd import helper
 # prevents term.init
@@ -88,12 +91,15 @@ def template(
 
     if image != DOGD_BOX:
         dogd = True
+        image = f"'{image}'"
 
     if img != QEGD_BOX:
         qegd = True
+        img = f"'{img}'"
 
     if vbox != VAGD_BOX:
         vagd = True
+        vbox = f"'{vbox}'"
 
     templatePath = os.path.dirname(os.path.realpath(__file__))
     templateChunks = []
@@ -102,6 +108,8 @@ def template(
     multi = False
     if not any((dogd, qegd, vagd, shgd)):
         dogd = qegd = True
+
+    if sum((dogd, qegd, vagd, shgd)) > 1:
         multi = True
 
     if libc:
@@ -129,7 +137,7 @@ def template(
     with open(aliasesPath, 'r') as aliases_file:
         aliases = aliases_file.read()
 
-    with open(templatePath, 'r') as templateFile:
+    with (open(templatePath, 'r') as templateFile):
         for line in templateFile.readlines():
 
             if libc and line.startswith('# libc'):
@@ -156,7 +164,9 @@ def template(
             new_permissions = current_permissions | (stat.S_IXUSR)
             os.chmod(output, new_permissions)
         else:
-            typer.echo(template)
+            console = Console()
+            syntax = Syntax(template, 'python', theme='ansi_dark')
+            console.print(syntax)
 
 
 @app.command()
