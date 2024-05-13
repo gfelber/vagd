@@ -107,7 +107,7 @@ class Pwngd(ABC):
         """
         self.system("sudo apt update").recvall()
         packages_str = " ".join(packages)
-        self.system(f"sudo apt install -y {packages_str}").recvall()
+        self.system(f"NEEDRESTART_MODE=a sudo -E apt install -y {packages_str}").recvall()
 
     def put(self, file: str, remote: str = None):
         """
