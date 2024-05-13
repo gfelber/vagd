@@ -2,3 +2,4 @@ pwntools
 vagd
 python-vagrant
 sphinxcontrib.jquery
+sphinx-rtd-theme
