@@ -29,6 +29,7 @@ class Dogd(Shgd):
 
     | Docker containers are automatically removed after they stop
     | Docker images need to be manually removed from docker
+    | Dockerfiles are stored in home directory to allow caching ~/.vagd/docker/<image>/Dockerfile
     .. code-block:: bash
 
         docker images # list images
@@ -40,16 +41,18 @@ class Dogd(Shgd):
     _port: int
     _client: docker.client
     _id: str
+    _dockerdir: str
+    _dockerfile: str
     _isalpine: bool
     _ex: bool
     _forward: Dict[str, int]
 
+    DOCKERHOME = Pwngd.HOME_DIR + "docker/"
     DEFAULT_USER = 'vagd'
     DEFAULT_PORT = 2222
     DEFAULT_IMAGE = Box.DOCKER_FOCAL
 
     DEFAULT_PACKAGES = Pwngd.DEFAULT_PACKAGES + ["openssh-server"]
-    DEFAULT_DOCKERFILE = Pwngd.LOCAL_DIR + "Dockerfile"
     LOCKFILE = Pwngd.LOCAL_DIR + 'docker.lock'
 
     def _create_dockerfile(self):
@@ -60,7 +63,7 @@ class Dogd(Shgd):
 
         template = templates.DOCKER_ALPINE_TEMPLATE if self._isalpine else templates.DOCKER_TEMPLATE
 
-        with open(Dogd.DEFAULT_DOCKERFILE, 'w') as dockerfile:
+        with open(self._dockerfile, 'w') as dockerfile:
             dockerfile.write(
                 template.format(image=self._image,
                                 packages=' '.join(Dogd.DEFAULT_PACKAGES),
@@ -85,7 +88,7 @@ class Dogd(Shgd):
 
     def _vm_create(self):
 
-        if self._dockerfile == Dogd.DEFAULT_DOCKERFILE and not os.path.exists(self._dockerfile):
+        if not os.path.exists(self._dockerfile):
             self._create_dockerfile()
 
         self._bimage = self._build_image()
@@ -128,7 +131,10 @@ class Dogd(Shgd):
 
         self._image = image
         self._isalpine = 'alpine' in image
-        self._dockerfile = Dogd.DEFAULT_DOCKERFILE
+        self._dockerdir = Dogd.DOCKERHOME + f'{self._image}/'
+        if not (os.path.exists(Dogd.DOCKERHOME) and os.path.exists(self._dockerdir)):
+            os.makedirs(self._dockerdir)
+        self._dockerfile = self._dockerdir + 'Dockerfile'
         self._user = user
         self._forward = forward
         self._ex = ex
