@@ -8,9 +8,6 @@ on:
 jobs:
   pages:
     runs-on: ubuntu-20.04
-    run: |
-        apt-get update
-        apt-get install -y python3-sphinx-rtd-theme
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -18,5 +15,12 @@ jobs:
       pages: write
       id-token: write
     steps:
+    - name: Prereqs
+      run: |
+        apt-get update
+        apt-get install -y git
+        git clone --depth 1 "https://token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" .
+      shell: bash
+
     - id: deployment
       uses: sphinx-notes/pages@v3
