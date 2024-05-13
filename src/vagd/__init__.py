@@ -110,7 +110,7 @@ class Vagd(pwngd.Pwngd):
 class Qegd(pwngd.Pwngd):
     DEFAULT_IMG = 'https://cloud-images.ubuntu.com/focal/current/focal-server-cloudimg-amd64.img'
     QEMU_DIR = './.qemu/'
-    IMG_DIR = QEMU_DIR + 'qemu-img/'
+    IMG_DIR = '~/.qemu-imgs/'
     DEFAULT_USER = 'ubuntu'
     DEFAULT_HOST = '0.0.0.0'
     DEFAULT_PORT = 2222
@@ -125,7 +125,12 @@ class Qegd(pwngd.Pwngd):
     _keyfile: str
 
     @staticmethod
-    def _is_local(url):
+    def _is_local(url) -> bool:
+        """
+        check if provided url is local or remote
+        :param url: url to check
+        :return: if the url is local or remote
+        """
         url_parsed = urlparse(url)
         if url_parsed.scheme in ('file', ''):  # Possibly a local file
             return os.path.exists(url_parsed.path)
@@ -133,6 +138,11 @@ class Qegd(pwngd.Pwngd):
 
     @staticmethod
     def _is_port_in_use(port: int) -> bool:
+        """
+        check if a port is currently used
+        :param port: port to check
+        :return: if the port is already used
+        """
         import socket
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             return s.connect_ex(('localhost', port)) == 0
@@ -140,6 +150,9 @@ class Qegd(pwngd.Pwngd):
     CURRENT_IMG = QEMU_DIR + "current.img"
 
     def _set_local_img(self):
+        """
+        get local image for qemu machine
+        """
         if Qegd._is_local(self._img):
             pwn.log.info("Using local image")
             self._local_img = self._img
@@ -157,6 +170,9 @@ class Qegd(pwngd.Pwngd):
     GENERATE_KEYPAIR = 'ssh-keygen -q -t ed25519 -f {keyfile} -N ""'
 
     def _generate_keypair(self):
+        """
+        generate a keypair in .qemu directory
+        """
         if not (os.path.exists(Qegd.KEYFILE) and os.path.exists(Qegd.KEYFILE + '.pub')):
             pwn.log.info("No Keypair was found. Generating new keypair")
             os.system(Qegd.GENERATE_KEYPAIR.format(keyfile=Qegd.KEYFILE))
@@ -176,6 +192,9 @@ ssh_authorized_keys:
     GENERATE_SEED_IMG = f'cloud-localds {SEED_FILE} {USER_DATA_FILE} {METADATA_FILE}'
 
     def _setup_seed(self):
+        """
+        create seed.img with config data like ssh keypair in .qemu
+        """
         if not which('cloud-localds'):
             pwn.log.error("cloud-image-utils is not installed")
         if not os.path.exists(Qegd.SEED_FILE):
@@ -208,6 +227,9 @@ ssh_authorized_keys:
     LOCKFILE = QEMU_DIR + "qemu.lock"
 
     def _qemu_start(self):
+        """
+        start qemu machine
+        """
         pwn.log.info("starting qemu machine")
         with open(Qegd.LOCKFILE, 'w') as lockfile:
             lockfile.write(str(self._port))
@@ -220,6 +242,9 @@ ssh_authorized_keys:
                       )
 
     def _new_vm(self) -> None:
+        """
+        create new vm
+        """
         self._new = True
         for i in range(101):
             if not self._is_port_in_use(Qegd.DEFAULT_PORT + i):
@@ -262,6 +287,10 @@ ssh_authorized_keys:
         )
 
     def _install_packages(self, packages: Iterable):
+        """
+        install packages on remote machine
+        :param packages: packages to install on remote machine
+        """
         self.system("sudo apt update").recvall()
         packages_str = " ".join(packages)
         self.system(f"sudo apt install -y {packages_str}").recvall()
