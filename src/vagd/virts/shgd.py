@@ -1,4 +1,5 @@
 import time
+from typing import List
 
 import pwnlib.tubes.ssh
 
@@ -28,6 +29,26 @@ class Shgd(Pwngd):
     _keyfile: str
     _ssh: pwnlib.tubes.ssh.ssh
 
+    def bind(self, port: int) -> int:
+        """
+        bind port from ssh connection locally
+        :param port:
+        :return:
+        """
+
+        remote = self._ssh.connect_remote('127.0.0.1', port)
+        listener = pwnlib.tubes.listen.listen(0)
+        port = listener.lport
+
+        # Disable showing GDB traffic when debugging verbosity is increased
+        remote.level = 'error'
+        listener.level = 'error'
+
+        # Hook them up
+        remote.connect_both(listener)
+
+        return port
+
     def _vm_setup(self) -> None:
         """
         pass
@@ -35,6 +56,7 @@ class Shgd(Pwngd):
         pass
 
     _TRIES = 3  # three times the charm
+
     def _ssh_setup(self) -> None:
         """
         setup ssh connection
@@ -82,5 +104,3 @@ class Shgd(Pwngd):
         self._ssh_setup()
 
         super().__init__(binary=binary, **kwargs)
-
-

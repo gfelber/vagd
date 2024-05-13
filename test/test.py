@@ -1,4 +1,6 @@
 #!/bin/python
+import os
+
 from pwn import *
 import vagd.virts.pwngd
 from vagd import Vagd, Qegd, Shgd, Dogd, Logd, wrapper, Box
@@ -36,63 +38,76 @@ def virts():
     yield Logd(exe.path)
     context.log_level = 'info'
 
-    log.info("Testing Vagrant")
-    os.system(f"VAGRANT_CWD={Vagd.LOCAL_DIR} vagrant destroy")
-    vm = Vagd(exe.path, vbox=Box.VAGRANT_JAMMY64, tmp=True, fast=True, ex=True)
-    assert vm.is_new, "vm should be new"
-    test_lockfile(Vagd.TYPE)
-    yield vm
+    if args.VAGRANT:
 
-    log.info("Testing Vagrant restore")
-    vm = Vagd(exe.path, vbox=Box.VAGRANT_JAMMY64, tmp=True, fast=True, ex=True)
-    assert not vm.is_new, "vm shouldn't be new, restored"
-    yield vm
+        log.info("Testing Vagrant")
+        os.system(f"VAGRANT_CWD={Vagd.LOCAL_DIR} vagrant destroy")
+        vm = Vagd(exe.path, vbox=Box.VAGRANT_JAMMY64, tmp=True, fast=True, ex=True)
+        assert vm.is_new, "vm should be new"
+        test_lockfile(Vagd.TYPE)
+        yield vm
+        vm._ssh.close()
 
-    log.info("Testing Vagrant restart")
-    os.system(f"VAGRANT_CWD={Vagd.LOCAL_DIR} vagrant halt")
-    vm = Vagd(exe.path, vbox=Box.VAGRANT_JAMMY64, tmp=True, fast=True, ex=True)
-    assert not vm.is_new, "vm shouldn't be new, restarted"
-    yield vm
+        log.info("Testing Vagrant restore")
+        vm = Vagd(exe.path, vbox=Box.VAGRANT_JAMMY64, tmp=True, fast=True, ex=True)
+        assert not vm.is_new, "vm shouldn't be new, restored"
+        yield vm
+        vm._ssh.close()
 
-    os.system("vagd clean")
+        log.info("Testing Vagrant restart")
+        os.system(f"VAGRANT_CWD={Vagd.LOCAL_DIR} vagrant halt")
+        vm = Vagd(exe.path, vbox=Box.VAGRANT_JAMMY64, tmp=True, fast=True, ex=True)
+        assert not vm.is_new, "vm shouldn't be new, restarted"
+        yield vm
+        vm._ssh.close()
+
+        os.system("vagd clean")
+
+
     if os.path.exists(Dogd.LOCKFILE):
         os.remove(Dogd.LOCKFILE)
     log.info("Testing Docker for Ubuntu")
     vm = Dogd(exe.path, image=Box.DOCKER_JAMMY, tmp=True, ex=True, fast=True)
     assert vm.is_new, "vm should be new"
     yield vm
+    vm._ssh.close()
 
     log.info("Testing Docker for Ubuntu restore")
     vm = Dogd(exe.path, image=Box.DOCKER_JAMMY, tmp=True, ex=True, fast=True)
     assert not vm.is_new, "vm shouldn't be new, restored"
     yield vm
+    vm._ssh.close()
 
     os.system("vagd clean")
     log.info("Testing Docker for Alpine")
     vm = Dogd(exe.path + "_stat", image=Box.DOCKER_ALPINE_316, tmp=True, ex=True, fast=True)
     assert vm.is_new, "vm should be new"
     yield vm
+    vm._ssh.close()
 
     log.info("Testing Docker for Alpine restore")
     vm = Dogd(exe.path + "_stat", image=Box.DOCKER_ALPINE_316, tmp=True, ex=True, fast=True)
     assert not vm.is_new, "vm shouldn't be new, restored"
     yield vm
+    vm._ssh.close()
 
     os.system("vagd clean")
     log.info("Testing Qemu")
     vm = Qegd(exe.path, img=Box.QEMU_JAMMY, tmp=True, ex=True, fast=True)
     assert vm.is_new, "vm should be new"
     yield vm
+    vm._ssh.close()
 
     log.info("Testing Qemu restore")
     vm = Qegd(exe.path, img=Box.QEMU_JAMMY, tmp=True, ex=True, fast=True)
     assert not vm.is_new, "vm shouldn't be new, restored"
     yield vm
+    vm._ssh.close()
     user = vm._user
     port = vm._port
 
     log.info("Testing SSH")
-    yield Shgd(exe.path, user=user, port=port, tmp=True, ex=True, fast=True)
+    yield Shgd(exe.path, user=user, port=port, keyfile=vm._ssh.keyfile, tmp=True, ex=True, fast=True)
 
 
 for virt in virts():

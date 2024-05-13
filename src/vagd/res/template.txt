@@ -8,6 +8,7 @@ BINARY = '{binary}'
 ARGS = []
 ENV = {}
 GDB = f"""
+set follow-fork-mode parent
 
 c"""
 
