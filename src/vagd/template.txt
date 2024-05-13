@@ -1,4 +1,4 @@
-#!/bin/python
+#!/usr/bin/env python
 from vagd import Vagd, Qegd, Dogd, Box
 from pwn import *
 
@@ -20,14 +20,17 @@ phex = lambda x, y='': print(y + hex(x))
 lhex = lambda x, y='': log.info(y + hex(x))
 
 t = None
-sl = lambda x: t.sendline(x)
-s = lambda x: t.send(x)
-sla = lambda x, y: t.sendlineafter(x, y)
-sa = lambda x, y: t.sendafter(x, y)
-ra = lambda: t.recvall()
-rl = lambda: t.recvline()
-r = lambda x: t.recv(x)
-ru = lambda x: t.recvuntil(x)
+gt = lambda at=None: at if at else t
+sl = lambda x, t=None: gt(t).sendline(x)
+se = lambda x, t=None: gt(t).send(x)
+sla = lambda x, y, t=None: gt(t).sendlineafter(x, y)
+sa = lambda x, y, t=None: gt(t).sendafter(x, y)
+ra = lambda t=None: gt(t).recvall()
+rl = lambda t=None: gt(t).recvline()
+re = lambda x, t=None: gt(t).recv(x)
+ru = lambda x, t=None: gt(t).recvuntil(x)
+it = lambda t=None: gt(t).interactive()
+cl = lambda t=None: gt(t).close()
 
 vm = None
 def get_target(**kw):
