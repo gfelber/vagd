@@ -2,3 +2,7 @@ venv
 .idea
 .vagrant
 Vagrantfile
+build
+*.egg-info
+bin
+dist

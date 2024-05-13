@@ -5,7 +5,7 @@ from vagd import Vagd
 GDB_OFF = 0x555555555000
 IP = ''
 PORT = 0
-BINARY = ''
+BINARY = './sysinfo'
 ARGS = ('',)
 ENV = {'ENV_NAME': 'VALUE'}
 ASLR = False

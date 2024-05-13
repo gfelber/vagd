@@ -1,4 +1,5 @@
 import vagrant
+import fileinput
 import os
 from typing import Collection, Union
 import re
@@ -18,25 +19,38 @@ class Vagd:
     _binary: pwn.gdb
 
     def _get_box(self) -> str:
-        if os.path.isfile(self._vagrantfile):
-            with open(self._vagrantfile, 'r') as vagrantfile:
-                for line in vagrantfile.readlines():
-                    if 'config.vm.box' in line:
-                        pattern = r'config.vm.box = "(.*?)"'
-                        match = re.search(pattern, line, re.DOTALL)
-                        if match:
-                            return match.group(1)
+        with open(self._vagrantfile, 'r') as vagrantfile:
+            for line in vagrantfile.readlines():
+                if 'config.vm.box' in line:
+                    pattern = r'config.vm.box = "(.*?)"'
+                    match = re.search(pattern, line, re.DOTALL)
+                    if match:
+                        return match.group(1)
         return ''
 
     def _vagrant_setup(self):
-        if self._get_box() != self._box:
-            self._v.destroy()
+
+        if not os.path.isfile(self._vagrantfile):
             vagrant_config = VAGRANT_TEMPLATE.format(self._box)
             with open(self._vagrantfile, 'w') as file:
                 file.write(vagrant_config)
 
+        elif self._get_box() != self._box:
+            self._v.destroy()
+            for line in fileinput.input(self._vagrantfile, inplace=True):
+                if 'config.vm.box' in line:
+                    line = f'config.vm.box = "{self._box}"\n'
+                print(line, end='')
+
         self._v.up()
 
+    """
+
+    :param binary: binary for VM debugging
+    :param box: vagrant box to use
+    :param vagrantfile: location of Vagrantfile
+    :param files: other files or directory that need to be uploaded to VM
+    """
     def __init__(self,
                  binary: str,
                  box: str = VAGRANT_BOX,
@@ -63,24 +77,20 @@ class Vagd:
 
         if isinstance(files, str):
             self._ssh.put(files)
-            self._ssh
         elif isinstance(files, tuple):
             for file in files:
                 self._ssh.put(file)
 
+    """
+
+    :param argv: commandline arguments for binary 
+    :param gdbscript: GDB script for GDB
+    :param a: pwntool parameters
+    :param kw: pwntool parameters
+    :return: pwntools process
+    """
     def start(self, argv: Collection = ('',), gdbscript: str = '', *a, **kw) -> pwn.process:
         if pwn.args.GDB:
             return pwn.gdb.debug((self._binary,) + argv, ssh=self._ssh, gdbscript=gdbscript, *a, **kw)
         else:
             return self._ssh.process((self._binary,) + argv, *a, **kw)
-
-
-def main():
-    vagd = Vagd('./test/sysinfo')
-    t = vagd.start()
-    print(pwn.args.values())
-    t.interactive()
-
-
-if __name__ == '__main__':
-    main()
