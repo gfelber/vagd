@@ -11,10 +11,15 @@ test :
 		source ./venv/bin/activate; \
 	fi; \
 	cd test; \
-	VAGRANT_CWD=.vagd vagrant halt; \
-	kill $(pgrep qemu); \
+	mkdir bin 2> /dev/null; \
+	gcc sysinfo.c -o bin/sysinfo; \
+	vagd clean; \
 	echo STARTING TEST; \
-	python ./test.py GDB;
+	if python ./test.py GDB; then \
+    	echo "successful"; \
+    else \
+    	echo "test unsuccessful, pls fix"; \
+    fi;
 
 clean:
 	rm -r build dist src/*.egg-info || true

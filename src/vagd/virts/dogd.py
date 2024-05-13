@@ -2,7 +2,6 @@ import os
 from typing import Dict
 
 import docker
-import pwnlib
 
 from vagd import templates, helper
 from vagd.box import Box
@@ -93,6 +92,7 @@ class Dogd(Shgd):
                                 keyfile=os.path.basename(self._dockerdir + "keyfile.pub")))
 
     def _create_docker_instance(self):
+        self.is_new = True
         helper.info('starting docker instance')
         self._port = helper.first_free_port(Dogd.DEFAULT_PORT)
         self._forward.update({'22/tcp': self._port})
@@ -108,7 +108,7 @@ class Dogd(Shgd):
         self._id = container.id
         helper.info(f'started docker instance {container.short_id}')
         with open(Dogd.LOCKFILE, 'w') as lockfile:
-            lockfile.write(':'.join((container.id, str(self._port), str(self._gdbsrvport))))
+            lockfile.write(f'{container.id}:{str(self._port)}:{str(self._gdbsrvport)}')
 
     def _build_image(self):
         helper.info('building docker image')

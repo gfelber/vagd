@@ -1,7 +1,11 @@
 import time
+
 import pwnlib.tubes.ssh
+
 from vagd import helper
 from vagd.virts.pwngd import Pwngd
+
+
 class Shgd(Pwngd):
     """ 
     ssh interface for pwntools
@@ -22,6 +26,7 @@ class Shgd(Pwngd):
     _host: str
     _port: int
     _keyfile: str
+    _ssh: pwnlib.tubes.ssh.ssh
 
     def _vm_setup(self) -> None:
         """

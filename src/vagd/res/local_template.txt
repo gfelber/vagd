@@ -41,7 +41,7 @@ def get_target(**kw):
     if args.GDB:
         return gdb.debug([exe.path] + ARGS, env=ENV, gdbscript=GDB, **kw)
 
-    context.log_level = 'debug'
+    # context.log_level = 'debug'
     if args.REMOTE:
         return remote(IP, PORT)
 

@@ -1,22 +1,39 @@
 import os
+import sys
+
 import pwnlib.log
+
 from vagd.virts.pwngd import Pwngd
 
 _GENERATE_KEYPAIR = 'ssh-keygen -q -t ed25519 -f {keyfile} -N ""'
+log = pwnlib.log.getLogger(None)
+log.setLevel(pwnlib.log.logging.INFO)
 
-log = pwnlib.log.getLogger('vagd')
+
+def _ensure_log():
+    """
+    ensure the correct logger is set
+    """
+    global log
+    if 'pwn' in sys.modules:
+        from pwn import log as pwnlog
+        log = pwnlog
+
 def info(info: str):
     """
     log info with pwntools
     :param info: info to log
     """
+    _ensure_log()
     log.info(info)
+
 
 def debug(debug: str):
     """
     log debug with pwntools
     :param debug: debug to log
     """
+    _ensure_log()
     log.debug(debug)
 
 
@@ -25,6 +42,7 @@ def warn(warn: str):
     log warn with pwntools
     :param warn: warn to log
     """
+    _ensure_log()
     log.warn(warn)
 
 
@@ -33,6 +51,7 @@ def error(error: str):
     log error with pwntools
     :param error: error to log
     """
+    _ensure_log()
     log.error(error)
 
 def progress(progress: str) -> pwnlib.log.Progress:
@@ -40,6 +59,7 @@ def progress(progress: str) -> pwnlib.log.Progress:
     log progress with pwntools
     :param progress: progress to log
     """
+    _ensure_log()
     return log.progress(progress)
 
 
@@ -75,10 +95,4 @@ def first_free_port(start: int = 2222, tries: int = 101) -> int:
         if not is_port_in_use(port):
             return port
 
-    error(f'No free port inside range {start}-{start+tries}')
-
-def init_pwn_term(self):
-    # unset PWNLIB_NOTERM (set in vagd.__init__) to create init pwnlib stdin
-    if 'PWNLIB_NOTERM' in os.environ:
-        os.environ.pop('PWNLIB_NOTERM')
-    pwnlib.term.init()
+    error(f'No free port inside range {start}-{start + tries}')

@@ -1,13 +1,11 @@
 import os
 import sys
-
 import time
-import pwnlib
-import requests
-
+from shutil import which, copyfile
 from typing import Dict
 from urllib.parse import urlparse
-from shutil import which, copyfile
+
+import requests
 
 from vagd import helper
 from vagd.box import Box
@@ -80,7 +78,6 @@ class Qegd(Shgd):
     DEFAULT_QEMU_PFLASH_PREFIX = "-pflash"
 
     _img: str
-    _new: bool = False
     _local_img: str
     _user: str
     _host: str
@@ -88,6 +85,7 @@ class Qegd(Shgd):
     _ports: Dict[int, int]
     _qemu: str
     _cpu: str
+    _pflash: str
     _machine: str
 
     @staticmethod
@@ -120,6 +118,7 @@ class Qegd(Shgd):
                 img = requests.get(self._img)
                 with open(self._local_img, 'wb') as imgfile:
                     helper.info(f"saving image to {self._local_img}")
+                    os.system(f'qemu-img resize {self._local_img} 10G')  # resize image
                     imgfile.write(img.content)
         copyfile(self._local_img, Qegd.CURRENT_IMG)
 
@@ -194,21 +193,18 @@ users:
         pid = os.fork()
         if pid == 0:
             copyfile(Qegd.ARM_FLASH, Qegd.DEFAULT_QEMU_ARM_PFLASH)
+            port_forwarding = "".join(Qegd._QEMU_PORT_FORWARDING.format(host=host, guest=guest)
+                                      for host, guest in self._ports.items())
             qemu_cmd = Qegd._QEMU_START.format(qemu=self._qemu,
-                                               machine=" ".join((Qegd.DEFAULT_QEMU_MACHINE_PREFIX,
-                                                                 self._machine)) if self._machine else '',
-                                               cpu=" ".join(
-                                                   (Qegd.DEFAULT_QEMU_CPU_PREFIX, self._cpu)) if self._cpu else '',
-                                               pflash=" ".join((Qegd.DEFAULT_QEMU_PFLASH_PREFIX,
-                                                                self._pflash)) if self._pflash else '',
+                                               machine=f'{Qegd.DEFAULT_QEMU_MACHINE_PREFIX} {self._machine}' if self._machine else '',
+                                               cpu=f'{Qegd.DEFAULT_QEMU_CPU_PREFIX} {self._cpu}' if self._cpu else '',
+                                               pflash=f'{Qegd.DEFAULT_QEMU_PFLASH_PREFIX} {self._pflash}' if self._pflash else '',
                                                port=self._port,
-                                               ports="".join(
-                                                   [Qegd._QEMU_PORT_FORWARDING.format(host=host, guest=guest) for
-                                                    host, guest in self._ports.items()]),
+                                               ports=port_forwarding,
                                                img=Qegd.CURRENT_IMG,
                                                custom='',
                                                seed=Qegd.SEED_FILE,
-                                               lock="".join((Qegd.LOCKFILE, Pwngd.LOCKFILE)),
+                                               lock=f'{Qegd.LOCKFILE} {Pwngd.LOCKFILE}',
                                                current=Qegd.CURRENT_IMG)
             helper.info(qemu_cmd)
             os.system(qemu_cmd)
@@ -218,7 +214,7 @@ users:
         """
         create new vm
         """
-        self._new = True
+        self.is_new = True
 
         helper.info(f"no Lockfile in {Qegd.LOCKFILE}")
         self._set_local_img()
@@ -295,5 +291,5 @@ users:
 
         super().__init__(binary=binary, user=user, host=self._host, port=self._port, **kwargs)
 
-        if self._new:
+        if self.is_new:
             self._install_packages(Pwngd.DEFAULT_PACKAGES)
