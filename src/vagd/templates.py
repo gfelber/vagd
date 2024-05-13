@@ -3,16 +3,9 @@ VAGRANT_TEMPLATE = '''# -*- mode: ruby -*-
 
 VAGRANTFILE_API_VERSION = "2"
 
-$script = <<SCRIPT
-    sudo apt update
-    sudo NEEDRESTART_MODE=a apt install {packages}  -y
-SCRIPT
-
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   config.vm.box = "{box}"
-
-  config.vm.provision "shell", inline: $script
 
 end'''
 
@@ -42,6 +35,7 @@ CMD /usr/sbin/sshd; \\
     while true; do sleep 1m; done
 '''
 
+# TODO: proper template generation for alpine
 DOCKER_ALPINE_TEMPLATE = '''FROM {image}
 
 # install packages
@@ -56,6 +50,7 @@ RUN apk add --no-cache openssh
 RUN apk add --no-cache sudo
 
 EXPOSE 22
+RUN chmod u+s /usr/bin/sudo
 RUN adduser -h /home/vagd -s /bin/ash -g sudo -D vagd
 RUN echo "vagd ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/vagd && chmod 0440 /etc/sudoers.d/vagd
 RUN echo "vagd:vagd" | chpasswd

@@ -2,7 +2,7 @@ import os
 import pathlib
 from abc import ABC, abstractmethod
 from shutil import which
-from typing import Union, Dict, Iterable
+from typing import Union, Dict, Iterable, List
 
 import pwnlib.args
 import pwnlib.filesystem
@@ -16,13 +16,14 @@ class Pwngd(ABC):
     """
     start binary on remote and return pwnlib.tubes.process.process
 
-    :param argv: commandline arguments for binary
-    :param gdbscript: GDB script for GDB
-    :param api: if GDB API should be enabled (experimental)
-    :param sysroot: sysroot dir (experimental)
-    :param gdb_args: extra gdb args (experimental)
-    :param kwargs: pwntool parameters
-    :return: pwntools process, if api=True tuple with gdb api
+    :param binary: binary for VM debugging
+    :param files: other files or directories that need to be uploaded to VM
+    :param packages: packages to install on vm
+    :param symbols: additionally install libc6 debug symbols
+    :param tmp: if a temporary directory should be created for files
+    :param gdbsrvport: specify static gdbserver port, REQURIES port forwarding to localhost
+    :param fast: mounts libs locally for faster symbol extraction (experimental)
+    :param ex: if experimental features should be enabled
     """
     LOCAL_DIR = './.vagd/'
     HOME_DIR = os.path.expanduser('~/.vagd/')
@@ -112,7 +113,8 @@ class Pwngd(ABC):
         """
         return self._ssh.system(cmd)
 
-    DEFAULT_PACKAGES = ['gdbserver', 'libc6-dbg', 'python3', 'sudo']
+    DEFAULT_PACKAGES = ['gdbserver', 'python3', 'sudo']
+    LIBC6_DEBUG = 'libc6-dbg'
 
     def _install_packages(self, packages: Iterable):
         """
@@ -154,7 +156,8 @@ class Pwngd(ABC):
     def __init__(self,
                  binary: str,
                  files: Union[str, list[str]] = None,
-                 packages: Iterable = None,
+                 packages: List[str] = None,
+                 symbols=True,
                  tmp: bool = False,
                  gdbsrvport: int = -1,
                  fast: bool = False,
@@ -165,6 +168,7 @@ class Pwngd(ABC):
         :param binary: binary for VM debugging
         :param files: other files or directories that need to be uploaded to VM
         :param packages: packages to install on vm
+        :param symbols: additionally install libc6 debug symbols
         :param tmp: if a temporary directory should be created for files
         :param gdbsrvport: specify static gdbserver port, REQURIES port forwarding to localhost
         :param fast: mounts libs locally for faster symbol extraction (experimental)
@@ -172,6 +176,8 @@ class Pwngd(ABC):
         """
 
         if self.is_new and packages is not None:
+            if symbols:
+                packages.append(Pwngd.LIBC6_DEBUG)
             self._install_packages(packages)
 
         self._path = binary

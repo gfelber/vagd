@@ -1,5 +1,5 @@
 import os
-from typing import Dict
+from typing import Dict, List
 
 import docker
 
@@ -17,6 +17,8 @@ class Dogd(Shgd):
     :param image: docker base image
     :param user: name of user on docker container
     :param forward: Dictionary of forwarded ports, needs to follow docker api format: 'hostport/(tcp|udp)' : guestport
+    :param packages: packages to install on the container
+    :param symbols: additionally install libc6 debug symbols (also updates libc6)
     :param ex: if experimental features, e.g. alpine, gdbserver should be enabled
     :param fast: mounts libs locally for faster symbol extraction (experimental) NOT COMPATIBLE WITH ALPINE
     :param kwargs: parameters to pass through to super
@@ -56,6 +58,7 @@ class Dogd(Shgd):
     _image: str
     _user: str
     _port: int
+    _packages: List[str]
     _client: docker.client
     _id: str
     _dockerdir: str
@@ -69,7 +72,7 @@ class Dogd(Shgd):
     DOCKERHOME = Pwngd.HOME_DIR + "docker/"
     DEFAULT_USER = 'vagd'
     DEFAULT_PORT = 2222
-    DEFAULT_IMAGE = Box.DOCKER_FOCAL
+    DEFAULT_IMAGE = Box.DOCKER_NOBLE
 
     DEFAULT_PACKAGES = Pwngd.DEFAULT_PACKAGES + ["openssh-server"]
     LOCKFILE = Pwngd.LOCAL_DIR + 'docker.lock'
@@ -87,7 +90,7 @@ class Dogd(Shgd):
         with open(self._dockerfile, 'w') as dockerfile:
             dockerfile.write(
                 template.format(image=self._image,
-                                packages=' '.join(Dogd.DEFAULT_PACKAGES),
+                                packages=' '.join(self._packages),
                                 user=self._user,
                                 keyfile=os.path.basename(self._dockerdir + "keyfile.pub")))
 
@@ -112,7 +115,15 @@ class Dogd(Shgd):
 
     def _build_image(self):
         helper.info('building docker image')
-        return self._client.images.build(path=os.path.dirname(self._dockerfile), tag=f'vagd/{self._image}')[0]
+        hash = self._image.find('@')
+        if hash != -1:
+            tag = self._image[:min(self._image[:hash].find(':'), hash)]
+            # add first 8 characters of hash
+            tag += self._image[self._image.rfind(':'):][:8]
+        else:
+            tag = self._image
+
+        return self._client.images.build(path=os.path.dirname(self._dockerfile), tag=f'vagd/{tag}')[0]
 
     def _vm_create(self):
         self._lock(Dogd.TYPE)
@@ -151,6 +162,8 @@ class Dogd(Shgd):
                  image: str = DEFAULT_IMAGE,
                  user: str = DEFAULT_USER,
                  forward: Dict[str, int] = None,
+                 packages: List[str] = None,
+                 symbols=True,
                  ex: bool = False,
                  fast: bool = False,
                  **kwargs):
@@ -160,13 +173,26 @@ class Dogd(Shgd):
         :param image: docker base image
         :param user: name of user on docker container
         :param forward: Dictionary of forwarded ports, needs to follow docker api format: 'hostport/(tcp|udp)' : guestport
+        :param packages: packages to install on the container
+        :param symbols: additionally install libc6 debug symbols (also updates libc6)
         :param ex: if experimental features, e.g. alpine, gdbserver should be enabled
         :param fast: mounts libs locally for faster symbol extraction (experimental) NOT COMPATIBLE WITH ALPINE
         :param kwargs: parameters to pass through to super
         """
 
+        if packages is None:
+            packages = list()
+
         self._image = image
+        self._packages = packages + Dogd.DEFAULT_PACKAGES
+        if symbols:
+            helper.warn(f"installing {Pwngd.LIBC6_DEBUG} might update libc binary")
+            self._packages.append(Pwngd.LIBC6_DEBUG)
+
         self._isalpine = 'alpine' in image
+        if self._isalpine and packages != [Pwngd.LIBC6_DEBUG]:
+            helper.warn("package installation not supported for alpine")
+
         self._gdbsrvport = -1
         self._dockerdir = Dogd.DOCKERHOME + f'{self._image}/'
         if not (os.path.exists(Dogd.DOCKERHOME) and os.path.exists(self._dockerdir)):

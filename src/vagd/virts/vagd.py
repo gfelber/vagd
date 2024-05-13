@@ -2,6 +2,7 @@ import fileinput
 import os
 import re
 from shutil import which
+from typing import List
 
 from vagd import templates, helper
 from vagd.box import Box
@@ -16,8 +17,9 @@ class Vagd(Shgd):
     :param binary: binary for VM debugging
     :param vbox: vagrant box to use
     :param vagrantfile: location of Vagrantfile
+    :param packages: packages to install on vm
     :param kwargs: arguments to pass through to super
-    
+
     | SSH from cmd:
 
     .. code-block::  bash
@@ -70,25 +72,16 @@ class Vagd(Shgd):
         setup vagrant machine creates new one if no Vagrantfile is specified or box does not match
         """
 
-        if self._v.status()[0].state == 'not_created':
-            self.is_new = True
-
-        self._lock(Vagd.TYPE)
-        if not os.path.isfile(self._vagrantfile):
-            helper.info('creating new Vagrantfile')
-            vagrant_config = templates.VAGRANT_TEMPLATE.format(box=self._box, packages=' '.join(Pwngd.DEFAULT_PACKAGES))
-            with open(self._vagrantfile, 'w') as file:
-                file.write(vagrant_config)
-            helper.info('initialing new vagrant vm might take a while')
-            self._v.up()
-
-        elif self._get_box() != self._box:
+        if self._get_box() != self._box:
             helper.info('new box detected destroying old machine')
             self._v.destroy()
             for line in fileinput.input(self._vagrantfile, inplace=True):
                 if Vagd.VAGRANTFILE_BOX in line:
                     line = f'{Vagd.VAGRANTFILE_BOX} = "{self._box}"\n'
                 print(line, end='')
+
+        if self._v.status()[0].state == 'not_created':
+            self.is_new = True
             helper.info('initialing new vagrant vm might take a while')
             self._v.up()
 
@@ -100,16 +93,21 @@ class Vagd(Shgd):
                  binary: str,
                  vagrantfile: str = VAGRANTFILE_PATH,
                  vbox: str = None,
+                 packages: List[str] = None,
                  **kwargs):
         """
 
         :param binary: binary for VM debugging
         :param vbox: vagrant box to use
         :param vagrantfile: location of Vagrantfile
+        :param packages: packages to install on vm
         :param kwargs: arguments to pass through to super
         """
         import vagrant
         helper.warn("The 'Vagd' object is deprecated, use 'Qegd' instead")
+
+        if packages is None:
+            packages = list()
 
         if not which('vagrant'):
             helper.error('vagrant isn\'t installed')
@@ -126,12 +124,23 @@ class Vagd(Shgd):
                 vbox = Vagd.VAGRANT_BOX
 
         self._box = vbox
-        self._v = vagrant.Vagrant(os.path.dirname(vagrantfile))
+
+        self._lock(Vagd.TYPE)
+        if not os.path.isfile(self._vagrantfile):
+            helper.info('creating new Vagrantfile')
+            vagrant_config = templates.VAGRANT_TEMPLATE.format(box=self._box)
+            with open(self._vagrantfile, 'w') as file:
+                file.write(vagrant_config)
+
+        self._v = vagrant.Vagrant(os.path.dirname(self._vagrantfile))
 
         self._vm_setup()
+
+        packages += Pwngd.DEFAULT_PACKAGES
 
         super().__init__(binary=binary,
                          user=self._v.user(),
                          host=self._v.hostname(),
                          port=int(self._v.port()),
+                         packages=packages,
                          keyfile=self._v.keyfile(), **kwargs)
