@@ -2,7 +2,7 @@
 
 # VAGD
 
-virtualization integrations in pwntools
+VirtuAlization GDb integrations in pwntools
 
 ## Installation
 
@@ -30,6 +30,10 @@ use `python -m vagd` to generate a template
 
 I recommend using [pwndbg](https://github.com/pwndbg/pwndbg).
 
+## Files
+
+All created files ares stored in the local `./.vagd/` directory. Additional large files (e.g. cloudimages) are stored in the home directory `~/.vagd/` or handled by tools themselfs (e.g. Vagrant, Docker).
+
 ## Features
 
 **vagd.Vagd**
@@ -39,40 +43,40 @@ Child of `vagd.pwngd.Pwngd` setups a vagrant vm
 SSH from cmd:
 
 ```bash
-vagrant ssh
+VAGRANT_CWD=.vagd vagrant ssh
 ```
 
 halt from cmd
 
 ```bash
-vagrant halt
+VAGRANT_CWD=.vagd vagrant halt
 ```
 
 destroy from cmd
 
 ```bash
-vagrant destroy
+VAGRANT_CWD=.vagd vagrant destroy
 ```
 
 
 
-| required | name        | type | descripton                                          |
-| -------- | ----------- | ---- | --------------------------------------------------- |
-| X        | binary      | str  | binary to debug on  vagrant vm                      |
-|          | Vagrantfile | str  | Location of Vagrantfile (default current directory) |
-|          | vbox        | str  | vagrant box to use (Default: ubuntu/focal64)        |
-|          | **kwargs    | Any  | Parameters to pass through to super constructor     |
+| required | name        | type | descripton                                                |
+| -------- | ----------- | ---- | --------------------------------------------------------- |
+| X        | binary      | str  | binary to debug on  vagrant vm                            |
+|          | Vagrantfile | str  | Location of Vagrantfile (default current .vagd directory) |
+|          | vbox        | str  | vagrant box to use (Default: ubuntu/focal64)              |
+|          | **kwargs    | Any  | Parameters to pass through to super constructor           |
 
 **vagd.Qegd**
 
 Child of `vagd.pwngd.Pwngd` setups a qemu machine
 
-Images are cached in `~/.qemu-imgs/`
+Images are cached in `~/.vagd/qemu-imgs/`
 
 SSH from cmd:
 
 ````bash
-ssh -o "StrictHostKeyChecking=no" -i .qemu/keyfile -p $(cat .qemu/qemu.lock) ubuntu@0.0.0.0
+ssh -o "StrictHostKeyChecking=no" -i .vagd/keyfile -p $(cat .vagd/qemu.lock) ubuntu@0.0.0.0
 ````
 
 Kill from cmd:
@@ -102,12 +106,12 @@ Parameters:
 |          |              | files    | str \| tuple | other files to upload to vm, all files are uploaded to current working directory (home or tmp) |
 |          |              | packages | Iterable     | Other packages to install on remote system                   |
 |          |              | tmp      | bool         | if the created directory in the vm should be temporary, requires new upload after each execution |
-|          | X            | fast     | bool         | fast debug, mounts library files locally with **sshfs** in newly created directory ./sysroot/lib/ for faster symbol reading |
+|          | X            | fast     | bool         | fast debug, mounts library files locally with **sshfs** in newly created directory ./.vagd/sysroot/lib/ for faster symbol reading |
 |          | x            | ex       | bool         | enables experimental features for the whole object           |
 
 
 
-**vagd.pwngd.Pwngb.put**
+**vagd.pwngd.Pwngb.put**	
 
 upload file or directory to vm
 
@@ -224,7 +228,7 @@ the following boxes were tested and work, box constants are inside `vagd.box`
   * UBUNTU_BIONIC64 = 'ubuntu/bionic64'
   * UBUNTU_XENIAL64 = 'ubuntu/xenial64'
 
-* QEMU
+* QEMU (cached in `~/.vagd/qemu-imgs`)
   * [CLOUDIMAGE_JAMMY](https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img)
   * [CLOUDIMAGE_FOCAL](https://cloud-images.ubuntu.com/focal/current/focal-server-cloudimg-amd64.img)
   * [CLOUDIMAGE_BIONIC](https://cloud-images.ubuntu.com/bionic/current/bionic-server-cloudimg-amd64.img)
