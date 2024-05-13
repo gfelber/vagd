@@ -1,5 +1,6 @@
-import pwn
 import time
+import pwnlib.tubes.ssh
+from vagd import helper
 from vagd.virts.pwngd import Pwngd
 class Shgd(Pwngd):
     """ 
@@ -33,10 +34,10 @@ class Shgd(Pwngd):
         """
         setup ssh connection
         """
-        progress = pwn.log.progress("connecting to ssh")
+        progress = helper.progress("connecting to ssh")
         for _ in range(Shgd._TRIES):
             try:
-                self._ssh = pwn.ssh(
+                self._ssh = pwnlib.tubes.ssh.ssh(
                     user=self._user,
                     host=self._host,
                     port=self._port,
@@ -68,7 +69,6 @@ class Shgd(Pwngd):
         :param keyfile: ssh keyfile (default in .vagd)
         :param kwargs: parameters to pass through to super
         """
-        self._init()
         self._user = user
         self._host = host
         self._port = port

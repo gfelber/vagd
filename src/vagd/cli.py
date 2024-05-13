@@ -2,22 +2,23 @@ import importlib.metadata
 import os
 import stat
 import sys
-from typing import Optional, Dict
+from typing import Optional, Dict, List
 
-import pwn
+import pwnlib
 import typer
 
 import vagd
+from vagd import helper
 # prevents term.init
 from vagd.virts.dogd import Dogd
 from vagd.virts.qegd import Qegd
 from vagd.virts.vagd import Vagd
 from vagd.virts.pwngd import Pwngd
 
-DOGD = "vm = Dogd(exe.path, image=Box.DOCKER_JAMMY, ex=True, fast=True)  # Docker"
-VAGD = "vm = Vagd(exe.path, vbox=Box.VAGRANT_JAMMY64, ex=True, fast=True)  # Vagrant"
-QEGD = "vm = Qegd(exe.path, img=Box.QEMU_JAMMY, ex=True, fast=True)  # Qemu"
-SHGD = "vm = Shgd(exe.path, user='user', host='localhost', port=22, ex=True, fast=True)  # SSH"
+DOGD = "vm = Dogd(exe.path, image=Box.DOCKER_JAMMY, ex=True, fast=True{files})  # Docker"
+VAGD = "vm = Vagd(exe.path, vbox=Box.VAGRANT_JAMMY64, ex=True, fast=True{files})  # Vagrant"
+QEGD = "vm = Qegd(exe.path, img=Box.QEMU_JAMMY, ex=True, fast=True{files})  # Qemu"
+SHGD = "vm = Shgd(exe.path, user='user', host='localhost', port=22, ex=True, fast=True{files})  # SSH"
 
 app = typer.Typer(context_settings={"help_option_names": ["-h", "--help"]})
 
@@ -39,6 +40,14 @@ def main(
     ) -> None:
         pass
 
+def add_virt(dependencies:List[str], vms:List[str], dependency:str, template:str, files:List[str], multi=False):
+    files_str = '' if len(files) == 0 else ', files=[\''
+    files_str += '\', \''.join(files)
+    files_str += '' if len(files) == 0 else '\']'
+
+    dependencies.append(dependency)
+    vms.append(('# ' if multi else '') + template.format(files=files_str))
+
 @app.command()
 def template(
         binary: Optional[str] = typer.Argument('', help='Binary to Exploit'),
@@ -47,6 +56,7 @@ def template(
         output_exploit: Optional[bool] = typer.Option(False, '-e', help='output file of the template (also add +x) to exploit.py'),
         output: Optional[str] = typer.Option('', '-o', help='output file of the template (also add +x), default stdout'),
         libc: Optional[str] = typer.Option('', '--libc', '-l', help='add libc to template'),
+        files: Optional[List[str]] = typer.Option([], '--files', '-f', help='add files to remote'),
         aslr: Optional[bool] = typer.Option(False, '--aslr', '-a', help='enable gdb ASLR (default: disabled for gdb)'),
         dogd: Optional[bool] = typer.Option(False, '--dogd', '--docker', '-d', help='create docker template'),
         qegd: Optional[bool] = typer.Option(False, '--qegd', '--qemu', '-q', help='create qemu template'),
@@ -65,20 +75,19 @@ def template(
         dogd = qegd = vagd = shgd = True
         multi = True
 
+    if libc:
+        files.append(libc)
+
     dependencies = []
     vms = []
     if dogd:
-        dependencies.append('Dogd')
-        vms.append(DOGD)
+        add_virt(dependencies, vms, 'Dogd', DOGD, files)
     if qegd:
-        dependencies.append('Qegd')
-        vms.append(('# ' if multi else '') + QEGD)
+        add_virt(dependencies, vms, 'Qegd', QEGD, files, multi)
     if vagd:
-        dependencies.append('Vagd')
-        vms.append(('# ' if multi else '') + VAGD)
+        add_virt(dependencies, vms, 'Vagd', VAGD, files, multi)
     if shgd:
-        dependencies.append('Shgd')
-        vms.append(('# ' if multi else '') + SHGD)
+        add_virt(dependencies, vms, 'Shgd', SHGD, files, multi)
 
     with open(templatePath, 'r') as templateFile:
         for line in templateFile.readlines():
@@ -113,8 +122,9 @@ def info(
     """
     analyses the binary, prints checksec and .comment (often includes Distro and Compiler info)
     """
+    import pwn
     elf = pwn.ELF(binary)
-    pwn.log.info(elf.section('.comment').decode().replace('\0', '\n'))
+    helper.info(elf.section('.comment').decode().replace('\0', '\n'))
 
 
 def _get_type() -> str:
@@ -240,7 +250,4 @@ def clean():
         exit(1)
 
 def start():
-    if pwn.term.term_mode:
-        sys.stderr.write('wrong term mode')
-        exit(2)
     app()

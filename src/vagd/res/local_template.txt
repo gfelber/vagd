@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from pwn import *
 
-GDB_OFF = 0x555555555000
+GDB_OFF = 0x555555554000
 IP = '{ip}'
 PORT = {port}
 BINARY = '{binary}'
@@ -18,8 +18,9 @@ context.aslr = False
 byt = lambda x: x if isinstance(x, bytes) else x.encode() if isinstance(x, str) else repr(x).encode()
 phex = lambda x, y='': print(y + hex(x))
 lhex = lambda x, y='': log.info(y + hex(x))
-pad = lambda x, s, v=b'\0', o='r': x+(v*(s-len(x))) if o == 'r' else x+(v*(s-len(x)))
+pad = lambda x, s=8, v=b'\0', o='r': x+(v*(s-len(x))) if o == 'r' else x+(v*(s-len(x)))
 padhex = lambda x, s: pad(hex(x)[2:], s, '0', 'l')
+upad = lambda x: u64(pad(x))
 
 t = None
 gt = lambda at=None: at if at else t

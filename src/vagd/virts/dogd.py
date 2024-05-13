@@ -2,7 +2,7 @@ import os
 from typing import Dict
 
 import docker
-import pwn
+import pwnlib
 
 from vagd import templates, helper
 from vagd.box import Box
@@ -77,7 +77,7 @@ class Dogd(Shgd):
 
     def _create_dockerfile(self):
 
-        pwn.log.info(f'create new Dockerfile at f{self._dockerfile}')
+        helper.info(f'create new Dockerfile at f{self._dockerfile}')
         if not os.path.exists(Pwngd.KEYFILE):
             helper.generate_keypair()
 
@@ -93,7 +93,7 @@ class Dogd(Shgd):
                                 keyfile=os.path.basename(self._dockerdir + "keyfile.pub")))
 
     def _create_docker_instance(self):
-        pwn.log.info('starting docker instance')
+        helper.info('starting docker instance')
         self._port = helper.first_free_port(Dogd.DEFAULT_PORT)
         self._forward.update({'22/tcp': self._port})
         if self._isalpine:
@@ -106,12 +106,12 @@ class Dogd(Shgd):
 
         container = self._client.containers.run(self._bimage, ports=self._forward, detach=True, remove=True, security_opt=[f'seccomp:{seccomp_rules}'])
         self._id = container.id
-        pwn.log.info(f'started docker instance {container.short_id}')
+        helper.info(f'started docker instance {container.short_id}')
         with open(Dogd.LOCKFILE, 'w') as lockfile:
             lockfile.write(':'.join((container.id, str(self._port), str(self._gdbsrvport))))
 
     def _build_image(self):
-        pwn.log.info('building docker image')
+        helper.info('building docker image')
         return self._client.images.build(path=os.path.dirname(self._dockerfile), tag=f'vagd/{self._image}')[0]
 
     def _vm_create(self):
@@ -130,7 +130,7 @@ class Dogd(Shgd):
     def _vm_setup(self) -> None:
         self._client = docker.from_env()
         if not os.path.exists(Dogd.LOCKFILE):
-            pwn.log.info(f'No Lockfile {Dogd.LOCKFILE} found, creating new Docker Instance')
+            helper.info(f'No Lockfile {Dogd.LOCKFILE} found, creating new Docker Instance')
             self._vm_create()
         else:
             with open(Dogd.LOCKFILE, 'r') as lockfile:
@@ -140,10 +140,10 @@ class Dogd(Shgd):
                 if self._isalpine:
                     self._gdbsrvport = int(data[2])
             if not self._client.containers.list(filters={'id':self._id}):
-                pwn.log.info(f'Lockfile {Dogd.LOCKFILE} found, container not running, creating new one')
+                helper.info(f'Lockfile {Dogd.LOCKFILE} found, container not running, creating new one')
                 self._vm_create()
             else:
-                pwn.log.info(
+                helper.info(
                     f'Lockfile {Dogd.LOCKFILE} found, Docker Instance f{self._client.containers.get(self._id).short_id}')
 
     def __init__(self,
@@ -164,11 +164,10 @@ class Dogd(Shgd):
         :param fast: mounts libs locally for faster symbol extraction (experimental) NOT COMPATIBLE WITH ALPINE
         :param kwargs: parameters to pass through to super
         """
-        self._init()
 
         self._image = image
         self._isalpine = 'alpine' in image
-        self._gdbsrvport = None
+        self._gdbsrvport = -1
         self._dockerdir = Dogd.DOCKERHOME + f'{self._image}/'
         if not (os.path.exists(Dogd.DOCKERHOME) and os.path.exists(self._dockerdir)):
             os.makedirs(self._dockerdir)
@@ -177,7 +176,7 @@ class Dogd(Shgd):
         self._forward = forward
         self._ex = ex
         if self._isalpine and not self._ex:
-            pwn.log.error("Docker alpine images requires experimental features")
+            helper.error("Docker alpine images requires experimental features")
         if self._forward is None:
            self._forward = dict()
 

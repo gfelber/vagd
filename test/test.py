@@ -68,7 +68,11 @@ for vm in vms():
     g.execute('p "PWN"')
     g.execute('c')
 
-    log.info(t.recvall().decode())
+    out = t.recvline()
+    out += t.recvline()
+    out += t.recvline()
+
+    log.info(out.decode())
     t.close()
     os.system('tmux kill-pane')
 
