@@ -34,12 +34,16 @@ class Qegd(Shgd):
 
     .. code-block:: bash
 
+        vagd ssh
+        # or
         ssh -o "StrictHostKeyChecking=no" -i ~/.vagd/keyfile -p $(cat .vagd/qemu.lock) ubuntu@0.0.0.0
 
     | Kill from cmd:
 
     .. code-block:: bash
 
+        vagd clean
+        # or
         kill $(pgrep qemu)
 
     | Qemu images are cached in the home directory: :code:`~/.vagd/qemu-imgs/`
@@ -58,8 +62,9 @@ class Qegd(Shgd):
     DEFAULT_IMG = Box.QEMU_JAMMY
     QEMU_DIR = Pwngd.LOCAL_DIR
     IMGS_DIR = Pwngd.HOME_DIR + 'qemu-imgs/'
-    DEFAULT_USER = 'ubuntu'
+    DEFAULT_USER = 'vagd'
     DEFAULT_HOST = '0.0.0.0'
+    TYPE = 'qegd'
     DEFAULT_PORT = 2222
     ARM_FLASH = "/usr/share/AAVMF/AAVMF_CODE.fd"
     DEFAULT_QEMU_ARM_PFLASH_OPTIONS = ""
@@ -124,8 +129,14 @@ local-hostname: cloudimg
 """
     USER_DATA_FILE = QEMU_DIR + 'user-data.yaml'
     _USER_DATA = """#cloud-config
-ssh_authorized_keys:
-  - {pubkey}
+users:
+  - default
+  - name: vagd
+    groups: sudo
+    shell: /bin/bash
+    sudo: ['ALL=(ALL) NOPASSWD:ALL']
+    ssh_authorized_keys:
+      - {pubkey}
 """
 
     SEED_FILE = QEMU_DIR + "seed.img"
@@ -176,6 +187,7 @@ ssh_authorized_keys:
         """
         start qemu machine
         """
+        self._lock(Qegd.TYPE)
         pwn.log.info(f"starting qemu machine, ssh port {self._port}")
         with open(Qegd.LOCKFILE, 'w') as lockfile:
             lockfile.write(str(self._port))
@@ -196,7 +208,7 @@ ssh_authorized_keys:
                                                img=Qegd.CURRENT_IMG,
                                                custom='',
                                                seed=Qegd.SEED_FILE,
-                                               lock=Qegd.LOCKFILE,
+                                               lock="".join((Qegd.LOCKFILE, Pwngd.LOCKFILE)),
                                                current=Qegd.CURRENT_IMG)
             pwn.log.info(qemu_cmd)
             os.system(qemu_cmd)

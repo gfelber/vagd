@@ -21,6 +21,7 @@ class Pwngd(ABC):
     LOCAL_DIR = './.vagd/'
     HOME_DIR = os.path.expanduser('~/.vagd/')
     SYSROOT = LOCAL_DIR + 'sysroot/'
+    LOCKFILE = LOCAL_DIR + 'vagd.lock'
     SYSROOT_LIB = SYSROOT + 'lib/'
     SYSROOT_LIB_DEBUG = SYSROOT + 'lib/debug'
     KEYFILE = HOME_DIR + 'keyfile'
@@ -78,6 +79,10 @@ class Pwngd(ABC):
         pwn.log.info(cmd)
         os.system(cmd)
 
+    def _lock(self, typ: str):
+        with open(Pwngd.LOCKFILE, 'w') as lfile:
+            lfile.write(typ)
+
     def _mount_lib(self, remote_lib: str = '/usr/lib') -> None:
         """
         mount the lib directory of remote
@@ -107,7 +112,7 @@ class Pwngd(ABC):
         """
         self.system("sudo apt update").recvall()
         packages_str = " ".join(packages)
-        self.system(f"NEEDRESTART_MODE=a sudo -E apt install -y {packages_str}").recvall()
+        self.system(f"sudo NEEDRESTART_MODE=a apt install -y {packages_str}").recvall()
 
     def put(self, file: str, remote: str = None):
         """

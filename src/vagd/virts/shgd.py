@@ -33,6 +33,7 @@ class Shgd(Pwngd):
         """
         setup ssh connection
         """
+        progress = pwn.log.progress("connecting to ssh")
         for _ in range(Shgd._TRIES):
             try:
                 self._ssh = pwn.ssh(
@@ -42,12 +43,13 @@ class Shgd(Pwngd):
                     keyfile=self._keyfile,
                     ignore_config=True
                 )
+                progress.success("Done")
                 break
             except:
                 if _ + 1 == Shgd._TRIES:
-                    pwn.log.error('SSH failed, pls try again')
+                    progress.failure('Failed')
                 else:
-                    pwn.log.info('Trying again')
+                    progress.status('Trying again')
                 time.sleep(15)
 
     def __init__(self,

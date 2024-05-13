@@ -1,6 +1,6 @@
 #!/usr/bin/env python
-from vagd import {dependencies}, Box
 from pwn import *
+from vagd import {dependencies}, Box
 
 GDB_OFF = 0x555555555000
 IP = '{ip}'

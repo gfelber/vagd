@@ -24,6 +24,8 @@ class Vagd(Shgd):
 
     .. code-block::  bash
 
+        vagd ssh
+        # or
         VAGRANT_CWD=.vagd vagrant ssh
 
     | halt from cmd
@@ -36,12 +38,16 @@ class Vagd(Shgd):
 
     .. code-block:: bash
 
+        vagd clean
+        # or
         VAGRANT_CWD=.vagd vagrant destroy
     """
 
     VAGRANTFILE_PATH = Pwngd.LOCAL_DIR + 'Vagrantfile'
     VAGRANTFILE_BOX = 'config.vm.box'
     VAGRANT_BOX = Box.VAGRANT_JAMMY64
+    KEYFILE = Pwngd.LOCAL_DIR + ".vagd/.vagrant/machines/default/virtualbox/private_key"
+    TYPE = 'vagd'
 
     _box: str
     _vagrantfile: str
@@ -66,6 +72,7 @@ class Vagd(Shgd):
         setup vagrant machine creates new one if no Vagrantfile is specified or box does not match
         """
 
+        self._lock(Vagd.TYPE)
         if not os.path.isfile(self._vagrantfile):
             pwn.log.info('creating new Vagrantfile')
             vagrant_config = templates.VAGRANT_TEMPLATE.format(box=self._box, packages=' '.join(Pwngd.DEFAULT_PACKAGES))
