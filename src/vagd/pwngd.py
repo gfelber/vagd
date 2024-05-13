@@ -76,6 +76,8 @@ class Pwngd(ABC):
         """
         return self._ssh.system(cmd)
 
+    DEFAULT_PACKAGES = ['gdbserver', 'libc6-dbg']
+
     def _install_packages(self, packages: Iterable):
         """
         install packages on remote machine

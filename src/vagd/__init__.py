@@ -7,11 +7,13 @@ import requests
 import fileinput
 from shutil import which, copyfile
 from urllib.parse import urlparse
-from vagd import vtemplate, box, wrapper, gdb, pwngd
+from vagd import vtemplate, box, wrapper, gdb
+from vagd.pwngd import Pwngd
 
 
-class Vagd(pwngd.Pwngd):
-    VAGRANTFILE_PATH = pwngd.Pwngd.LOCAL_DIR + './Vagrantfile'
+class Vagd(Pwngd):
+    """ Vagrant virtualization for pwntools """
+    VAGRANTFILE_PATH = Pwngd.LOCAL_DIR + 'Vagrantfile'
     VAGRANTFILE_BOX = 'config.vm.box'
     VAGRANT_BOX = box.UBUNTU_FOCAL64
 
@@ -105,10 +107,11 @@ class Vagd(pwngd.Pwngd):
         super().__init__(binary=binary, **kwargs)
 
 
-class Qegd(pwngd.Pwngd):
+class Qegd(Pwngd):
+    """ QEMU virtualization for pwntools """
     DEFAULT_IMG = box.CLOUDIMAGE_FOCAL
-    QEMU_DIR = pwngd.Pwngd.LOCAL_DIR
-    IMGS_DIR = pwngd.Pwngd.HOME_DIR + 'qemu-imgs/'
+    QEMU_DIR = Pwngd.LOCAL_DIR
+    IMGS_DIR = Pwngd.HOME_DIR + 'qemu-imgs/'
     DEFAULT_USER = 'ubuntu'
     DEFAULT_HOST = '0.0.0.0'
     DEFAULT_PORT = 2222
@@ -286,8 +289,6 @@ ssh_authorized_keys:
             ignore_config=True
         )
 
-    DEFAULT_PACKAGES = ['gdbserver', 'libc6-dbg']
-
     def __init__(self,
                  binary: str,
                  img: str = DEFAULT_IMG,
@@ -314,12 +315,12 @@ ssh_authorized_keys:
         self._vm_setup()
         self._ssh_setup()
         if self._new:
-            self._install_packages(Qegd.DEFAULT_PACKAGES)
+            self._install_packages(Pwngd.DEFAULT_PACKAGES)
 
         super().__init__(binary=binary, **kwargs)
 
 
-class Dogd(pwngd.Pwngd):
+class Dogd(Pwngd):
 
     def _ssh_setup(self) -> None:
         pass
@@ -329,7 +330,7 @@ class Dogd(pwngd.Pwngd):
         super().__init__(binary=binary, **kwargs)
 
 
-class Shgd(pwngd.Pwngd):
+class Shgd(Pwngd):
 
     def _ssh_setup(self) -> None:
         pass
