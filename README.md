@@ -1,4 +1,4 @@
-[![PyPI](https://img.shields.io/pypi/v/vagd?style=flat)](https://pypi.org/project/vagd/) [![docs](https://img.shields.io/badge/docs-passing-success)](https://gfelber.github.io/vagd/index.html)
+[![PyPI](https://img.shields.io/pypi/v/vagd?style=flat)](https://pypi.org/project/vagd/) [![docs](https://img.shields.io/badge/docs-passing-success)](https://vagd.gfelber.dev)
 
 # VAGD
 
@@ -18,6 +18,51 @@ pip install ./vagd/
 ## Usage
 
 + `vagd template [OPTIONS] [BINARY] [IP] [PORT]` to generate a template, list OPTIONS with help `-h`
+
+```python
+#!/usr/bin/env python
+from pwn import *
+from vagd import Dogd, Qegd, Vagd, Shgd
+
+GDB_OFF = 0x555555555000
+IP = ''
+PORT = 0
+BINARY = ''
+ARGS = []
+ENV = {}
+GDB = f"""
+
+c"""
+
+context.binary = exe = ELF(BINARY, checksec=False)
+context.aslr = False
+
+vm = None
+def get_target(**kw):
+    global vm
+
+    if args.REMOTE:
+        context.log_level = 'debug'
+        return remote(IP, PORT)
+
+    if not vm:
+        # Docker 
+        vm = Dogd(exe.path, image="ubuntu:jammy", ex=True, fast=True)
+        # or Qemu
+        vm = Qegd(exe.path, img="https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img", ex=True, fast=True)
+        # or Vagrant
+        vm = Vagd(exe.path, vbox=Box.VAGRANT_JAMMY64, ex=True, fast=True)
+        # or SSH
+        vm = Shgd(exe.path, user='user', host='localhost', port=22, ex=True, fast=True)
+    return vm.start(argv=ARGS, env=ENV, gdbscript=GDB, **kw)
+
+
+t = get_target()
+
+it() # or t.interactive()
+
+
+```
 
 + `vagd info BINARY` to print info about binary
 
@@ -55,13 +100,13 @@ vagd scp [OPTIONS] SOURCE [TARGET]
 vagd clean [OPTIONS]
 ```
 
-## [Documentation](https://gfelber.github.io/vagd/index.html)
+## [Documentation](https://vagd.gfelber.dev)
 
 
 
 ## Boxes
 
-A listed of known working Boxes can be found in the [Documentation](https://gfelber.github.io/vagd/autoapi/vagd/box/index.html#module-vagd.box).
+A listed of known working Boxes can be found in the [Documentation](http://vagd.gfelber.dev/autoapi/vagd/box/index.html#module-vagd.box).
 Other images might also work but currently only distributions that use `apt` and alpine for Docker are supported.
 This limitation may be circumvented by creating a target yourself (with the dependencies gdbserver, python, openssh) and creating a ssh connection via Shgd.
 
