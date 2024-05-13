@@ -47,25 +47,8 @@ RUN apk update
 # we need make and linux-headers to compile gdb
 RUN apk add python3
 RUN apk add --no-cache musl-dbg
-RUN apk add --no-cache make
-RUN apk add --no-cache linux-headers
-RUN apk add --no-cache texinfo
-RUN apk add --no-cache gcc
-RUN apk add --no-cache g++
-RUN apk add --no-cache gfortran
 # install gdb
-# RUN apk add --no-cache gdb
-RUN mkdir gdb-build ;\
-    cd gdb-build;\
-    wget http://ftp.gnu.org/gnu/gdb/gdb-7.11.tar.xz;\
-    tar -xvf gdb-7.11.tar.xz;\
-    cd gdb-7.11;\
-    ./configure --prefix=/usr;\
-    make;\
-    make -C gdb install;\
-    cd ..;\
-    rm -rf gdb-build/;
-
+RUN apk add --no-cache gdb
 # install ssh server support and keys
 RUN apk add --no-cache openssh
 
