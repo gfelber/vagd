@@ -118,7 +118,6 @@ class Qegd(Pwngd):
     DEFAULT_USER = 'ubuntu'
     DEFAULT_HOST = '0.0.0.0'
     DEFAULT_PORT = 2222
-    KEYFILE = QEMU_DIR + 'keyfile'
 
     _img: str
     _new: bool = False
@@ -179,9 +178,9 @@ class Qegd(Pwngd):
         """
         generate a keypair in .qemu directory
         """
-        if not (os.path.exists(Qegd.KEYFILE) and os.path.exists(Qegd.KEYFILE + '.pub')):
+        if not (os.path.exists(Pwngd.KEYFILE) and os.path.exists(Pwngd.KEYFILE + '.pub')):
             pwn.log.info("No Keypair was found. Generating new keypair")
-            os.system(Qegd._GENERATE_KEYPAIR.format(keyfile=Qegd.KEYFILE))
+            os.system(Qegd._GENERATE_KEYPAIR.format(keyfile=Pwngd.KEYFILE))
 
     METADATA_FILE = QEMU_DIR + 'metadata.yaml'
     _METADATA = """instance-id: iid-local01
@@ -213,7 +212,7 @@ ssh_authorized_keys:
                 pwn.log.info(f"{Qegd.USER_DATA_FILE} not found generating new one")
                 self._generate_keypair()
                 with open(Qegd.USER_DATA_FILE, 'w') as user_data_file:
-                    with open(Qegd.KEYFILE + '.pub', 'r') as pubkey_file:
+                    with open(Pwngd.KEYFILE + '.pub', 'r') as pubkey_file:
                         pubkey = pubkey_file.readline()
                     user_data_file.write(Qegd._USER_DATA.format(pubkey=pubkey))
             os.system(Qegd._GENERATE_SEED_IMG)
@@ -263,7 +262,7 @@ ssh_authorized_keys:
                 self._port = Qegd.DEFAULT_PORT + i
                 break
         self._qemu_start()
-        time.sleep(20)
+        time.sleep(15)
 
     def _vm_setup(self) -> None:
         """
@@ -281,17 +280,28 @@ ssh_authorized_keys:
                 self._new_vm()
             pwn.log.info(f'Lockfile in {Qegd.LOCKFILE}. Using running qemu instance at port {self._port}')
 
+    _TRIES = 3  # three times the charm
+
     def _ssh_setup(self) -> None:
         """
-        setup ssh connection to vagrant
+        setup ssh connection to QEMU
         """
-        self._ssh = pwn.ssh(
-            user=self._user,
-            host=self._host,
-            port=self._port,
-            keyfile=Qegd.KEYFILE,
-            ignore_config=True
-        )
+        for _ in range(Qegd._TRIES):
+            try:
+                self._ssh = pwn.ssh(
+                    user=self._user,
+                    host=self._host,
+                    port=self._port,
+                    keyfile=Pwngd.KEYFILE,
+                    ignore_config=True
+                )
+                break
+            except:
+                if _ + 1 == Qegd._TRIES:
+                   pwn.log.error('SSH failed, pls try again')
+                else:
+                    pwn.log.info('Trying again')
+                time.sleep(15)
 
     def __init__(self,
                  binary: str,
@@ -310,7 +320,7 @@ ssh_authorized_keys:
             pwn.log.error('qemu-system-x86_64 isn\'t installed')
 
         if not os.path.exists(Qegd.QEMU_DIR):
-            pwn.log.info("Generating .qemu dir")
+            pwn.log.info(f"Generating {Qegd.QEMU_DIR} dir")
             os.makedirs(Qegd.QEMU_DIR)
 
         self._img = img
@@ -321,6 +331,76 @@ ssh_authorized_keys:
         if self._new:
             self._install_packages(Pwngd.DEFAULT_PACKAGES)
 
+        super().__init__(binary=binary, **kwargs)
+
+
+class Shgd(Pwngd):
+    """ ssh interface for pwntools """
+
+    DEFAULT_HOST = 'localhost'
+    DEFAULT_PORT = 22
+    DEFAULT_USER = 'root'
+
+    _user: str
+    _host: str
+    _port: int
+    _keyfile: str
+
+    def _vm_setup(self) -> None:
+        """
+        pass
+        """
+        pass
+
+    def _ssh_setup(self) -> None:
+        """
+        setups ssh connection to remote
+        """
+        self._ssh = pwn.ssh(
+            user=self._user,
+            host=self._host,
+            port=self._port,
+            keyfile=self._keyfile,
+            ignore_config=True
+        )
+
+    def __init__(self,
+                binary: str,
+                user: str = DEFAULT_USER,
+                host: str = DEFAULT_HOST,
+                port: int = DEFAULT_PORT,
+                keyfile: str = Pwngd.KEYFILE,
+                **kwargs):
+        """
+
+        :param binary: binary to execute
+        :param user: ssh user
+        :param host: ssh hostname
+        :param port: ssh port
+        :param keyfile: ssh keyfile (default in .vagd)
+        :param kwargs: parameters to pass through to super
+        """
+        print('test')
+        self._user = user
+        self._host = host
+        self._port = port
+        self._keyfile = keyfile
+
+        self._ssh_setup()
+        self._vm_setup()
+
+        super().__init__(binary=binary, **kwargs)
+
+class Dogd(Pwngd):
+    """ Docker virtualization for pwntools """
+
+    def _vm_setup(self) -> None:
+        pass
+    def _ssh_setup(self) -> None:
+        pass
+
+    def __int__(self, binary: str, **kwargs):
+        pwn.log.error('NOT IMPLEMENTED YET')
         super().__init__(binary=binary, **kwargs)
 
 
