@@ -5,7 +5,7 @@ Vagrant integration in pwntools
 ## Installation
 
 ```bash
-pip install vagd
+pip install vagd pwntools
 ```
 or
  ```bash
