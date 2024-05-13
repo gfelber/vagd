@@ -1,5 +1,5 @@
 #!/bin/python
-from vagd import Vagd, Qegd, Box
+from vagd import Vagd, Qegd, box
 from pwn import *
 
 GDB_OFF = 0x555555555000
@@ -23,8 +23,8 @@ def get_target(**kw):
         context.log_level = 'debug'
         return remote(IP, PORT)
 
-    vm = Vagd(exe.path, vbox=Box.UBUNTU_FOCAL64, ex=True, fast=True)
-    # vm = Qegd(exe.path, img=Box.CLOUDIMAGE_FOCAL, user='ubuntu', ex=True, fast=True)
+    vm = Vagd(exe.path, vbox=box.UBUNTU_FOCAL64, ex=True, fast=True)
+    # vm = Qegd(exe.path, img=box.CLOUDIMAGE_FOCAL, user='ubuntu', ex=True, fast=True)
     return vm.start(argv=ARGS, env=ENV, gdbscript=GDB, **kw)
 
 

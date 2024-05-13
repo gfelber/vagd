@@ -1,9 +1,9 @@
 import os
 import docker
 
+from vagd import templates, helper, box
 from vagd.virts.shgd import Shgd
 from vagd.virts.pwngd import Pwngd
-from vagd.box import Box
 
 class Dogd(Shgd):
     """ Docker virtualization for pwntools """
@@ -43,7 +43,7 @@ class Dogd(Shgd):
 
     def __init__(self,
                 binary: str,
-                image: str = Box.DOCKER_FOCAL,
+                image: str = box.DOCKER_FOCAL,
                 dockerfile: str = DEFAULT_DOCKERFILE,
                 **kwargs):
         self._image = image

@@ -5,13 +5,12 @@ import requests
 from urllib.parse import urlparse
 from shutil import which, copyfile
 
-from vagd import helper
+from vagd import box, helper
 from vagd.virts.pwngd import Pwngd
-from vagd.box import Box
 class Qegd(Pwngd):
     """ QEMU Virtualization for pwntools """
 
-    DEFAULT_IMG = Box.CLOUDIMAGE_FOCAL
+    DEFAULT_IMG = box.CLOUDIMAGE_FOCAL
     QEMU_DIR = Pwngd.LOCAL_DIR
     IMGS_DIR = Pwngd.HOME_DIR + 'qemu-imgs/'
     DEFAULT_USER = 'ubuntu'
