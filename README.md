@@ -127,7 +127,7 @@ all instances continue to run in the background (after a vagd object has been st
 
 ### gdb & gdbserver
 
-Because gdbserver is used to run binaries on the instances it is advised to use [pwndbg](https://github.com/pwndbg/pwndbg). Other well known gdb plugins like [peda](https://github.com/longld/peda) and [gef](https://github.com/hugsy/gef) aren't compatible with gdbserver and therefore won't work.
+Because gdbserver is used to run binaries on the instances I recommend using [pwndbg](https://github.com/pwndbg/pwndbg). Other well known gdb plugins like [peda](https://github.com/longld/peda) aren't compatible with gdbserver and therefore won't work.
 
 ### files
 

@@ -279,7 +279,7 @@ class Pwngd(ABC):
         gdb_args += ["-ex", f"file -readnow {self._path}"]
 
         tmp = pwnlib.gdb.attach((host, port), exe=exe, gdbscript=gdbscript,
-                             gdb_args=gdb_args, ssh=ssh, api=api)
+                             gdb_args=gdb_args, ssh=ssh, api=api, sysroot=sysroot)
         if api:
             _, gdb = tmp
             gdbserver.gdb = gdb
