@@ -1,5 +1,6 @@
 import os
 import sys
+import toml
 
 # Configuration file for the Sphinx documentation builder.
 #
@@ -9,10 +10,11 @@ import sys
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = 'VAGD'
+pyproject = toml.load('../pyproject.toml') 
+project = pyproject['project']['name'].upper()
 copyright = '2023, 0x6fe1be2'
-author = '0x6fe1be2'
-release = '0.2.0'
+author = pyproject['project']['authors'][0]['name']
+release = pyproject['project']['version']
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -21,14 +23,17 @@ extensions = [
   'sphinx.ext.autodoc', 
   'sphinx.ext.autosummary',
   'sphinx.ext.napoleon', 
-  'sphinxcontrib.jquery'
+  'sphinxcontrib.jquery',
+  'autoapi.extension',
 ]
 
 sys.path.insert(0, os.path.abspath('../src'))
+autoapi_dirs = ['../src/vagd']
 autoclass_content = 'both'
 
 templates_path = ['_templates']
-exclude_patterns = []
+autoapi_ignore = exclude_patterns = ['*env*', '*__pycache__*', '*.egg-info' , '*vagd/gdb/*']
+autoapi_add_toctree_entry = False
 
 
 

@@ -14,16 +14,19 @@ class Dogd(Shgd):
     """
     | Docker virtualization for pwntools
     | SSH from cmd
+
     .. code-block:: bash
 
         ssh -o "StrictHostKeyChecking=no" -i ~/.vagd/keyfile -p $(cut .vagd/docker.lock -d":" -f 2) vagd@0.0.0.0
 
     | connect with docker exec
+
     .. code-block:: bash
 
        docker exec -it $(cut ./.vagd/docker.lock -d":" -f 1) /bin/bash
 
     | Kill from cmd:
+
     .. code-block:: bash
 
         docker kill $(cut ./.vagd/docker.lock -d":" -f 1)
@@ -31,6 +34,7 @@ class Dogd(Shgd):
     | Docker containers are automatically removed after they stop
     | Docker images need to be manually removed from docker
     | Dockerfiles are stored in home directory to allow caching ~/.vagd/docker/<image>/Dockerfile
+
     .. code-block:: bash
 
         docker images # list images

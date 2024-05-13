@@ -1,6 +1,6 @@
 [project]
 name = "vagd"
-version = "1.0.2"
+version = "1.0.3"
 authors = [
   { name="0x6fe1be2"},
 ]
@@ -13,6 +13,7 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: POSIX :: Linux",
 ]
+keywords = ['vagd', 'exploit', 'ctf', 'capture', 'the', 'flag', 'binary', 'vagrant', 'qemu', 'docker']
 
 [build-system]
 requires = ["setuptools", "wheel", "pwntools", "python-vagrant", "docker", "typer"]

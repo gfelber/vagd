@@ -16,16 +16,19 @@ class Vagd(Shgd):
     | Vagrant Virtualization for pwntools
     |
     | SSH from cmd:
+
     .. code-block::  bash
 
         VAGRANT_CWD=.vagd vagrant ssh
 
     | halt from cmd
+
     .. code-block:: bash
 
         VAGRANT_CWD=.vagd vagrant halt
 
     | destroy from cmd
+
     .. code-block:: bash
 
         VAGRANT_CWD=.vagd vagrant destroy

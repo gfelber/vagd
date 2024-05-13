@@ -23,10 +23,6 @@ def main(
     ):
     """
     creates a template
-    :param binary: the binary to exploit
-    :param ip: the ip/domain of the remote target
-    :param port: the port of the remote target
-    :param output: output file
     """
     templatePath = os.path.dirname(os.path.realpath(__file__))
     templateChunks = []
