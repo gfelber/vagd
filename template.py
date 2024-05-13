@@ -1,5 +1,5 @@
 #!/bin/python
-from vagd import Vagd, wrapper, box
+from vagd import Vagd, Qegd, wrapper, box
 from pwn import *
 
 GDB_OFF = 0x555555555000
@@ -24,7 +24,7 @@ def get_target(**kw):
         return remote(IP, PORT)
 
     vm = Vagd(exe.path, vbox=BOX, ex=True, fast=True)
-    # vm = Qegd(exe.path, vbox=BOX, ex=True)
+    # vm = Qegd(exe.path, vbox=BOX, ex=True, fast=True)
     return vm.start(argv=ARGS, env=ENV, gdbscript=GDB, **kw)
 
 
