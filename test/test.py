@@ -17,20 +17,24 @@ b main
 c"""
 
 context.binary = exe = ELF(BINARY, checksec=False)
-context.aslr = False
+context.aslr = True
 
 byt = lambda x: str(x).encode()
 
 
 def vms():
+    log.info("Testing Vagrant")
     vm = Vagd(exe.path, vbox=Box.UBUNTU_FOCAL64, tmp=True, fast=True, ex=True)
     yield vm
     vm._v.halt()
-    vm = Dogd(exe.path, user='ubuntu', image=Box.DOCKER_FOCAL, tmp=True, ex=True, fast=True)
+    log.info("Testing Docker for Ubuntu")
+    vm = Dogd(exe.path, image=Box.DOCKER_FOCAL, tmp=True, ex=True, fast=True)
     yield vm
     vm._client.containers.get(vm._id).kill()
-    vm = Qegd(exe.path, user='ubuntu', img=Box.CLOUDIMAGE_FOCAL, tmp=True, ex=True, fast=True)
+    log.info("Testing Qemu")
+    vm = Qegd(exe.path, img=Box.CLOUDIMAGE_FOCAL, tmp=True, ex=True, fast=True)
     yield vm
+    log.info("Testing SSH")
     yield Shgd(exe.path, user=vm._user, port=vm._port, tmp=True, ex=True, fast=True)
     os.system('kill $(pgrep qemu)')
     yield wrapper.Empty()
@@ -39,10 +43,11 @@ def vms():
 for vm in vms():
     t = vm.start(argv=ARGS, env=ENV, gdbscript=GDB, api=API)
 
+    sleep(1)
     g = wrapper.GDB(t)
     g.execute('p "PWN"')
     g.execute('c')
 
-    t.recvall()
+    log.info(t.recvall().decode())
 
 print("Everything executed without errors")

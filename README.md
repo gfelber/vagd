@@ -62,7 +62,7 @@ the following boxes were tested and work, box constants are inside `vagd.box.Box
   * DOCKER_ALPINE_316 = 'alpine:3.16.6'
 
 
-currently only distributions that use `apt` are supported
+currently only distributions that use `apt` and alpine for Docker are supported
 
 
 

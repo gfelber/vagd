@@ -12,7 +12,8 @@ class Pwngd(ABC):
     SYSROOT = LOCAL_DIR + 'sysroot/'
     SYSROOT_LIB = SYSROOT + 'lib/'
     SYSROOT_LIB_DEBUG = SYSROOT + 'lib/debug'
-    KEYFILE = LOCAL_DIR + 'keyfile'
+    KEYFILE = HOME_DIR + 'keyfile'
+    PUBKEYFILE = KEYFILE + '.pub'
     DEFAULT_PORT = 2222
     STATIC_GDBSRV_PORT = 42069
 
@@ -58,7 +59,7 @@ class Pwngd(ABC):
         if not which('sshfs'):
             pwn.log.error('sshfs isn\'t installed')
         cmd = Pwngd._SSHFS_TEMPLATE.format(port=self._ssh.port,
-                                           keyfile="$PWD/" + self._ssh.keyfile,
+                                           keyfile=self._ssh.keyfile,
                                            user=self._ssh.user,
                                            host=self._ssh.host,
                                            remote_dir=remote_dir,
