@@ -1,22 +1,23 @@
+import fileinput
 import os
 import re
-import pwn
-import fileinput
-import vagrant
 from typing import Collection, Union
+
+import pwn
+import vagrant
 from vtemplate import VAGRANT_TEMPLATE
 
 
 class Vagd:
     VAGRANTFILE_PATH = './Vagrantfile'
     VAGRANT_BOX = 'ubuntu/focal64'
+    GDBSERVER_PORT = 28641
 
+    _binary: str
     _box: str
     _vagrantfile: str
     _v: vagrant
     _ssh: pwn.ssh
-    _gdb: pwn.gdb
-    _binary: pwn.gdb
 
     def _get_box(self) -> str:
         with open(self._vagrantfile, 'r') as vagrantfile:
@@ -44,6 +45,16 @@ class Vagd:
 
         self._v.up()
 
+    def _ssh_setup(self):
+        self._ssh = pwn.ssh(
+            user=self._v.user(),
+            host=self._v.hostname(),
+            port=int(self._v.port()),
+            keyfile=self._v.keyfile(),
+            ignore_config=True
+        )
+        self._ssh.set_working_directory()
+
     """
 
     :param binary: binary for VM debugging
@@ -63,15 +74,7 @@ class Vagd:
         self._v = vagrant.Vagrant(self._vagrantfile.replace('Vagrantfile', ''))
 
         self._vagrant_setup()
-
-        self._ssh = pwn.ssh(
-            user=self._v.user(),
-            host=self._v.hostname(),
-            port=int(self._v.port()),
-            keyfile=self._v.keyfile(),
-            ignore_config=True
-        )
-        self._ssh.set_working_directory()
+        self._ssh_setup()
 
         self._ssh.put(binary)
         self._ssh.run('chmod +x ' + self._binary)
@@ -91,7 +94,7 @@ class Vagd:
     :return: pwntools process
     """
 
-    def start(self, argv: Collection = ('',), gdbscript: str = '', *a, **kw) -> pwn.process:
+    def start(self, argv: Collection = tuple(), gdbscript: str = '', *a, **kw) -> pwn.process:
         if pwn.args.GDB:
             return pwn.gdb.debug((self._binary,) + argv, ssh=self._ssh, gdbscript=gdbscript, *a, **kw)
         else:
