@@ -3,3 +3,4 @@ python-vagrant
 sphinxcontrib.jquery
 sphinx-rtd-theme
 docker
+typer

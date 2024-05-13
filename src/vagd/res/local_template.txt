@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-from vagd import {dependencies}, Box
 from pwn import *
 
 GDB_OFF = 0x555555555000
@@ -13,8 +12,8 @@ GDB = f"""
 c"""
 
 context.binary = exe = ELF(BINARY, checksec=False)
-libc = ELF('{libc}', checksec=False)
-context.aslr = {aslr}
+libc = ELF({libc}, checksec=False)
+context.aslr = False
 
 byt = lambda x: str(x).encode()
 phex = lambda x, y='': print(y + hex(x))
@@ -33,17 +32,19 @@ ru = lambda x, t=None: gt(t).recvuntil(x)
 it = lambda t=None: gt(t).interactive()
 cl = lambda t=None: gt(t).close()
 
-vm = None
 def get_target(**kw):
     global vm
 
+    if args.GDB:
+        return gdb.debug([exe.path] + ARGS, env=ENV, gdbscript=GDB, **kw)
+
+    context.log_level = 'debug'
     if args.REMOTE:
-        context.log_level = 'debug'
         return remote(IP, PORT)
 
-    if not vm:
-        {vms}
-    return vm.start(argv=ARGS, env=ENV, gdbscript=GDB, **kw)
+    return process([exe.path] + ARGS, env=ENV, gdbscript=GDB, **kw)
+
+
 
 
 t = get_target()
