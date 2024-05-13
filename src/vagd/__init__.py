@@ -245,29 +245,27 @@ class Vagd:
 
         return gdbserver
 
-    def pwn_debug(self, argv=None, *a, **kw) -> pwn.process:
+    def pwn_debug(self, argv=None, **kw) -> pwn.process:
         """
         run binary in vm with gdb (pwnlib feature set)
         :param argv: comandline arguments for binary
-        :param a: pwntool parameters
         :param kw: pwntool parameters
         :return: pwntools process
         """
         if argv is None:
             argv = list()
-        return pwn.gdb.debug((self._binary,) + argv, ssh=self._ssh, *a, **kw)
+        return pwn.gdb.debug((self._binary,) + argv, ssh=self._ssh, **kw)
 
-    def process(self, argv=None, *a, **kw) -> pwn.process:
+    def process(self, argv=None, **kw) -> pwn.process:
         """
         run binary in vm as process
         :param argv: comandline arguments for binary
-        :param a: pwntool parameters
         :param kw: pwntool parameters
         :return: pwntools process
         """
         if argv is None:
             argv = list()
-        return self._ssh.process((self._binary,) + argv, *a, **kw)
+        return self._ssh.process((self._binary,) + argv, **kw)
 
     def start(self,
               argv: tuple = None,
@@ -276,7 +274,7 @@ class Vagd:
               sysroot: str = None,
               gdb_args: list = None,
               ex: bool = False,
-              *a, **kw) -> pwn.process:
+              **kw) -> pwn.process:
         """
         start binary on remote and return pwn.process
         :param argv: commandline arguments for binary
@@ -285,7 +283,6 @@ class Vagd:
         :param sysroot: sysroot dir (experimental)
         :param gdb_args: extra gdb args (experimental)
         :param ex: enable experimental features (if not set in constructor)
-        :param a: pwntool parameters
         :param kw: pwntool parameters
         :return: pwntools process, if api=True tuple with gdb api
         """
@@ -296,10 +293,10 @@ class Vagd:
         if pwn.args.GDB:
             if ex or self._experimental:
                 return self.debug((self._binary,) + argv, gdbscript=gdbscript, gdb_args=gdb_args, sysroot=sysroot,
-                                  api=api, *a, **kw)
+                                  api=api, **kw)
             else:
                 if gdb_args or sysroot or api:
                     pwn.error('requires experimental features, activate with ex=True')
-                return self.pwn_debug(argv=argv, gdbscript=gdbscript, sysroot=sysroot, *a, **kw)
+                return self.pwn_debug(argv=argv, gdbscript=gdbscript, sysroot=sysroot, **kw)
         else:
-            return self.process(argv=argv, *a, **kw)
+            return self.process(argv=argv, **kw)

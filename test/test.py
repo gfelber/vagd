@@ -20,13 +20,13 @@ context.aslr = False
 byt = lambda x: str(x).encode()
 
 
-def get_target():
+def get_target(**kw):
     if args.REMOTE:
         context.log_level = 'debug'
         return remote(IP, PORT)
 
     vm = Vagd(exe.path, vbox=BOX, tmp=True, fast=True, ex=True)
-    return vm.start(argv=ARGS, env=ENV, gdbscript=GDB, api=API)
+    return vm.start(argv=ARGS, env=ENV, gdbscript=GDB, api=API, **kw)
 
 
 t = get_target()
