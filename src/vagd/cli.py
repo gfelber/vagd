@@ -35,6 +35,7 @@ def template(
         binary: Optional[str] = typer.Argument('', help='Binary to Exploit'),
         ip: Optional[str] = typer.Argument('', help='Ip or Domain of the remote target'),
         port: Optional[int] = typer.Argument(0, help='port of the remote target'),
+        output_exploit: Optional[bool] = typer.Option(False, '-e', help='output file of the template (also add +x) to exploit.py'),
         output: Optional[str] = typer.Option('', '-o', help='output file of the template (also add +x), default stdout'),
         libc: Optional[str] = typer.Option('', '--libc', '-l', help='add libc to template'),
         aslr: Optional[bool] = typer.Option(False, '--aslr', '-a', help='enable gdb ASLR (default: disabled for gdb)'),
@@ -86,6 +87,8 @@ def template(
                                                   dependencies=', '.join(dependencies),
                                                   vms=('\n' + ' ' * 8).join(vms))
 
+        if output_exploit:
+            output = 'exploit.py'
         if output:
             with open(output, 'w') as exploitFile:
                 exploitFile.write(template)
@@ -103,7 +106,6 @@ def info(
     """
     elf = pwn.ELF(binary)
     pwn.log.info(elf.section('.comment').decode().replace('\0', '\n'))
-
 
 def start():
     app()

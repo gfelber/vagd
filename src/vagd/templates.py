@@ -24,7 +24,8 @@ RUN apt-get update && \\
 
 # init user and ssh
 EXPOSE 22
-RUN useradd --create-home --shell /bin/bash {user}
+RUN useradd --create-home --shell /bin/bash -g sudo {user}
+RUN echo "vagd ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/vagd && chmod 0440 /etc/sudoers.d/vagd
 USER {user}
 
 WORKDIR /home/{user}
@@ -43,16 +44,18 @@ DOCKER_ALPINE_TEMPLATE = '''FROM {image}
 
 # install packages
 RUN apk update
-# we need make and linux-headers to compile gdb
 RUN apk add python3
 RUN apk add --no-cache musl-dbg
 # install gdb
 RUN apk add --no-cache gdb
 # install ssh server support and keys
 RUN apk add --no-cache openssh
+# install sudo
+RUN apk add --no-cache sudo
 
 EXPOSE 22
-RUN adduser -h /home/vagd -s /bin/ash -D vagd
+RUN adduser -h /home/vagd -s /bin/ash -g sudo -D vagd
+RUN echo "vagd ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/vagd && chmod 0440 /etc/sudoers.d/vagd
 RUN echo "vagd:vagd" | chpasswd
 
 USER vagd
