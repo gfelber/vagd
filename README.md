@@ -1,6 +1,6 @@
 # VAGD
 
-Vagrant integration in pwntools
+virtualization integrations in pwntools
 
 ## Installation
 
@@ -26,29 +26,48 @@ use *template.py* and copy it to *exploit.py* fill out the constants
 ./exploit.py REMOTE
 ```
 
-I recommend using [pwndbg](https://github.com/pwndbg/pwndbg).
+I recommend using [pwngdg](https://github.com/pwngdg/pwngdg).
 
 ## Features
 
 **vagd.Vagd**
 
-Constructor for Vagd, initializes a new vagrant machine (if non existent)
+Creatses a vagrant vm
+
+| required | name        | type | descripton                                          |
+| -------- | ----------- | ---- | --------------------------------------------------- |
+| X        | binary      | str  | binary to debug on  vagrant vm                      |
+|          | Vagrantfile | str  | Location of Vagrantfile (default current directory) |
+|          | vbox        | str  | vagrant box to use (Default: ubuntu/focal64)        |
+|          | **kwargs    | Any  | Parameters to pass through to super constructor     |
+
+**vagd.Qegd**
+
+Child of `vagd.pwngd.Pwngd` setups a vagrant vm
+
+| required | name     | type | descripton                                                   |
+| -------- | -------- | ---- | ------------------------------------------------------------ |
+| X        | binary   | str  | binary to debug on  vagrant vm                               |
+|          | img      | str  | Location of Qemu local or remote (URL) qemu image (Default: [Cloudimage-Ubuntu-Focal](https://cloud-images.ubuntu.com/focal/current/)) |
+|          | **kwargs | Any  | Parameters to pass through to super constructor              |
+
+**vagd.pwngd.Pwngd**
+
+Abstract Class for Vagd, setups vm
 
 Parameters:
 
-| required | experimental | name        | type         | description                                                  |
-| -------- | ------------ | ----------- | ------------ | ------------------------------------------------------------ |
-| X        |              | binary      | str          | binary to debug on  vagrant vm                               |
-|          |              | vagrantfile | str          | location of Vagrantfile                                      |
-|          |              | vbox        | str          | vagrant box to use                                           |
-|          |              | files       | str \| tuple | other files to upload to vm, all files are uploaded to current working directory (home or tmp) |
-|          |              | tmp         | bool         | if the created directory in the vm should be temporary, requires new upload after each execution |
-|          | X            | fast        | bool         | fast debug, mounts library files locally with **sshfs** in newly created directory ./sysroot/lib/ for faster symbol reading |
-|          | x            | ex          | bool         | enables experimental features for the whole object           |
+| required | experimental | name   | type         | description                                                  |
+| -------- | ------------ | ------ | ------------ | ------------------------------------------------------------ |
+| X        |              | binary | str          | binary to debug on  vagrant vm                               |
+|          |              | files  | str \| tuple | other files to upload to vm, all files are uploaded to current working directory (home or tmp) |
+|          |              | tmp    | bool         | if the created directory in the vm should be temporary, requires new upload after each execution |
+|          | X            | fast   | bool         | fast debug, mounts library files locally with **sshfs** in newly created directory ./sysroot/lib/ for faster symbol reading |
+|          | x            | ex     | bool         | enables experimental features for the whole object           |
 
 
 
-**vagd.Vagd.put**
+**vagd.pwngd.Pwngb.put**
 
 upload file or directory to vm
 
@@ -63,7 +82,7 @@ Return: None
 
 
 
-**vagd.Vagd.system**
+**vagd.pwngd.Pwngd.system**
 
 executes command on vm, interface to  `pwnlib.tubes.ssh.ssh.system`
 
@@ -77,7 +96,7 @@ Return: `pwnlib.tubes.ssh.ssh.system`
 
 
 
-**vagd.Vagd.debug** Experimental
+**vagd.pwngd.Pwngd.debug** Experimental
 
 Executes the provided binary with gdbserver on the vm and and attaches gdb.
 
@@ -99,7 +118,7 @@ Return: `pwn.process`
 
 
 
-**vagd.Vagd.process**
+**vagd.pwngd.Pwngd.process**
 
 Executes the provided binary as process on vm
 
@@ -110,7 +129,7 @@ Executes the provided binary as process on vm
 
 Return: `pwn.process` 
 
-**vagd.Vagd.pwn_debug**
+**vagd.pwngd.pwngd.pwn_debug**
 
 Executes the provided binary with gdbserver on the vm and and attaches gdb.
 
@@ -123,7 +142,7 @@ Return: `pwn.process`
 
 
 
-**vagd.Vagd.start**
+**vagd.pwngd.Pwngd.start**
 
 uses `pwn.args` to swap between `Vagd.process`, `Vagd.pwn_debug` and `Vagd.debug` if experimental is enabled (in constructor or via `ex=True`)
 
