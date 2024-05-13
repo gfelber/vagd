@@ -26,8 +26,8 @@ sla = lambda x, y: t.sendlineafter(x, y)
 sa = lambda x, y: t.sendafter(x, y)
 ra = lambda: t.recvall()
 rl = lambda: t.recvline()
-r = lambda: t.recv()
-ru = lambda: t.recvuntil()
+r = lambda x: t.recv(x)
+ru = lambda x: t.recvuntil(x)
 
 vm = None
 def get_target(**kw):
