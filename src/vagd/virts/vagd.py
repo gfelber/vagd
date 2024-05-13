@@ -5,17 +5,32 @@ import vagrant
 import fileinput
 from shutil import which
 
-from vagd import box, templates
+from vagd import templates
+from vagd.box import Box
 from vagd.virts.pwngd import Pwngd
 from vagd.virts.shgd import Shgd
 
 
 class Vagd(Shgd):
-    """ Vagrant Virtualization for pwntools """
+    """
+    Vagrant Virtualization for pwntools
+
+    SSH from cmd:
+    .. code-block::
+        VAGRANT_CWD=.vagd vagrant ssh
+
+    halt from cmd
+    .. code-block::
+        VAGRANT_CWD=.vagd vagrant halt
+
+    destroy from cmd
+    .. code-block::
+        VAGRANT_CWD=.vagd vagrant destroy
+    """
 
     VAGRANTFILE_PATH = Pwngd.LOCAL_DIR + 'Vagrantfile'
     VAGRANTFILE_BOX = 'config.vm.box'
-    VAGRANT_BOX = box.UBUNTU_FOCAL64
+    VAGRANT_BOX = Box.UBUNTU_FOCAL64
 
     _box: str
     _vagrantfile: str

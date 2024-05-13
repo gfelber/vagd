@@ -2,7 +2,7 @@
 import os
 import time
 
-from vagd import Vagd, Qegd, Shgd, wrapper, box
+from vagd import Vagd, Qegd, Shgd, wrapper, Box
 from pwn import *
 
 GDB_OFF = 0x555555555000
@@ -23,10 +23,10 @@ byt = lambda x: str(x).encode()
 
 
 def vms():
-    vm = Vagd(exe.path, vbox=box.UBUNTU_FOCAL64, tmp=True, fast=True, ex=True)
+    vm = Vagd(exe.path, vbox=Box.UBUNTU_FOCAL64, tmp=True, fast=True, ex=True)
     yield vm
     vm._v.halt()
-    vm = Qegd(exe.path, user='ubuntu', img=box.CLOUDIMAGE_FOCAL, tmp=True, ex=True, fast=True)
+    vm = Qegd(exe.path, user='ubuntu', img=Box.CLOUDIMAGE_FOCAL, tmp=True, ex=True, fast=True)
     yield vm
     yield Shgd(exe.path, user=vm._user, port=vm._port, tmp=True, ex=True, fast=True)
     os.system('kill $(pgrep qemu)')

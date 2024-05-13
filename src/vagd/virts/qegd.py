@@ -5,12 +5,21 @@ import requests
 from urllib.parse import urlparse
 from shutil import which, copyfile
 
-from vagd import box, helper
+from vagd import helper
+from vagd.box import Box
 from vagd.virts.pwngd import Pwngd
 class Qegd(Pwngd):
-    """ QEMU Virtualization for pwntools """
+    """
+    QEMU Virtualization for pwntools
+    SSH from cmd:
+    .. code-block::
+        ssh -o "StrictHostKeyChecking=no" -i .vagd/keyfile -p $(cat .vagd/qemu.lock) ubuntu@0.0.0.0
+    Kill from cmd:
+    .. code-block::
+        kill $(pgrep qemu)
+    """
 
-    DEFAULT_IMG = box.CLOUDIMAGE_FOCAL
+    DEFAULT_IMG = Box.CLOUDIMAGE_FOCAL
     QEMU_DIR = Pwngd.LOCAL_DIR
     IMGS_DIR = Pwngd.HOME_DIR + 'qemu-imgs/'
     DEFAULT_USER = 'ubuntu'
@@ -133,10 +142,7 @@ ssh_authorized_keys:
         self._set_local_img()
         self._setup_seed()
         # start qemu in independent process
-        for i in range(101):
-            if not helper.is_port_in_use(Qegd.DEFAULT_PORT + i):
-                self._port = Qegd.DEFAULT_PORT + i
-                break
+        self._port = helper.first_free_port(Qegd.DEFAULT_PORT)
         self._qemu_start()
         time.sleep(15)
 

@@ -11,6 +11,7 @@ class Pwngd(ABC):
     SYSROOT = LOCAL_DIR + 'sysroot/'
     SYSROOT_LIB = SYSROOT + 'lib/'
     KEYFILE = LOCAL_DIR + 'keyfile'
+    DEFAULT_PORT = 2222
 
     _path: str
     _binary: str
