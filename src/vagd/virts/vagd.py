@@ -14,7 +14,12 @@ from vagd.virts.shgd import Shgd
 class Vagd(Shgd):
     """
     | Vagrant Virtualization for pwntools
-    |
+
+    :param binary: binary for VM debugging
+    :param vbox: vagrant box to use
+    :param vagrantfile: location of Vagrantfile
+    :param kwargs: arguments to pass through to super
+    
     | SSH from cmd:
 
     .. code-block::  bash

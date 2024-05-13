@@ -15,20 +15,22 @@ context.binary = exe = ELF(BINARY, checksec=False)
 libc = ELF({libc}, checksec=False)
 context.aslr = False
 
-byt = lambda x: str(x).encode()
+byt = lambda x: x if isinstance(x, bytes) else x.encode() if isinstance(x, str) else repr(x).encode()
 phex = lambda x, y='': print(y + hex(x))
 lhex = lambda x, y='': log.info(y + hex(x))
+pad = lambda x, s, v=b'\0', o='r': x+(v*(s-len(x))) if o == 'r' else x+(v*(s-len(x)))
+padhex = lambda x, s: pad(hex(x)[2:], s, '0', 'l')
 
 t = None
 gt = lambda at=None: at if at else t
-sl = lambda x, t=None: gt(t).sendline(x)
-se = lambda x, t=None: gt(t).send(x)
-sla = lambda x, y, t=None: gt(t).sendlineafter(x, y)
-sa = lambda x, y, t=None: gt(t).sendafter(x, y)
+sl = lambda x, t=None: gt(t).sendline(byt(x))
+se = lambda x, t=None: gt(t).send(byt(x))
+sla = lambda x, y, t=None: gt(t).sendlineafter(byt(x), byt(y))
+sa = lambda x, y, t=None: gt(t).sendafter(byt(x), byt(y))
 ra = lambda t=None: gt(t).recvall()
 rl = lambda t=None: gt(t).recvline()
 re = lambda x, t=None: gt(t).recv(x)
-ru = lambda x, t=None: gt(t).recvuntil(x)
+ru = lambda x, t=None: gt(t).recvuntil(byt(x))
 it = lambda t=None: gt(t).interactive()
 cl = lambda t=None: gt(t).close()
 
@@ -42,7 +44,7 @@ def get_target(**kw):
     if args.REMOTE:
         return remote(IP, PORT)
 
-    return process([exe.path] + ARGS, env=ENV, gdbscript=GDB, **kw)
+    return process([exe.path] + ARGS, env=ENV, **kw)
 
 
 

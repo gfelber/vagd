@@ -13,6 +13,15 @@ from vagd.virts.shgd import Shgd
 class Dogd(Shgd):
     """
     | Docker virtualization for pwntools
+
+    :param binary: binary to execute
+    :param image: docker base image
+    :param user: name of user on docker container
+    :param forward: Dictionary of forwarded ports, needs to follow docker api format: 'hostport/(tcp|udp)' : guestport
+    :param ex: if experimental features, e.g. alpine, gdbserver should be enabled
+    :param fast: mounts libs locally for faster symbol extraction (experimental) NOT COMPATIBLE WITH ALPINE
+    :param kwargs: parameters to pass through to super
+
     | SSH from cmd
 
     .. code-block:: bash

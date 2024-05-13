@@ -18,6 +18,18 @@ from vagd.virts.shgd import Shgd
 class Qegd(Shgd):
     """
     | QEMU Virtualization for pwntools
+
+    :param binary: binary for VM debugging
+    :param img: qemu image to use (requires ssh)
+    :param user: user inside qemu image
+    :param ports: forwarded ports
+    :param arm: if qemu is arm
+    :param qemu: qemu cmd
+    :param cpu: value for :code -cpu
+    :param machine: value for :code -machine
+    :param pflash: value for :code -pflash
+    :param kwargs: parameters to pass through to super
+
     | SSH from cmd
 
     .. code-block:: bash

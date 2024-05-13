@@ -7,6 +7,17 @@ from typing import Union, Dict, Iterable
 
 
 class Pwngd(ABC):
+    """
+    start binary on remote and return pwn.process
+
+    :param argv: commandline arguments for binary
+    :param gdbscript: GDB script for GDB
+    :param api: if GDB API should be enabled (experimental)
+    :param sysroot: sysroot dir (experimental)
+    :param gdb_args: extra gdb args (experimental)
+    :param kwargs: pwntool parameters
+    :return: pwntools process, if api=True tuple with gdb api
+    """
     LOCAL_DIR = './.vagd/'
     HOME_DIR = os.path.expanduser('~/.vagd/')
     SYSROOT = LOCAL_DIR + 'sysroot/'
