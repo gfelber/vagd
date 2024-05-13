@@ -126,6 +126,16 @@ Parameters:
 
 Return: `pwn.process` 
 
+**wrapper.GDB**
+
+receives `target: pwn.process` and returns gdb python api with type hinting from [types-gdb](https://pypi.org/project/types-gdb/) or a `wrapper.Empty` object, that returns None for every methode.
+
+| required | name   | type        | description                                                  |
+| -------- | ------ | ----------- | ------------------------------------------------------------ |
+| x        | target | pwn.process | a pwn.process object. If tehe gdb attribute is set a gdb python api is returned, else wrapper.Empty |
+
+Return: gdb python api or wrapper.Empty
+
 ## Boxes
 
 the following boxes were tested and work, box constants are inside `Vagd.box`
