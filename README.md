@@ -48,6 +48,21 @@ Parameters:
 
 
 
+**Vagd.put**
+
+upload file or directory to vm
+
+Parameters:
+
+| required | name   | type | description                                                  |
+| -------- | ------ | ---- | ------------------------------------------------------------ |
+| x        | file   | str  | path of file to upload                                       |
+|          | remote | str  | remote location of file, no location means working directory (home or tmp if enabled) |
+
+Return: None
+
+
+
 **Vagd.system**
 
 executes command on vm, interface to  `pwnlib.tubes.ssh.ssh.system`
@@ -149,3 +164,6 @@ currently Vagrantfile generation is only compatible distributions that use `apt`
 
 
 
+## Future plans
+
+### preconfigured Vagrant boxes
