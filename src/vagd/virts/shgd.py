@@ -1,4 +1,5 @@
 import pwn
+import time
 from vagd.virts.pwngd import Pwngd
 class Shgd(Pwngd):
     """ ssh interface for pwntools """
@@ -18,17 +19,27 @@ class Shgd(Pwngd):
         """
         pass
 
+    _TRIES = 3  # three times the charm
     def _ssh_setup(self) -> None:
         """
-        setups ssh connection to remote
+        setup ssh connection
         """
-        self._ssh = pwn.ssh(
-            user=self._user,
-            host=self._host,
-            port=self._port,
-            keyfile=self._keyfile,
-            ignore_config=True
-        )
+        for _ in range(Shgd._TRIES):
+            try:
+                self._ssh = pwn.ssh(
+                    user=self._user,
+                    host=self._host,
+                    port=self._port,
+                    keyfile=self._keyfile,
+                    ignore_config=True
+                )
+                break
+            except:
+                if _ + 1 == Shgd._TRIES:
+                    pwn.log.error('SSH failed, pls try again')
+                else:
+                    pwn.log.info('Trying again')
+                time.sleep(15)
 
     def __init__(self,
                  binary: str,

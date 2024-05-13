@@ -12,9 +12,10 @@ from shutil import which, copyfile
 from vagd import helper
 from vagd.box import Box
 from vagd.virts.pwngd import Pwngd
+from vagd.virts.shgd import Shgd
 
 
-class Qegd(Pwngd):
+class Qegd(Shgd):
     """
     | QEMU Virtualization for pwntools
     | SSH from cmd
@@ -71,7 +72,6 @@ class Qegd(Pwngd):
     _qemu: str
     _cpu: str
     _machine: str
-    _keyfile: str
 
     @staticmethod
     def _is_local(url) -> bool:
@@ -220,28 +220,6 @@ ssh_authorized_keys:
                 self._new_vm()
             pwn.log.info(f'Lockfile in {Qegd.LOCKFILE}. Using running qemu instance at port {self._port}')
 
-    _TRIES = 3  # three times the charm
-
-    def _ssh_setup(self) -> None:
-        """
-        setup ssh connection to QEMU
-        """
-        for _ in range(Qegd._TRIES):
-            try:
-                self._ssh = pwn.ssh(
-                    user=self._user,
-                    host=self._host,
-                    port=self._port,
-                    keyfile=Pwngd.KEYFILE,
-                    ignore_config=True
-                )
-                break
-            except:
-                if _ + 1 == Qegd._TRIES:
-                    pwn.log.error('SSH failed, pls try again')
-                else:
-                    pwn.log.info('Trying again')
-                time.sleep(15)
 
     def __init__(self,
                  binary: str,
@@ -282,7 +260,6 @@ ssh_authorized_keys:
             pflash = Qegd.DEFAULT_QEMU_ARM_PFLASH_OPTIONS + Qegd.DEFAULT_QEMU_ARM_PFLASH if pflash is None else pflash
 
         self._img = img
-        self._user = user
         self._ports = ports if ports else dict()
         self._arm = arm
         self._qemu = qemu
@@ -291,8 +268,8 @@ ssh_authorized_keys:
         self._pflash = pflash
 
         self._vm_setup()
-        self._ssh_setup()
+
+        super().__init__(binary=binary, user=user, host=self._host, port=self._port, **kwargs)
+
         if self._new:
             self._install_packages(Pwngd.DEFAULT_PACKAGES)
-
-        super().__init__(binary=binary, **kwargs)

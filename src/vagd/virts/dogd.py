@@ -45,6 +45,7 @@ class Dogd(Shgd):
     _dockerdir: str
     _dockerfile: str
     _isalpine: bool
+    _gdbsrvport: int
     _ex: bool
     _forward: Dict[str, int]
 
@@ -78,7 +79,7 @@ class Dogd(Shgd):
         self._port = helper.first_free_port(Dogd.DEFAULT_PORT)
         self._forward.update({'22/tcp': self._port})
         if self._isalpine:
-            self._forward.update({f'{Pwngd.STATIC_GDBSRV_PORT}/tcp': Pwngd.STATIC_GDBSRV_PORT})
+            self._forward.update({f'{self._gdbsrvport}/tcp': self._gdbsrvport})
 
         dir = os.path.dirname(os.path.realpath(__file__))
         with open(dir[:dir.rfind('/')] + '/res/seccomp.json', 'r') as seccomp_file:
@@ -129,6 +130,7 @@ class Dogd(Shgd):
                  user: str = DEFAULT_USER,
                  forward: Dict[str, int] = None,
                  ex: bool = False,
+                 fast: bool = False,
                  **kwargs):
         """
 
@@ -136,12 +138,14 @@ class Dogd(Shgd):
         :param image: docker base image
         :param user: name of user on docker container
         :param forward: Dictionary of forwarded ports, needs to follow docker api format: 'hostport/(tcp|udp)' : guestport
-        :param ex: if experimental features, e.g. gdbserver should be enabled
+        :param ex: if experimental features, e.g. alpine, gdbserver should be enabled
+        :param fast: mounts libs locally for faster symbol extraction (experimental) NOT COMPATIBLE WITH ALPINE
         :param kwargs: parameters to pass through to super
         """
 
         self._image = image
         self._isalpine = 'alpine' in image
+        self._gdbsrvport = helper.first_free_port(Pwngd.STATIC_GDBSRV_PORT) if self._isalpine else None
         self._dockerdir = Dogd.DOCKERHOME + f'{self._image}/'
         if not (os.path.exists(Dogd.DOCKERHOME) and os.path.exists(self._dockerdir)):
             os.makedirs(self._dockerdir)
@@ -156,10 +160,10 @@ class Dogd(Shgd):
 
         self._vm_setup()
 
-        gdbsrvport = Pwngd.STATIC_GDBSRV_PORT if self._isalpine else None
         super().__init__(binary=binary,
                          user=self._user,
                          port=self._port,
                          ex=ex,
-                         gdbsrvport=gdbsrvport,
+                         fast=fast,
+                         gdbsrvport=self._gdbsrvport,
                          **kwargs)

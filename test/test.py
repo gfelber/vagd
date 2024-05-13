@@ -27,8 +27,15 @@ def vms():
     vm = Vagd(exe.path, vbox=Box.UBUNTU_FOCAL64, tmp=True, fast=True, ex=True)
     yield vm
     vm._v.halt()
+    if os.path.exists(Dogd.LOCKFILE):
+        os.remove(Dogd.LOCKFILE)
     log.info("Testing Docker for Ubuntu")
     vm = Dogd(exe.path, image=Box.DOCKER_FOCAL, tmp=True, ex=True, fast=True)
+    yield vm
+    vm._client.containers.get(vm._id).kill()
+    os.remove(Dogd.LOCKFILE)
+    log.info("Testing Docker for Alpine")
+    vm = Dogd(exe.path + "_stat", image=Box.DOCKER_ALPINE_316, tmp=True, ex=True, fast=True)
     yield vm
     vm._client.containers.get(vm._id).kill()
     log.info("Testing Qemu")
@@ -37,7 +44,6 @@ def vms():
     log.info("Testing SSH")
     yield Shgd(exe.path, user=vm._user, port=vm._port, tmp=True, ex=True, fast=True)
     os.system('kill $(pgrep qemu)')
-    yield wrapper.Empty()
 
 
 for vm in vms():
