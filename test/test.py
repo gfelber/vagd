@@ -9,11 +9,11 @@ BINARY = './bin/sysinfo'
 ARGS = ()
 ENV = {}
 API = True
-BOX = box.UBUNTU_FOCAL64
+BOX = box.UBUNTU_JAMMY64
 GDB = f"""
 b main
-c
-"""
+c"""
+
 context.binary = exe = ELF(BINARY, checksec=False)
 context.aslr = False
 
@@ -30,7 +30,7 @@ def get_target():
 
 
 t = get_target()
-g = t.gdb if hasattr(t, 'gdb') else wrapper.Empty()
+g = wrapper.GDB(t)
 g.execute('p "PWN"')
 
 t.interactive()
