@@ -1,5 +1,6 @@
 #!/bin/python
 from pwn import *
+from vagd import Vagd
 
 GDB_OFF = 0x555555555000
 IP = ''
@@ -18,15 +19,13 @@ byt = lambda x: str(x).encode()
 
 
 def get_target():
-    if args.PLT_DEBUG:
-        return gdb.debug((exe.path,) + ARGS, GDB, env=ENV, aslr=ASLR)
+    if args.REMOTE:
+        context.log_level = 'debug'
+        return remote(IP, PORT)
 
-    context.log_level = 'debug'
+    vagd = Vagd(exe.path)
+    return vagd.start(argv=ARGS, env=ENV, aslr=ASLR)
 
-    if args.LOCAL:
-        return process((exe.path,) + ARGS, env=ENV, aslr=ASLR)
-
-    return remote(IP, PORT)
 
 
 t = get_target()
