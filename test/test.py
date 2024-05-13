@@ -49,5 +49,6 @@ for vm in vms():
     g.execute('c')
 
     log.info(t.recvall().decode())
+    t.close()
 
 print("Everything executed without errors")
