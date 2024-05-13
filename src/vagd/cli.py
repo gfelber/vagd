@@ -1,11 +1,11 @@
 import importlib.metadata
 import os
+import sys
 import stat
 from typing import Optional, Dict
 
 import pwn
 import typer
-from rich.console import Console
 
 from vagd import Dogd, Qegd, Vagd
 from vagd.virts.pwngd import Pwngd
@@ -16,7 +16,6 @@ QEGD = "vm = Qegd(exe.path, img=Box.QEMU_JAMMY, ex=True, fast=True)  # Qemu"
 SHGD = "vm = Shgd(exe.path, user='user', host='localhost', port=22, ex=True, fast=True)  # SSH"
 
 app = typer.Typer(context_settings={"help_option_names": ["-h", "--help"]})
-stderr = Console(stderr=True)
 
 def _version(value: bool) -> None:
     if value:
@@ -118,7 +117,7 @@ def _get_type() -> str:
     if os.path.exists(Pwngd.LOCKFILE):
         with open(Pwngd.LOCKFILE) as lfile:
             return lfile.read()
-    stderr.print("no vagd instance is running")
+    sys.stderr.write("no vagd instance is running\n")
     exit(1)
 
 
@@ -157,7 +156,7 @@ def ssh(
     elif typ == Vagd.TYPE:
         os.system(f'VAGRANT_CWD={Pwngd.LOCAL_DIR} vagrant ssh')
     else:
-        stderr.print(f"Unknown type in {Pwngd.LOCKFILE}: {typ}")
+        sys.stderr.write(f"Unknown type in {Pwngd.LOCKFILE}: {typ}\n")
         exit(1)
 
 
@@ -199,7 +198,7 @@ def scp(
         v = vagrant.Vagrant(os.path.dirname(Vagd.VAGRANTFILE_PATH))
         _scp(2222, v.user(), source, target, recursive, v.keyfile())
     else:
-        stderr.print(f"Unknown type in {Pwngd.LOCKFILE}: {typ}")
+        sys.stderr.write(f"Unknown type in {Pwngd.LOCKFILE}: {typ}\n")
         exit(1)
 
 
@@ -217,7 +216,7 @@ def clean():
             import docker
             client = docker.from_env()
             if not client.containers.list(filters={'id': id}):
-                stderr.print(f'Lockfile {Dogd.LOCKFILE} found, container not running')
+                sys.stderr.write(f'Lockfile {Dogd.LOCKFILE} found, container not running\n')
                 exit(1)
             else:
                 container = client.containers.get(id)
@@ -234,7 +233,7 @@ def clean():
         v.destroy()
         os.remove(Pwngd.LOCKFILE)
     else:
-        stderr.print(f"Unknown type in {Pwngd.LOCKFILE}: {typ}")
+        sys.stderr.write(f"Unknown type in {Pwngd.LOCKFILE}: {typ}\n")
         exit(1)
 
 def start():
