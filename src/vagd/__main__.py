@@ -13,7 +13,7 @@ def main(
             ip: str = typer.Argument('', help='Ip or Domain of the remote target'),
             port: int = typer.Argument(0, help='port of the remote target'),
             output: str = typer.Option('', '-o', help = 'output file of the template, default stdout'),
-            libc: str = typer.Option('', '--libc', help='create docker template'),
+            libc: str = typer.Option('', '--libc', help='add libc to template'),
             aslr: bool = typer.Option(False, '--aslr', help='enable gdb ASLR (default: disabled for gdb)'),
             dogd: bool = typer.Option(False, '--dogd', help='create docker template'),
             qegd: bool = typer.Option(False, '--qegd', help='create qemu template'),
