@@ -44,6 +44,11 @@ class Qegd(Pwngd):
     DEFAULT_USER = 'ubuntu'
     DEFAULT_HOST = '0.0.0.0'
     DEFAULT_PORT = 2222
+    DEFAULT_QEMU_CMD = "qemu-system-x86_64"
+    DEFAULT_QEMU_MACHINE_PREFIX = "-machine"
+    DEFAULT_QEMU_MACHINE = "accel=kvm,type=q35"
+    DEFAULT_QEMU_CPU_PREFIX = "-cpu"
+    DEFAULT_QEMU_CPU = "host"
 
     _img: str
     _new: bool = False
@@ -51,6 +56,9 @@ class Qegd(Pwngd):
     _user: str
     _host: str
     _port: int
+    _qemu: str
+    _cpu: str
+    _machine: str
     _keyfile: str
 
     @staticmethod
@@ -121,9 +129,9 @@ ssh_authorized_keys:
                     user_data_file.write(Qegd._USER_DATA.format(pubkey=pubkey))
             os.system(Qegd._GENERATE_SEED_IMG)
 
-    _QEMU_START = "qemu-system-x86_64 " \
-                  + "-machine accel=kvm,type=q35 " \
-                  + "-cpu host " \
+    _QEMU_START = "{qemu} " \
+                  + "{machine} " \
+                  + "{cpu} " \
                   + "-m 2G " \
                   + "-nographic " \
                   + "-device virtio-net-pci,netdev=net0 " \
@@ -144,12 +152,16 @@ ssh_authorized_keys:
             lockfile.write(str(self._port))
         pid = os.fork()
         if pid == 0:
-            os.system(Qegd._QEMU_START.format(port=self._port,
+            qemu_cmd = Qegd._QEMU_START.format(qemu=self._qemu,
+                                              machine=" ".join((Qegd.DEFAULT_QEMU_MACHINE_PREFIX, self._machine)) if self._machine else '',
+                                              cpu=" ".join((Qegd.DEFAULT_QEMU_CPU_PREFIX, self._cpu)) if self._cpu else '',
+                                              port=self._port,
                                               img=Qegd.CURRENT_IMG,
                                               seed=Qegd.SEED_FILE,
                                               lock=Qegd.LOCKFILE,
                                               current=Qegd.CURRENT_IMG)
-                      )
+            pwn.log.info(qemu_cmd)
+            os.system(qemu_cmd)
 
     def _new_vm(self) -> None:
         """
@@ -208,12 +220,18 @@ ssh_authorized_keys:
                  binary: str,
                  img: str = DEFAULT_IMG,
                  user: str = DEFAULT_USER,
+                 qemu: str = DEFAULT_QEMU_CMD,
+                 machine: str = DEFAULT_QEMU_MACHINE,
+                 cpu: str = DEFAULT_QEMU_CPU,
                  **kwargs):
         """
 
         :param binary: binary for VM debugging
         :param img: qemu image to use (requires ssh)
         :param user: user inside qemu image
+        :param qemu: qemu cmd
+        :param cpu: value for :code -cpu
+        :param machine: value for :code -machine
         :param kwargs: parameters to pass through to super
         """
 
@@ -226,6 +244,9 @@ ssh_authorized_keys:
 
         self._img = img
         self._user = user
+        self._qemu = qemu
+        self._cpu = cpu
+        self._machine = machine
 
         self._vm_setup()
         self._ssh_setup()
