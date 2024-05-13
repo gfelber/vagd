@@ -6,7 +6,7 @@ IP = '{ip}'
 PORT = {port}
 BINARY = '{binary}'
 ARGS = []
-ENV = {}
+ENV = {env}
 GDB = f"""
 set follow-fork-mode parent
 

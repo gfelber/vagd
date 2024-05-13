@@ -79,7 +79,7 @@ class Shgd(Pwngd):
                     helper.error("Failed to connect to ssh")
                 else:
                     progress.status('Trying again')
-                time.sleep(15)
+                time.sleep(1 if i == 0 else 10)
 
     def __init__(self,
                  binary: str,
