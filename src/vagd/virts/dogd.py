@@ -180,18 +180,23 @@ class Dogd(Shgd):
         :param kwargs: parameters to pass through to super
         """
 
-        if packages is None:
-            packages = list()
 
         self._image = image
-        self._packages = packages + Dogd.DEFAULT_PACKAGES
+        self._packages = Dogd.DEFAULT_PACKAGES
+
         if symbols:
             helper.warn(f"installing {Pwngd.LIBC6_DEBUG} might update libc binary")
             self._packages.append(Pwngd.LIBC6_DEBUG)
 
         self._isalpine = 'alpine' in image
-        if self._isalpine and packages != [Pwngd.LIBC6_DEBUG]:
-            helper.warn("package installation not supported for alpine")
+
+        if packages is not None:
+            if self._isalpine:
+                helper.error("additional package installation not supported for alpine")
+        else:
+            # trigger package detection in Pwngdb
+            packages = list()
+
 
         self._gdbsrvport = -1
         self._dockerdir = Dogd.DOCKERHOME + f'{self._image}/'
@@ -211,7 +216,9 @@ class Dogd(Shgd):
         super().__init__(binary=binary,
                          user=self._user,
                          port=self._port,
+                         packages=packages,
                          ex=ex,
                          fast=fast,
+                         symbols=False,
                          gdbsrvport=self._gdbsrvport,
                          **kwargs)
