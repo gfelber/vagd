@@ -10,6 +10,8 @@ class Pwngd(ABC):
     HOME_DIR = os.path.expanduser('~/.vagd/')
     SYSROOT = LOCAL_DIR + 'sysroot/'
     SYSROOT_LIB = SYSROOT + 'lib/'
+    KEYFILE = LOCAL_DIR + 'keyfile'
+    DEFAULT_PORT = 2222
 
     _path: str
     _binary: str
@@ -145,7 +147,7 @@ class Pwngd(ABC):
         # Copy files to remote
         if isinstance(files, str):
             self._sync(files)
-        elif isinstance(files, tuple):
+        elif hasattr(files, '__iter__'):
             for file in files:
                 self._sync(file)
 

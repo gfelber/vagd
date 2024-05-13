@@ -1,3 +1,5 @@
 #!/bin/sh
-pip install ../
-python test.py GDB
+VAGRANT_CWD=.vagd vagrant halt;
+kill $(pgrep qemu);
+echo STARTING TEST;
+python test.py GDB;

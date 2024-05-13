@@ -19,7 +19,7 @@ release = '0.2.0'
 
 extensions = [
   'sphinx.ext.autodoc', 
-   'sphinx.ext.autosummary',
+  'sphinx.ext.autosummary',
   'sphinx.ext.napoleon', 
   'sphinxcontrib.jquery'
 ]
