@@ -32,7 +32,13 @@ I recommend using [pwngdg](https://github.com/pwngdg/pwngdg).
 
 **vagd.Vagd**
 
-Creatses a vagrant vm
+Child of `vagd.pwngd.Pwngd` setups a vagrant vm
+
+SSH from cmd:
+
+```bash
+vagrant ssh
+```
 
 | required | name        | type | descripton                                          |
 | -------- | ----------- | ---- | --------------------------------------------------- |
@@ -43,7 +49,13 @@ Creatses a vagrant vm
 
 **vagd.Qegd**
 
-Child of `vagd.pwngd.Pwngd` setups a vagrant vm
+Child of `vagd.pwngd.Pwngd` setups a qemu machine
+
+SSH from cmd:
+
+````bash
+ssh -o "StrictHostKeyChecking=no" -i .qemu/keyfile -p $(cat .qemu/qemu.lock) ubuntu@0.0.0.0
+````
 
 | required | name     | type     | descripton                                                   |
 | -------- | -------- | -------- | ------------------------------------------------------------ |
