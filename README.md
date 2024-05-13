@@ -4,6 +4,10 @@ Vagrant integration in pwntools
 
 ## Installation
 
+```bash
+pip install vagd
+```
+or
  ```bash
  pip install .
  pip install -r requirements.txt
