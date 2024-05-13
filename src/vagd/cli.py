@@ -1,6 +1,6 @@
 import os
+import pwn
 import stat
-
 import typer
 
 DOGD = "vm = Dogd(exe.path, image=Box.DOCKER_JAMMY, ex=True, fast=True)  # Docker"
@@ -8,18 +8,20 @@ VAGD = "vm = Vagd(exe.path, vbox=Box.VAGRANT_JAMMY64, ex=True, fast=True)  # Vag
 QEGD = "vm = Qegd(exe.path, img=Box.QEMU_JAMMY, user='ubuntu', ex=True, fast=True)  # Qemu"
 SHGD = "vm = Shgd(exe.path, user='user', port=22, ex=True, fast=True)  # SSH"
 
+app = typer.Typer(context_settings={"help_option_names": ["-h", "--help"]})
 
-def main(
+@app.callback(invoke_without_command=True)
+def template(
         binary: str = typer.Argument('', help='Binary to Exploit'),
         ip: str = typer.Argument('', help='Ip or Domain of the remote target'),
         port: int = typer.Argument(0, help='port of the remote target'),
-        output: str = typer.Option('', '-o', help='output file of the template, default stdout'),
-        libc: str = typer.Option('', '--libc', help='add libc to template'),
-        aslr: bool = typer.Option(False, '--aslr', help='enable gdb ASLR (default: disabled for gdb)'),
-        dogd: bool = typer.Option(False, '--dogd', help='create docker template'),
-        qegd: bool = typer.Option(False, '--qegd', help='create qemu template'),
-        vagd: bool = typer.Option(False, '--vagd', help='create vagrant template'),
-        shgd: bool = typer.Option(False, '--shgd', help='create ssh template'),
+        output: str = typer.Option('', '-o', help='output file of the template (also add +x), default stdout'),
+        libc: str = typer.Option('', '--libc', '-l', help='add libc to template'),
+        aslr: bool = typer.Option(False, '--aslr', '-a', help='enable gdb ASLR (default: disabled for gdb)'),
+        dogd: bool = typer.Option(False, '--dogd', '--docker', '-d', help='create docker template'),
+        qegd: bool = typer.Option(False, '--qegd', '--qemu', '-q', help='create qemu template'),
+        vagd: bool = typer.Option(False, '--vagd', '--vagrant', '-v', help='create vagrant template'),
+        shgd: bool = typer.Option(False, '--shgd', '--ssh', '-s', help='create ssh template'),
         local: bool = typer.Option(False, '--local', help='create local template'),
 ):
     """
@@ -72,7 +74,16 @@ def main(
             os.chmod(output, new_permissions)
         else:
             print(template, end='')
+@app.command()
+def info(
+        binary: str = typer.Argument(..., help='Binary to analyse'),
+    ):
+    """
+    analyses the binary, prints checksec and .comment (often includes Distro and Compiler info)
+    """
+    elf = pwn.ELF (binary)
+    pwn.log.info(elf.section('.comment').decode().replace('\0', '\n'))
 
 
 def start():
-    typer.run(main)
+    app()
