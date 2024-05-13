@@ -12,7 +12,7 @@ import toml
 
 pyproject = toml.load('../pyproject.toml') 
 project = pyproject['project']['name'].upper()
-copyright = '2023, 0x6fe1be2'
+copyright = '2024, 0x6fe1be2'
 author = pyproject['project']['authors'][0]['name']
 release = pyproject['project']['version']
 

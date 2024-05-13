@@ -208,7 +208,7 @@ users:
                                                current=Qegd.CURRENT_IMG)
             helper.info(qemu_cmd)
             os.system(qemu_cmd)
-            sys.exit(0)
+            exit(0)
 
     def _new_vm(self) -> None:
         """

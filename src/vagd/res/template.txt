@@ -13,7 +13,7 @@ set follow-fork-mode parent
 c"""
 
 context.binary = exe = ELF(BINARY, checksec=False)
-libc = ELF('{libc}', checksec=False)
+# libc = ELF('{libc}', checksec=False)
 context.aslr = {aslr}
 
 {aliases}
@@ -31,7 +31,10 @@ def get_target(**kw):
       return gdb.debug([exe.path] + ARGS, env=ENV, gdbscript=GDB, **kw)
     return process([exe.path] + ARGS, env=ENV, **kw)
 
-  from vagd import {dependencies}, Box # only load vagd if needed
+  try:
+    from vagd import {dependencies}, Box # only load vagd if needed
+  except:
+    log.error("Failed to import vagd, either run locally using LOCAL or install it")
   if not vm:
     {vms}
   if vm.is_new:
