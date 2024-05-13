@@ -248,6 +248,7 @@ def clean():
         v = vagrant.Vagrant(os.path.dirname(Vagd.VAGRANTFILE_PATH))
         v.halt()
         v.destroy()
+        os.remove(Vagd.VAGRANTFILE_PATH)
     else:
         sys.stderr.write(f"Unknown type in {Pwngd.LOCKFILE}: {typ}\n")
         exit(1)
