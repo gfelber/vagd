@@ -1,4 +1,4 @@
 pwntools
 vagd
 python-vagrant
-python-sphinxcontrib-jquery
+sphinxcontrib.jquery
