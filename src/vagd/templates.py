@@ -16,9 +16,9 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
 end'''
 
-DOCKER_TEMPLATE = '''FROM ubuntu:18.04
+DOCKER_TEMPLATE = '''FROM {}
 
 RUN apt-get update && \
-    apt-get install -y libc6-dbg gdbserver && \
+    apt-get install -y libc6-dbg gdbserver
     
 '''

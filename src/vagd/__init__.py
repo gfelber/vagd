@@ -7,15 +7,17 @@ import requests
 import fileinput
 from shutil import which, copyfile
 from urllib.parse import urlparse
-from vagd import vtemplate, box, wrapper, gdb
+from vagd import templates, wrapper, gdb
 from vagd.pwngd import Pwngd
+from vagd.box import Box
 
 
 class Vagd(Pwngd):
-    """ Vagrant virtualization for pwntools """
+    """ Vagrant Virtualization for pwntools """
+
     VAGRANTFILE_PATH = Pwngd.LOCAL_DIR + 'Vagrantfile'
     VAGRANTFILE_BOX = 'config.vm.box'
-    VAGRANT_BOX = box.UBUNTU_FOCAL64
+    VAGRANT_BOX = Box.UBUNTU_FOCAL64
 
     _box: str
     _vagrantfile: str
@@ -42,7 +44,7 @@ class Vagd(Pwngd):
 
         if not os.path.isfile(self._vagrantfile):
             pwn.log.info('creating new Vagrantfile')
-            vagrant_config = vtemplate.VAGRANT_TEMPLATE.format(self._box)
+            vagrant_config = templates.VAGRANT_TEMPLATE.format(self._box)
             with open(self._vagrantfile, 'w') as file:
                 file.write(vagrant_config)
             pwn.log.info('initialing new vagrant vm might take a while')
@@ -108,8 +110,9 @@ class Vagd(Pwngd):
 
 
 class Qegd(Pwngd):
-    """ QEMU virtualization for pwntools """
-    DEFAULT_IMG = box.CLOUDIMAGE_FOCAL
+    """ QEMU Virtualization for pwntools """
+
+    DEFAULT_IMG = Box.CLOUDIMAGE_FOCAL
     QEMU_DIR = Pwngd.LOCAL_DIR
     IMGS_DIR = Pwngd.HOME_DIR + 'qemu-imgs/'
     DEFAULT_USER = 'ubuntu'
@@ -169,29 +172,30 @@ class Qegd(Pwngd):
                     imgfile.write(img.content)
         copyfile(self._local_img, Qegd.CURRENT_IMG)
 
-    GENERATE_KEYPAIR = 'ssh-keygen -q -t ed25519 -f {keyfile} -N ""'
+    _GENERATE_KEYPAIR = 'ssh-keygen -q -t ed25519 -f {keyfile} -N ""'
 
-    def _generate_keypair(self):
+    @staticmethod
+    def _generate_keypair():
         """
         generate a keypair in .qemu directory
         """
         if not (os.path.exists(Qegd.KEYFILE) and os.path.exists(Qegd.KEYFILE + '.pub')):
             pwn.log.info("No Keypair was found. Generating new keypair")
-            os.system(Qegd.GENERATE_KEYPAIR.format(keyfile=Qegd.KEYFILE))
+            os.system(Qegd._GENERATE_KEYPAIR.format(keyfile=Qegd.KEYFILE))
 
     METADATA_FILE = QEMU_DIR + 'metadata.yaml'
-    METADATA = """instance-id: iid-local01
+    _METADATA = """instance-id: iid-local01
 local-hostname: cloudimg
 """
     USER_DATA_FILE = QEMU_DIR + 'user-data.yaml'
-    USER_DATA = """#cloud-config
+    _USER_DATA = """#cloud-config
 ssh_authorized_keys:
   - {pubkey}
 """
 
     SEED_FILE = QEMU_DIR + "seed.img"
 
-    GENERATE_SEED_IMG = f'cloud-localds {SEED_FILE} {USER_DATA_FILE} {METADATA_FILE}'
+    _GENERATE_SEED_IMG = f'cloud-localds {SEED_FILE} {USER_DATA_FILE} {METADATA_FILE}'
 
     def _setup_seed(self):
         """
@@ -204,27 +208,27 @@ ssh_authorized_keys:
             if not os.path.exists(Qegd.METADATA_FILE):
                 pwn.log.info(f"{Qegd.METADATA_FILE} not found generating new one")
                 with open(Qegd.METADATA_FILE, 'w') as metadata_file:
-                    metadata_file.write(Qegd.METADATA)
+                    metadata_file.write(Qegd._METADATA)
             if not os.path.exists(Qegd.USER_DATA_FILE):
                 pwn.log.info(f"{Qegd.USER_DATA_FILE} not found generating new one")
                 self._generate_keypair()
                 with open(Qegd.USER_DATA_FILE, 'w') as user_data_file:
                     with open(Qegd.KEYFILE + '.pub', 'r') as pubkey_file:
                         pubkey = pubkey_file.readline()
-                    user_data_file.write(Qegd.USER_DATA.format(pubkey=pubkey))
-            os.system(Qegd.GENERATE_SEED_IMG)
+                    user_data_file.write(Qegd._USER_DATA.format(pubkey=pubkey))
+            os.system(Qegd._GENERATE_SEED_IMG)
 
-    QEMU_START = "qemu-system-x86_64 " \
-                 + "-machine accel=kvm,type=q35 " \
-                 + "-cpu host " \
-                 + "-m 2G " \
-                 + "-nographic " \
-                 + "-device virtio-net-pci,netdev=net0 " \
-                 + "-netdev user,id=net0,hostfwd=tcp::{port}-:22 " \
-                 + "-drive if=virtio,format=qcow2,file={img} " \
-                 + "-drive if=virtio,format=raw,file={seed} " \
-                 + "> /dev/null; " \
-                 + "rm {lock} {current}"
+    _QEMU_START = "qemu-system-x86_64 " \
+                  + "-machine accel=kvm,type=q35 " \
+                  + "-cpu host " \
+                  + "-m 2G " \
+                  + "-nographic " \
+                  + "-device virtio-net-pci,netdev=net0 " \
+                  + "-netdev user,id=net0,hostfwd=tcp::{port}-:22 " \
+                  + "-drive if=virtio,format=qcow2,file={img} " \
+                  + "-drive if=virtio,format=raw,file={seed} " \
+                  + "> /dev/null; " \
+                  + "rm {lock} {current}"
 
     LOCKFILE = QEMU_DIR + "qemu.lock"
 
@@ -237,11 +241,11 @@ ssh_authorized_keys:
             lockfile.write(str(self._port))
         pid = os.fork()
         if pid == 0:
-            os.system(Qegd.QEMU_START.format(port=self._port,
-                                             img=Qegd.CURRENT_IMG,
-                                             seed=Qegd.SEED_FILE,
-                                             lock=Qegd.LOCKFILE,
-                                             current=Qegd.CURRENT_IMG)
+            os.system(Qegd._QEMU_START.format(port=self._port,
+                                              img=Qegd.CURRENT_IMG,
+                                              seed=Qegd.SEED_FILE,
+                                              lock=Qegd.LOCKFILE,
+                                              current=Qegd.CURRENT_IMG)
                       )
 
     def _new_vm(self) -> None:
@@ -320,21 +324,3 @@ ssh_authorized_keys:
         super().__init__(binary=binary, **kwargs)
 
 
-class Dogd(Pwngd):
-
-    def _ssh_setup(self) -> None:
-        pass
-
-    def __int__(self, binary: str, **kwargs):
-        pwn.log.error('NOT IMPLEMENTED YET')
-        super().__init__(binary=binary, **kwargs)
-
-
-class Shgd(Pwngd):
-
-    def _ssh_setup(self) -> None:
-        pass
-
-    def __int__(self, binary: str, **kwargs):
-        pwn.log.error('NOT IMPLEMENTED YET')
-        super().__init__(binary=binary, **kwargs)

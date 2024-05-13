@@ -28,10 +28,10 @@ vagd.pwngd module
    :undoc-members:
    :show-inheritance:
 
-vagd.vtemplate module
+vagd.templates module
 ---------------------
 
-.. automodule:: vagd.vtemplate
+.. automodule:: vagd.templates
    :members:
    :undoc-members:
    :show-inheritance:
