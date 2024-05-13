@@ -11,7 +11,6 @@ ENV = {}
 API = False
 BOX = box.UBUNTU_FOCAL64
 GDB = f"""
-
 c"""
 
 context.binary = exe = ELF(BINARY, checksec=False)
