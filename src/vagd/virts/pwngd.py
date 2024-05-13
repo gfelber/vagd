@@ -80,6 +80,9 @@ class Pwngd(ABC):
         os.system(cmd)
 
     def _lock(self, typ: str):
+        if not os.path.exists(Pwngd.LOCAL_DIR):
+            os.makedirs(Pwngd.LOCAL_DIR)
+
         with open(Pwngd.LOCKFILE, 'w') as lfile:
             lfile.write(typ)
 

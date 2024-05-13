@@ -4,6 +4,8 @@
 
 VirtuAlization GDb integrations in pwntools
 
+
+
 ## Installation
 
 ```bash
@@ -14,6 +16,8 @@ or from repo with
 git clone https://github.com/gfelber/vagd
 pip install ./vagd/
 ```
+
+
 
 ## Usage
 
@@ -52,7 +56,7 @@ def get_target(**kw):
         # or Qemu
         vm = Qegd(exe.path, img="https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img", ex=True, fast=True)
         # or Vagrant
-        vm = Vagd(exe.path, vbox=Box.VAGRANT_JAMMY64, ex=True, fast=True)
+        vm = Vagd(exe.path, vbox="ubuntu/jammy64", ex=True, fast=True)
         # or SSH
         vm = Shgd(exe.path, user='user', host='localhost', port=22, ex=True, fast=True)
     return vm.start(argv=ARGS, env=ENV, gdbscript=GDB, **kw) # returns a pwn.process (similar to pwn.process())
@@ -78,9 +82,13 @@ t.interactive()
 
 I recommend using [pwndbg](https://github.com/pwndbg/pwndbg).
 
+
+
 ## Files
 
 All created files ares stored in the local `./.vagd/` directory. Additional large files (e.g. cloudimages) are stored in the home directory `~/.vagd/` or handled by tools themselfs (e.g. Vagrant, Docker).
+
+
 
 ## CLI
 
@@ -101,6 +109,8 @@ vagd scp [OPTIONS] SOURCE [TARGET]
 vagd clean [OPTIONS]
 ```
 
+
+
 ## [Documentation](https://vagd.gfelber.dev)
 
 
@@ -115,7 +125,7 @@ This limitation may be circumvented by creating a target yourself (with the depe
 
 ## Troubleshooting
 
-**background processes**
+### background processes
 
 all instances continue to run in the background (after a vagd object has been started), this improves the runtime greatly after the first execution of the exploit. But this means that instances must be killed manually e.g.: `vagd clean`
 
@@ -125,11 +135,13 @@ Because gdbserver is used to run binaries on the instances it is advised to use 
 
 ### files
 
-files on the virtual instance are never overwritten this has performance reason (so files aren't always copied if the exploit is run). If you need to updated files on the remote either use `vagd scp` or create temporary work instances `Dogd(exe.path, image="ubuntu:jammy", tmp=True)`
+files on the virtual instance are never overwritten this has performance reason (so files aren't always copied if the exploit is run). If you need to updated files on the remote either use `vagd scp` or create use temporary directories `Dogd(..., tmp=True)`
 
 ### gdb performance
 
-Using gdbserver and gdb to index libraries can be very slow. Therefore an experimental feature is available that mounts libraries locally: `Dogd(exe.path, image="ubuntu:jammy", ex=True, fast=True)` 
+Using gdbserver and gdb to index libraries can be very slow. Therefore an experimental feature is available that mounts libraries locally: `Dogd(..., ex=True, fast=True)` 
+
+
 
 ## Future plans
 
