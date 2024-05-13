@@ -1,6 +1,6 @@
 [project]
 name = "vagd"
-version = "1.0.3"
+version = "1.0.4"
 authors = [
   { name="0x6fe1be2"},
 ]
@@ -14,6 +14,9 @@ classifiers = [
     "Operating System :: POSIX :: Linux",
 ]
 keywords = ['vagd', 'exploit', 'ctf', 'capture', 'the', 'flag', 'binary', 'vagrant', 'qemu', 'docker']
+
+[project.scripts]
+vagd = "vagd:cli.start"
 
 [build-system]
 requires = ["setuptools", "wheel", "pwntools", "python-vagrant", "docker", "typer"]
