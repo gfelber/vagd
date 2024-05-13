@@ -5,8 +5,8 @@ GDB_OFF = 0x555555555000
 IP = ''
 PORT = 0
 BINARY = ''
-ARGS = ('', )
-ENV = {'ENV_NAME':'VALUE'}
+ARGS = ('',)
+ENV = {'ENV_NAME': 'VALUE'}
 ASLR = False
 GDB = f"""
 
@@ -14,7 +14,9 @@ c
 """
 context.binary = exe = ELF(BINARY, checksec=False)
 
-byt = lambda x: str(x).encode() 
+byt = lambda x: str(x).encode()
+
+
 def get_target():
     if args.PLT_DEBUG:
         return gdb.debug((exe.path,) + ARGS, GDB, env=ENV, aslr=ASLR)
@@ -26,4 +28,6 @@ def get_target():
 
     return remote(IP, PORT)
 
+
 t = get_target()
+t.interactive()
