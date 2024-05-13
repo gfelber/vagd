@@ -1,13 +1,17 @@
 import importlib.metadata
 import os
-import sys
 import stat
+import sys
 from typing import Optional, Dict
 
 import pwn
 import typer
 
-from vagd import Dogd, Qegd, Vagd
+import vagd
+# prevents term.init
+from vagd.virts.dogd import Dogd
+from vagd.virts.qegd import Qegd
+from vagd.virts.vagd import Vagd
 from vagd.virts.pwngd import Pwngd
 
 DOGD = "vm = Dogd(exe.path, image=Box.DOCKER_JAMMY, ex=True, fast=True)  # Docker"
@@ -133,7 +137,6 @@ def _ssh(port, user):
     os.system(
         f'ssh -o "StrictHostKeyChecking=no" -i {Pwngd.KEYFILE} -p {port} {user}@0.0.0.0')
 
-
 @app.command()
 def ssh(
         user: Optional[str] = typer.Option(None, '--user', '-u', help='ssh user'),
@@ -237,4 +240,7 @@ def clean():
         exit(1)
 
 def start():
+    if pwn.term.term_mode:
+        sys.stderr.write('wrong term mode')
+        exit(2)
     app()

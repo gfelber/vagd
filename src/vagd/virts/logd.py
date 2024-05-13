@@ -105,6 +105,7 @@ class Logd(Pwngd):
         :param kwargs: pwntool parameters
         :return: pwntools process, if api=True tuple with gdb api
         """
+        self._init()
         if pwn.args.GDB:
             return self.pwn_debug(argv=argv, gdbscript=gdbscript, api=api, **kwargs)
         else:

@@ -107,6 +107,7 @@ class Vagd(Shgd):
         :param vagrantfile: location of Vagrantfile
         :param kwargs: arguments to pass through to super
         """
+        self._init()
 
         if not which('vagrant'):
             pwn.log.error('vagrant isn\'t installed')

@@ -164,6 +164,7 @@ class Dogd(Shgd):
         :param fast: mounts libs locally for faster symbol extraction (experimental) NOT COMPATIBLE WITH ALPINE
         :param kwargs: parameters to pass through to super
         """
+        self._init()
 
         self._image = image
         self._isalpine = 'alpine' in image

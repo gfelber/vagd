@@ -127,6 +127,12 @@ class Pwngd(ABC):
         else:
             self._ssh.upload(file, remote=remote)
 
+    def _init(self):
+        # unset PWNLIB_NOTERM (set in vagd.__init__) to create init pwnlib stdin
+        if 'PWNLIB_NOTERM' in os.environ:
+            os.environ.pop('PWNLIB_NOTERM')
+        pwn.term.init()
+
     def __init__(self,
                  binary: str,
                  files: Union[str, list[str]] = None,
@@ -146,6 +152,7 @@ class Pwngd(ABC):
         :param fast: mounts libs locally for faster symbol extraction (experimental)
         :param ex: if experimental features should be enabled
         """
+        self._init()
 
         if packages is not None:
             self._install_packages(packages)
