@@ -15,7 +15,7 @@ or
 
 ## Usage
 
-use *template.py* and copy it to *exploit.py* fill out the constants
+use `python -m vagd` to generate a template
 
 ```bash
 # run as process in VM
