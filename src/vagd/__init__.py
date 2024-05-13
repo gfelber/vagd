@@ -286,29 +286,18 @@ ssh_authorized_keys:
             ignore_config=True
         )
 
-    def _install_packages(self, packages: Iterable):
-        """
-        install packages on remote machine
-        :param packages: packages to install on remote machine
-        """
-        self.system("sudo apt update").recvall()
-        packages_str = " ".join(packages)
-        self.system(f"sudo apt install -y {packages_str}").recvall()
-
     DEFAULT_PACKAGES = ['gdbserver', 'libc6-dbg']
 
     def __init__(self,
                  binary: str,
                  img: str = DEFAULT_IMG,
                  user: str = DEFAULT_USER,
-                 packages: Iterable = None,
                  **kwargs):
         """
 
         :param binary: binary for VM debugging
         :param img: qemu image to use (requires ssh)
         :param user: user inside qemu image
-        :param packages: packages to install
         :param kwargs: parameters to pass through to super
         """
 
@@ -326,7 +315,5 @@ ssh_authorized_keys:
         self._ssh_setup()
         if self._new:
             self._install_packages(Qegd.DEFAULT_PACKAGES)
-        if packages:
-            self._install_packages(packages)
 
         super().__init__(binary=binary, **kwargs)

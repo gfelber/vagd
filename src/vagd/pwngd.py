@@ -2,7 +2,7 @@ import os
 import pwn
 from shutil import which
 from abc import ABC, abstractmethod
-from typing import Union, Dict
+from typing import Union, Dict, Iterable
 
 
 class Pwngd(ABC):
@@ -74,6 +74,15 @@ class Pwngd(ABC):
         """
         return self._ssh.system(cmd)
 
+    def _install_packages(self, packages: Iterable):
+        """
+        install packages on remote machine
+        :param packages: packages to install on remote machine
+        """
+        self.system("sudo apt update").recvall()
+        packages_str = " ".join(packages)
+        self.system(f"sudo apt install -y {packages_str}").recvall()
+
     def put(self, file: str, remote: str = None):
         """
         upload file or vm on vm,
@@ -89,6 +98,7 @@ class Pwngd(ABC):
     def __init__(self,
                  binary: str,
                  files: Union[str, list[str]] = None,
+                 packages: Iterable = None,
                  tmp: bool = False,
                  fast: bool = False,
                  ex: bool = False):
@@ -96,10 +106,14 @@ class Pwngd(ABC):
 
         :param binary: binary for VM debugging
         :param files: other files or directories that need to be uploaded to VM
+        :param packages: packages to install on vm
         :param tmp: if a temporary directory should be created for files
         :param fast: mounts libs locally for faster symbol extraction (experimental)
         :param ex: if experimental features should be enabled
         """
+
+        if packages is not None:
+            self._install_packages(packages)
 
         self._path = binary
         self._binary = './' + os.path.basename(binary)
