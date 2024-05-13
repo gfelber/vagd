@@ -25,8 +25,8 @@ def get_target():
         context.log_level = 'debug'
         return remote(IP, PORT)
 
-    vm = Vagd(exe.path, box=BOX, tmp=True)
-    return vm.start(argv=ARGS, env=ENV, gdbscript=GDB, api=API, pwnlib=False)
+    vm = Vagd(exe.path, vbox=BOX, tmp=True, fast=True, ex=True)
+    return vm.start(argv=ARGS, env=ENV, gdbscript=GDB, api=API)
 
 
 t = get_target()
