@@ -8,20 +8,34 @@ from shutil import which, copyfile
 from vagd import helper
 from vagd.box import Box
 from vagd.virts.pwngd import Pwngd
+
+
 class Qegd(Pwngd):
     """
     | QEMU Virtualization for pwntools
     | SSH from cmd
+
     .. code-block:: bash
 
         ssh -o "StrictHostKeyChecking=no" -i .vagd/keyfile -p $(cat .vagd/qemu.lock) ubuntu@0.0.0.0
+
     | Kill from cmd:
+
     .. code-block:: bash
 
         kill $(pgrep qemu)
 
-    | Qemu images are cached in
-    :code:`~/.vagd/qemu-imgs/`
+    | Qemu images are cached in the home directory: :code:`~/.vagd/qemu-imgs/`
+    |
+    | current used images are stored in the local directory: :code:`./.vagd/current.img`
+    | These should be deleted automatically, but if a machine gets improperly stopped
+    | (shutdown host while vm is running) it might remain and use up space. You can find remaining images with:
+
+    .. code-block:: bash
+        
+        find ~/ -name current.img
+        rm <path/current.img>
+
     """
 
     DEFAULT_IMG = Box.CLOUDIMAGE_FOCAL
@@ -219,4 +233,3 @@ ssh_authorized_keys:
             self._install_packages(Pwngd.DEFAULT_PACKAGES)
 
         super().__init__(binary=binary, **kwargs)
-

@@ -1,7 +1,6 @@
 import os
 import pwn
 import docker
-from typing import Dict
 
 from vagd import templates, helper
 from vagd.box import Box
@@ -15,7 +14,7 @@ class Dogd(Shgd):
     | SSH from cmd
     .. code-block:: bash
 
-        ssh -o "StrictHostKeyChecking=no" -i .vagd/keyfile -p $(cut .vagd/docker.lock -d":" -f 2) ubuntu@0.0.0.0
+        ssh -o "StrictHostKeyChecking=no" -i .vagd/keyfile -p $(cut .vagd/docker.lock -d":" -f 2) vagd@0.0.0.0
 
     | connect with docker exec
     .. code-block:: bash
@@ -36,12 +35,11 @@ class Dogd(Shgd):
     """
 
     _image: str
-    _dockerfile: str
-    _client: docker.client
     _user: str
     _port: int
-    _ports: Dict
-    _keyfile: str
+    _client: docker.client
+    _id: str
+
     DEFAULT_USER = 'vagd'
     DEFAULT_PORT = 2222
     DEFAULT_IMAGE = Box.DOCKER_FOCAL
@@ -99,9 +97,9 @@ class Dogd(Shgd):
                 pwn.log.info(f'Lockfile {Dogd.LOCKFILE} found, port not used, creating new container')
                 self._vm_create()
             else:
-                pwn.log.info(f'Lockfile {Dogd.LOCKFILE} found, Docker Instance f{self._client.containers.get(self._id).short_id}')
+                pwn.log.info(
+                    f'Lockfile {Dogd.LOCKFILE} found, Docker Instance f{self._client.containers.get(self._id).short_id}')
 
-    _TRIES = 10
     def __init__(self,
                  binary: str,
                  image: str = DEFAULT_IMAGE,
