@@ -50,7 +50,7 @@ class Pwngd(ABC):
         """
         if not which('sshfs'):
             pwn.log.error('sshfs isn\'t installed')
-        subprocess.call(Pwngd.SSHFS_TEMPLATE.format(port=self._ssh.port,
+        os.system(Pwngd.SSHFS_TEMPLATE.format(port=self._ssh.port,
                                               keyfile=self._ssh.keyfile,
                                               user=self._ssh.user,
                                               host=self._ssh.host,

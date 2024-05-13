@@ -45,11 +45,13 @@ Creatses a vagrant vm
 
 Child of `vagd.pwngd.Pwngd` setups a vagrant vm
 
-| required | name     | type | descripton                                                   |
-| -------- | -------- | ---- | ------------------------------------------------------------ |
-| X        | binary   | str  | binary to debug on  vagrant vm                               |
-|          | img      | str  | Location of Qemu local or remote (URL) qemu image (Default: [Cloudimage-Ubuntu-Focal](https://cloud-images.ubuntu.com/focal/current/)) |
-|          | **kwargs | Any  | Parameters to pass through to super constructor              |
+| required | name     | type     | descripton                                                   |
+| -------- | -------- | -------- | ------------------------------------------------------------ |
+| X        | binary   | str      | binary to debug on  vagrant vm                               |
+|          | img      | str      | Location of qemu cloudimage local or remote (URL) (Default: [Cloudimage-Ubuntu-Focal](https://cloud-images.ubuntu.com/focal/current/)) |
+|          | user     | str      | Default user (depended on image) (Default: ubuntu)           |
+|          | packages | Iterable | Other packages to install on remote system                   |
+|          | **kwargs | Any      | Parameters to pass through to super constructor              |
 
 **vagd.pwngd.Pwngd**
 
