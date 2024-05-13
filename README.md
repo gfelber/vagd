@@ -1,4 +1,4 @@
-[![PyPI](https://img.shields.io/pypi/v/pwntools?style=flat)](https://pypi.org/project/vagd/)
+[![PyPI](https://img.shields.io/pypi/v/vagd?style=flat)](https://pypi.org/project/vagd/)
 
 # VAGD
 
