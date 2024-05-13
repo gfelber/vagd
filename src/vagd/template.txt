@@ -1,6 +1,5 @@
 #!/bin/python
-from vagd import Vagd, Qegd, wrapper
-from vagd.box import Box
+from vagd import Vagd, Qegd, Box
 from pwn import *
 
 GDB_OFF = 0x555555555000
