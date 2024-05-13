@@ -2,8 +2,7 @@
 import os
 import time
 
-from vagd import Vagd, Qegd, Shgd, wrapper
-from vagd.box import box
+from vagd import Vagd, Qegd, Shgd, wrapper, box
 from pwn import *
 
 GDB_OFF = 0x555555555000
