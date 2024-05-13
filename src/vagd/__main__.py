@@ -3,8 +3,8 @@ import stat
 import typer
 
 DOGD = "vm = Dogd(exe.path, image=Box.DOCKER_JAMMY, ex=True, fast=True)  # Docker"
-VAGD = "vm = Vagd(exe.path, vbox=Box.UBUNTU_JAMMY64, ex=True, fast=True)  # Vagrant"
-QEGD = "vm = Qegd(exe.path, img=Box.CLOUDIMAGE_JAMMY, user='ubuntu', ex=True, fast=True)  # Qemu"
+VAGD = "vm = Vagd(exe.path, vbox=Box.VAGRANT_JAMMY64, ex=True, fast=True)  # Vagrant"
+QEGD = "vm = Qegd(exe.path, img=Box.QEMU_JAMMY, user='ubuntu', ex=True, fast=True)  # Qemu"
 SHGD = "vm = Shgd(exe.path, user='user', port=22, ex=True, fast=True)  # SSH"
 
 

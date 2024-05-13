@@ -33,7 +33,7 @@ class Vagd(Shgd):
 
     VAGRANTFILE_PATH = Pwngd.LOCAL_DIR + 'Vagrantfile'
     VAGRANTFILE_BOX = 'config.vm.box'
-    VAGRANT_BOX = Box.UBUNTU_FOCAL64
+    VAGRANT_BOX = Box.VAGRANT_JAMMY64
 
     _box: str
     _vagrantfile: str
