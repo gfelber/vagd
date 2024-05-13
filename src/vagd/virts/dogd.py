@@ -185,7 +185,7 @@ class Dogd(Shgd):
         self._packages = Dogd.DEFAULT_PACKAGES
 
         if symbols:
-            helper.warn(f"installing {Pwngd.LIBC6_DEBUG} might update libc binary")
+            helper.warn(f"installing {Pwngd.LIBC6_DEBUG} might update libc binary, consider using symbols=False")
             self._packages.append(Pwngd.LIBC6_DEBUG)
 
         self._isalpine = 'alpine' in image
