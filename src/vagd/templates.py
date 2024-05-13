@@ -19,9 +19,23 @@ end'''
 DOCKER_TEMPLATE = '''FROM {image}
 
 # install packages
-RUN apt-get update && \
-    apt-get install -y {packages}
+RUN apt-get update && \\
+    apt-get install -y {packages} \\
+    systemctl 
+
+# init user and ssh
+EXPOSE 22
+RUN useradd --create-home --shell /bin/bash {user}
+USER {user}
+
+WORKDIR /home/{user}
+COPY {keyfile} .ssh/authorized_keys
+
+USER root
+RUN mkdir -p /run/sshd && \\
+    chmod 755 /run/sshd
     
-# init ssh
-RUN echo "{pubkey}" >> {home}.ssh/authorized_keys
+    
+CMD /usr/sbin/sshd; \\
+    while true; do sleep 1m; done
 '''

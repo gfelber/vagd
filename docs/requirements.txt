@@ -3,4 +3,3 @@ python-vagrant
 sphinxcontrib.jquery
 sphinx-rtd-theme
 docker
-docker-compose
