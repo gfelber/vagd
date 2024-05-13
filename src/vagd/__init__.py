@@ -82,7 +82,10 @@ class Vagd:
         """
         sshpath = pwn.SSHPath(os.path.basename(file))
         if not sshpath.exists():
-            self._ssh.put(file)
+            if os.path.isdir(file):
+                self._ssh.upload_dir(file)
+            else:
+                self._ssh.put(file)
 
     SSHFS_TEMPLATE = \
         'sshfs -p {port} -o StrictHostKeyChecking=no,ro,IdentityFile={keyfile} {user}@{host}:{remote_dir} {local_dir}'
@@ -112,10 +115,18 @@ class Vagd:
             pwn.log.info('mounting libs in sysroot')
             self._mount(remote_lib, Vagd.SYSROOT_LIB)
 
+    def system(self, cmd: str) -> pwn.tubes.ssh.ssh_channel:
+        """
+        executes command on vm, interface to  pwnlib.tubes.ssh.ssh.system
+        :param cmd: command to execute on vm
+        :return: returns
+        """
+        return self._ssh.system(cmd)
+
     def __init__(self,
                  binary: str,
-                 vbox: str = VAGRANT_BOX,
                  vagrantfile: str = VAGRANTFILE_PATH,
+                 vbox: str = None,
                  files: Union[str, tuple[str]] = tuple(),
                  tmp: bool = False,
                  fast: bool = False,
@@ -135,8 +146,15 @@ class Vagd:
 
         self._path = binary
         self._binary = './' + os.path.basename(binary)
-        self._box = vbox
         self._vagrantfile = vagrantfile
+
+        if vbox is None:
+            if os.path.exists(vagrantfile):
+                vbox = self._get_box()
+            else:
+                vbox = Vagd.VAGRANT_BOX
+
+        self._box = vbox
         self._v = vagrant.Vagrant(os.path.dirname(vagrantfile))
         self._fast = fast
         self._experimental = ex
@@ -166,18 +184,18 @@ class Vagd:
                 self._sync(file)
 
     def debug(self,
-              args,
+              argv: list[str] = None,
               exe: str = '',
               env: Dict[str, str] = None,
               ssh=None,
               gdbscript: str = '',
               api: bool = False,
               sysroot: str = None,
-              gdb_args: list = None,
+              gdb_args: list[str] = None,
               **kwargs) -> pwn.process:
         """
         run binary in vm with gdb and experimental features
-        :param args: binary with command line arguments
+        :param argv: command line arguments
         :param exe: exe to execute
         :param env: environment variable dictionary
         :param ssh: ignored self._ssh is used instead
@@ -188,6 +206,9 @@ class Vagd:
         :param kwargs: pwntool arguments
         :return: Tuple with (pwn.process, pwn.gdb.Gdb)
         """
+        if argv is None:
+            argv = []
+        args = [self._binary, ] + argv
         if gdb_args is None:
             gdb_args = tuple()
         pwn.log.warn('using experimental features')
@@ -245,36 +266,36 @@ class Vagd:
 
         return gdbserver
 
-    def pwn_debug(self, argv=None, **kw) -> pwn.process:
+    def pwn_debug(self, argv: list[str] = None, **kwargs) -> pwn.process:
         """
         run binary in vm with gdb (pwnlib feature set)
         :param argv: comandline arguments for binary
-        :param kw: pwntool parameters
+        :param kwargs: pwntool parameters
         :return: pwntools process
         """
         if argv is None:
             argv = list()
-        return pwn.gdb.debug((self._binary,) + argv, ssh=self._ssh, **kw)
+        return pwn.gdb.debug([self._binary] + argv, ssh=self._ssh, **kwargs)
 
-    def process(self, argv=None, **kw) -> pwn.process:
+    def process(self, argv: list[str] = None, **kwargs) -> pwn.process:
         """
         run binary in vm as process
         :param argv: comandline arguments for binary
-        :param kw: pwntool parameters
+        :param kwargs: pwntool parameters
         :return: pwntools process
         """
         if argv is None:
             argv = list()
-        return self._ssh.process((self._binary,) + argv, **kw)
+        return self._ssh.process([self._binary] + argv, **kwargs)
 
     def start(self,
-              argv: tuple = None,
+              argv: list[str] = None,
               gdbscript: str = '',
               api: bool = None,
               sysroot: str = None,
               gdb_args: list = None,
               ex: bool = False,
-              **kw) -> pwn.process:
+              **kwargs) -> pwn.process:
         """
         start binary on remote and return pwn.process
         :param argv: commandline arguments for binary
@@ -283,20 +304,20 @@ class Vagd:
         :param sysroot: sysroot dir (experimental)
         :param gdb_args: extra gdb args (experimental)
         :param ex: enable experimental features (if not set in constructor)
-        :param kw: pwntool parameters
+        :param kwargs: pwntool parameters
         :return: pwntools process, if api=True tuple with gdb api
         """
         if gdb_args is None:
             gdb_args = list()
         if argv is None:
-            argv = tuple()
+            argv = list()
         if pwn.args.GDB:
             if ex or self._experimental:
-                return self.debug((self._binary,) + argv, gdbscript=gdbscript, gdb_args=gdb_args, sysroot=sysroot,
-                                  api=api, **kw)
+                return self.debug(argv=argv, gdbscript=gdbscript, gdb_args=gdb_args, sysroot=sysroot,
+                                  api=api, **kwargs)
             else:
                 if gdb_args or sysroot or api:
                     pwn.error('requires experimental features, activate with ex=True')
-                return self.pwn_debug(argv=argv, gdbscript=gdbscript, sysroot=sysroot, **kw)
+                return self.pwn_debug(argv=argv, gdbscript=gdbscript, sysroot=sysroot, **kwargs)
         else:
-            return self.process(argv=argv, **kw)
+            return self.process(argv=argv, **kwargs)
