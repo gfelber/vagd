@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 from pwn import *
 
 GDB_OFF = 0x555555554000
