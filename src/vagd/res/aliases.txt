@@ -1,0 +1,24 @@
+byt = lambda x: x if isinstance(x, bytes) else x.encode() if isinstance(x, str) else repr(x).encode()
+phex = lambda x, y='': print(y + hex(x))
+lhex = lambda x, y='': log.info(y + hex(x))
+pad = lambda x, s=8, v=b'\0', o='r': byt(x).ljust(s, v) if o == 'r' else byt(x).rjust(s, v)
+padhex = lambda x, s: pad(hex(x)[2:], s, '0', 'l')
+upad = lambda x: u64(pad(x))
+
+linfo = lambda x: log.info(x)
+lwarn = lambda x: log.warn(x)
+lerror = lambda x: log.error(x)
+lprog = lambda x: log.progress(x)
+
+t = None
+gt = lambda at=None: at if at else t
+sl = lambda x, t=None: gt(t).sendline(byt(x))
+se = lambda x, t=None: gt(t).send(byt(x))
+sla = lambda x, y, t=None: gt(t).sendlineafter(byt(x), byt(y))
+sa = lambda x, y, t=None: gt(t).sendafter(byt(x), byt(y))
+ra = lambda t=None: gt(t).recvall()
+rl = lambda t=None: gt(t).recvline()
+re = lambda x, t=None: gt(t).recv(x)
+ru = lambda x, t=None: gt(t).recvuntil(byt(x))
+it = lambda t=None: gt(t).interactive()
+cl = lambda t=None: gt(t).close()

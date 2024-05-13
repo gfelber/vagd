@@ -49,14 +49,12 @@ def get_target(**kw):
         context.log_level = 'debug'
         return remote(IP, PORT)
 
-    from vagd import Dogd, Qegd, Vagd, Shgd
+    from vagd import Dogd, Qegd, Shgd
     if not vm:
         # Docker 
         vm = Dogd(exe.path, image="ubuntu:jammy", ex=True, fast=True)
         # or Qemu
         vm = Qegd(exe.path, img="https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img", ex=True, fast=True)
-        # or Vagrant
-        vm = Vagd(exe.path, vbox="ubuntu/jammy64", ex=True, fast=True)
         # or SSH
         vm = Shgd(exe.path, user='user', host='localhost', port=22, ex=True, fast=True)
     return vm.start(argv=ARGS, env=ENV, gdbscript=GDB, **kw) # returns a pwn.process (similar to pwn.process())
@@ -65,8 +63,6 @@ def get_target(**kw):
 t = get_target()
 
 t.interactive()
-
-
 ```
 
 + `vagd info BINARY` to print info about binary
@@ -86,7 +82,7 @@ I recommend using [pwndbg](https://github.com/pwndbg/pwndbg).
 
 ## Files
 
-All created files ares stored in the local `./.vagd/` directory. Additional large files (e.g. cloudimages) are stored in the home directory `~/.vagd/` or handled by tools themselfs (e.g. Vagrant, Docker).
+All created files ares stored in the local `./.vagd/` directory. Additional large files (e.g. cloudimages) are stored in the home directory `~/.vagd/` or handled by tools themselfs (e.g. Docker).
 
 
 
@@ -145,10 +141,10 @@ Using gdbserver and gdb to index libraries can be very slow. Therefore an experi
 
 ## Future plans
 
-### pre configured Vagrant boxes / QEMU Images / Docker Image
+### pre configured QEMU Images / Docker Image
 
 created pre configured environments with preinstalled lib debug symbols and gdbserver to lower init runtime.
 
 ### Better Docker integration
 
-created a Docker integration that allows loading existing Dockerfiles (maybe docker-compose), also add a feature that additionally virtualizes (Vagrant/Qemu) them to change the used kernel.
+created a Docker integration that allows loading existing Dockerfiles (maybe docker-compose), also add a feature that additionally visualizes (Qemu) them to change the used kernel.

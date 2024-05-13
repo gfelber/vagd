@@ -14,9 +14,11 @@ from vagd.virts.qegd import Qegd
 from vagd.virts.vagd import Vagd
 
 DOGD = "vm = Dogd(exe.path, image=Box.DOCKER_JAMMY, ex=True, fast=True{files})  # Docker"
-VAGD = "vm = Vagd(exe.path, vbox=Box.VAGRANT_JAMMY64, ex=True, fast=True{files})  # Vagrant"
 QEGD = "vm = Qegd(exe.path, img=Box.QEMU_JAMMY, ex=True, fast=True{files})  # Qemu"
 SHGD = "vm = Shgd(exe.path, user='user', host='localhost', port=22, ex=True, fast=True{files})  # SSH"
+
+# deprecated
+VAGD = "vm = Vagd(exe.path, vbox=Box.VAGRANT_JAMMY64, ex=True, fast=True{files})  # Vagrant"
 
 app = typer.Typer(context_settings={"help_option_names": ["-h", "--help"]})
 
@@ -58,7 +60,7 @@ def template(
         aslr: Optional[bool] = typer.Option(False, '--aslr', '-a', help='enable gdb ASLR (default: disabled for gdb)'),
         dogd: Optional[bool] = typer.Option(False, '--dogd', '--docker', '-d', help='create docker template'),
         qegd: Optional[bool] = typer.Option(False, '--qegd', '--qemu', '-q', help='create qemu template'),
-        vagd: Optional[bool] = typer.Option(False, '--vagd', '--vagrant', '-v', help='create vagrant template'),
+        vagd: Optional[bool] = typer.Option(False, '--vagd', '--vagrant', help='DEPRECATED: create vagrant template'),
         shgd: Optional[bool] = typer.Option(False, '--shgd', '--ssh', '-s', help='create ssh template'),
         local: Optional[bool] = typer.Option(False, '--local', help='create local template'),
 ):
@@ -67,10 +69,11 @@ def template(
     """
     templatePath = os.path.dirname(os.path.realpath(__file__))
     templateChunks = []
+    aliasesPath = templatePath + "/res/aliases.txt"
     templatePath += '/res/local_template.txt' if local else '/res/template.txt'
     multi = False
     if not any((dogd, qegd, vagd, shgd)):
-        dogd = qegd = vagd = shgd = True
+        dogd = qegd = shgd = True
         multi = True
 
     if libc:
@@ -87,6 +90,9 @@ def template(
     if shgd:
         add_virt(dependencies, vms, 'Shgd', SHGD, files, multi)
 
+    with open(aliasesPath, 'r') as aliases_file:
+        aliases = aliases_file.read();
+
     with open(templatePath, 'r') as templateFile:
         for line in templateFile.readlines():
 
@@ -95,6 +101,7 @@ def template(
             templateChunks.append(line)
 
         template = ''.join(templateChunks).format('{}',
+                                                  aliases=aliases,
                                                   binary=binary,
                                                   ip=ip,
                                                   port=str(port),

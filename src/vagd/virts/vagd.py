@@ -110,6 +110,7 @@ class Vagd(Shgd):
         :param vagrantfile: location of Vagrantfile
         :param kwargs: arguments to pass through to super
         """
+        helper.warn("The 'Vagd' object is deprecated, use 'Qegd' instead")
 
         if not which('vagrant'):
             helper.error('vagrant isn\'t installed')
