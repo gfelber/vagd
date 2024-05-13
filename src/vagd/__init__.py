@@ -3,6 +3,7 @@ import re
 import pwn
 import vagrant
 import fileinput
+from shutil import which
 from vagd import vtemplate, box
 from typing import Union, Dict
 
@@ -85,6 +86,8 @@ class Vagd:
         :param remote_dir: directory on remote to mount
         :param local_dir: local mount point
         """
+        if not which('sshfs'):
+            pwn.log.error('sshfs isn\'t installed')
         os.system(Vagd.SSHFS_TEMPLATE.format(port=self._v.port(),
                                              keyfile=self._v.keyfile(),
                                              user=self._v.user(),
@@ -118,8 +121,12 @@ class Vagd:
         :param files: other files or directories that need to be uploaded to VM
         :param tmp: if a temporary directory should be created for files
         :param fast: mounts libs locally for faster symbol extraction (experimental)
-        :param ex: if expermental features should be enabled
+        :param ex: if experimental features should be enabled
         """
+        if not which('vagrant'):
+            pwn.log.error('vagrant isn\'t installed')
+
+        
         self._path = binary
         self._binary = './' + os.path.basename(binary)
         self._box = vbox
@@ -267,11 +274,11 @@ class Vagd:
         """
         start binary on remote and return pwn.process
         :param argv: commandline arguments for binary
-        :param gdbscript: GDB script for GDB (experimental)
+        :param gdbscript: GDB script for GDB
         :param api: if GDB API should be enabled (experimental)
         :param sysroot: sysroot dir (experimental)
         :param gdb_args: extra gdb args (experimental)
-        :param ex: enable experimental features
+        :param ex: enable experimental features (if not set in constructor)
         :param a: pwntool parameters
         :param kw: pwntool parameters
         :return: pwntools process, if api=True tuple with gdb api
@@ -285,7 +292,7 @@ class Vagd:
                 return self.debug((self._binary,) + argv, gdbscript=gdbscript, gdb_args=gdb_args, sysroot=sysroot,
                                   api=api, *a, **kw)
             else:
-                if gdb_args or sysroot:
+                if gdb_args or sysroot or api:
                     pwn.error('requires experimental features, activate with ex=True')
                 return self.pwn_debug(argv=argv, gdbscript=gdbscript, sysroot=sysroot, *a, **kw)
         else:
