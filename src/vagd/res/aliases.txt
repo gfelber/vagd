@@ -10,6 +10,16 @@ lwarn = lambda x: log.warn(x)
 lerror = lambda x: log.error(x)
 lprog = lambda x: log.progress(x)
 
+gelf = lambda elf=None: elf if elf else exe
+srh = lambda x, elf=None: gelf(elf).search(byt(x)).__next__()
+sasm = lambda x, elf=None: gelf(elf).search(asm(x)).__next__()
+lsrh = lambda x: srh(x, libc)
+lasm = lambda x: sasm(x, libc)
+
+cyc = lambda x: cyclic(x)
+cfd = lambda x: cyclic_find(x)
+cto = lambda x: cyc(cfd(x))
+
 t = None
 gt = lambda at=None: at if at else t
 sl = lambda x, t=None: gt(t).sendline(byt(x))
