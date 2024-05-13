@@ -16,7 +16,8 @@ context.binary = exe = ELF(BINARY, checksec=False)
 context.aslr = False
 
 byt = lambda x: str(x).encode()
-
+phex = lambda x, y='': print(y + hex(x))
+lhex = lambda x, y='': log.info(y + hex(x))
 
 vm = None
 def get_target(**kw):

@@ -39,3 +39,53 @@ RUN mkdir -p /run/sshd && \\
 CMD /usr/sbin/sshd; \\
     while true; do sleep 1m; done
 '''
+
+DOCKER_ALPINE_TEMPLATE = '''FROM {image}
+
+# install packages
+RUN apk update
+# we need make and linux-headers to compile gdb
+RUN apk add python3
+RUN apk add --no-cache make
+RUN apk add --no-cache linux-headers
+RUN apk add --no-cache texinfo
+RUN apk add --no-cache gcc
+RUN apk add --no-cache g++
+RUN apk add --no-cache gfortran
+# install gdb
+# RUN apk add --no-cache gdb
+RUN mkdir gdb-build ;\
+    cd gdb-build;\
+    wget http://ftp.gnu.org/gnu/gdb/gdb-7.11.tar.xz;\
+    tar -xvf gdb-7.11.tar.xz;\
+    cd gdb-7.11;\
+    ./configure --prefix=/usr;\
+    make;\
+    make -C gdb install;\
+    cd ..;\
+    rm -rf gdb-build/;
+
+# install ssh server support and keys
+RUN apk add --no-cache openssh
+
+EXPOSE 22
+EXPOSE 22
+RUN adduser -h /home/vagd -s /bin/sh -D vagd
+RUN echo "vagd:vagd" | chpasswd
+
+USER vagd
+
+WORKDIR /home/vagd
+
+COPY keyfile.pub .ssh/authorized_keys
+
+USER root
+RUN ssh-keygen -A
+RUN mkdir -p /run/sshd && \
+    chmod 755 /run/sshd
+
+
+CMD /usr/sbin/sshd; \
+    while true; do sleep 1m; done
+
+'''

@@ -6,6 +6,7 @@ from vagd import templates, helper
 from vagd.box import Box
 from vagd.virts.shgd import Shgd
 from vagd.virts.pwngd import Pwngd
+from typing import Dict
 
 
 class Dogd(Shgd):
@@ -39,6 +40,9 @@ class Dogd(Shgd):
     _port: int
     _client: docker.client
     _id: str
+    _isalpine: bool
+    _ex: bool
+    _forward: Dict[str, int]
 
     DEFAULT_USER = 'vagd'
     DEFAULT_PORT = 2222
@@ -54,17 +58,22 @@ class Dogd(Shgd):
         if not os.path.exists(Pwngd.KEYFILE):
             helper.generate_keypair()
 
+        template = templates.DOCKER_ALPINE_TEMPLATE if self._isalpine else templates.DOCKER_TEMPLATE
+
         with open(Dogd.DEFAULT_DOCKERFILE, 'w') as dockerfile:
             dockerfile.write(
-                templates.DOCKER_TEMPLATE.format(image=self._image,
-                                                 packages=' '.join(Dogd.DEFAULT_PACKAGES),
-                                                 user=self._user,
-                                                 keyfile=os.path.basename(Pwngd.KEYFILE + '.pub')))
+                template.format(image=self._image,
+                                packages=' '.join(Dogd.DEFAULT_PACKAGES),
+                                user=self._user,
+                                keyfile=os.path.basename(Pwngd.KEYFILE + '.pub')))
 
     def _create_docker_instance(self):
         pwn.log.info('starting docker instance')
         self._port = helper.first_free_port(Dogd.DEFAULT_PORT)
-        container = self._client.containers.run(self._bimage, ports={'22/tcp': self._port}, detach=True, remove=True)
+        self._forward.update({'22/tcp': self._port})
+        if self._isalpine:
+            self._forward.update({f'{Pwngd.STATIC_GDBSRV_PORT}/tcp': Pwngd.STATIC_GDBSRV_PORT})
+        container = self._client.containers.run(self._bimage, ports=self._forward, detach=True, remove=True)
         self._id = container.id
         pwn.log.info(f'started docker instance {container.short_id}')
         with open(Dogd.LOCKFILE, 'w') as lockfile:
@@ -104,21 +113,35 @@ class Dogd(Shgd):
                  binary: str,
                  image: str = DEFAULT_IMAGE,
                  user: str = DEFAULT_USER,
+                 forward: Dict[str, int] = None,
+                 ex: bool = False,
                  **kwargs):
         """
 
         :param binary: binary to execute
         :param image: docker base image
         :param user: name of user on docker container
+        :param forward: Dictionary of forwarded ports, needs to follow docker api format: 'hostport/(tcp|udp)' : guestport
+        :param ex: if experimental features, e.g. gdbserver should be enabled
         :param kwargs: parameters to pass through to super
         """
+
         self._image = image
+        self._isalpine = 'alpine' in image
         self._dockerfile = Dogd.DEFAULT_DOCKERFILE
         self._user = user
+        self._forward = forward
+        self._ex = ex
+        if self._isalpine and not self._ex:
+            pwn.log.error("Docker alpine images requires experimental features")
+        if self._forward is None:
+           self._forward = dict()
 
         self._vm_setup()
 
         super().__init__(binary=binary,
                          user=self._user,
                          port=self._port,
+                         ex=ex,
+                         gdbsrvport=Pwngd.STATIC_GDBSRV_PORT,
                          **kwargs)
