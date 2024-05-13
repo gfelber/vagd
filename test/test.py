@@ -5,7 +5,7 @@ from vagd import Vagd
 GDB_OFF = 0x555555555000
 IP = ''
 PORT = 0
-BINARY = './sysinfo'
+BINARY = './bin/sysinfo'
 ARGS = ('',)
 ENV = {'ENV_NAME': 'VALUE'}
 ASLR = False
@@ -26,7 +26,6 @@ def get_target():
 
     vm = Vagd(exe.path, box=BOX)
     return vm.start(argv=ARGS, env=ENV, gdbscript=GDB, aslr=ASLR)
-
 
 
 t = get_target()
