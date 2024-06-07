@@ -16,14 +16,14 @@ from vagd.virts.qegd import Qegd
 from vagd.virts.vagd import Vagd
 
 DOGD_BOX = "Box.DOCKER_JAMMY"
-DOGD = "vm = Dogd(exe.path, image={box}, {args})  # Docker"
+DOGD = "vm = Dogd(BINARY, image={box}, {args})  # Docker"
 QEGD_BOX = "Box.QEMU_JAMMY"
-QEGD = "vm = Qegd(exe.path, img={box}, {args})  # Qemu"
-SHGD = "vm = Shgd(exe.path, user='user', host='localhost', port=22, {args})  # SSH"
+QEGD = "vm = Qegd(BINARY, img={box}, {args})  # Qemu"
+SHGD = "vm = Shgd(BINARY, user='user', host='localhost', port=22, {args})  # SSH"
 
 # deprecated
 VAGD_BOX = "Box.VAGRANT_JAMMY64"
-VAGD = "vm = Vagd(exe.path, {box}, {args})  # Vagrant"
+VAGD = "vm = Vagd(BINARY, {box}, {args})  # Vagrant"
 
 app = typer.Typer(context_settings={"help_option_names": ["-h", "--help"]})
 
@@ -107,7 +107,7 @@ def template(
     templatePath = os.path.dirname(os.path.realpath(__file__))
     templateChunks = []
     aliasesPath = templatePath + "/res/aliases.txt"
-    templatePath += '/res/local_template.txt' if local else '/res/template.txt'
+    templatePath += '/res/template.txt'
     multi = False
     if not any((dogd, qegd, vagd, shgd)):
         dogd = qegd = True
@@ -166,6 +166,7 @@ def template(
                                                   env=env,
                                                   libc=libc,
                                                   aslr=aslr,
+                                                  is_local=True if local else 'args.LOCAL',
                                                   dependencies=', '.join(dependencies),
                                                   vms=('\n' + ' ' * 4).join(vms))
 

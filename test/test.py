@@ -72,14 +72,14 @@ def virts():
     if os.path.exists(Dogd.LOCKFILE):
         os.remove(Dogd.LOCKFILE)
     log.info("Testing Docker for Ubuntu")
-    vm = Dogd(exe.path, image=Box.DOCKER_NOBLE, packages=['cowsay'], tmp=True, ex=True, fast=True)
+    vm = Dogd(exe.path + "_stat", image=Box.DOCKER_NOBLE, packages=['cowsay'], tmp=True, ex=True, fast=True)
     assert vm.is_new, "vm should be new"
     assert vm._ssh.which('cowsay'), "cowsay wasn't installed"
     yield vm
     vm._ssh.close()
 
     log.info("Testing Docker for Ubuntu restore")
-    vm = Dogd(exe.path, image=Box.DOCKER_NOBLE, tmp=True, ex=True, fast=True)
+    vm = Dogd(exe.path + "_stat", image=Box.DOCKER_NOBLE, tmp=True, ex=True, fast=True)
     assert not vm.is_new, "vm shouldn't be new, restored"
     yield vm
     vm._ssh.close()
@@ -99,14 +99,14 @@ def virts():
 
     os.system("vagd clean")
     log.info("Testing Qemu")
-    vm = Qegd(exe.path, img=Box.QEMU_NOBLE, tmp=True, packages=['cowsay'], ex=True, fast=True)
+    vm = Qegd(exe.path + "_stat", img=Box.QEMU_NOBLE, tmp=True, packages=['cowsay'], ex=True, fast=True, detach=True)
     assert vm.is_new, "vm should be new"
     assert vm._ssh.which('cowsay'), "cowsay wasn't installed"
     yield vm
     vm._ssh.close()
 
     log.info("Testing Qemu restore")
-    vm = Qegd(exe.path, img=Box.QEMU_NOBLE, tmp=True, ex=True, fast=True)
+    vm = Qegd(exe.path + "_stat", img=Box.QEMU_NOBLE, tmp=True, ex=True, fast=True)
     assert not vm.is_new, "vm shouldn't be new, restored"
     yield vm
     vm._ssh.close()
@@ -114,7 +114,7 @@ def virts():
     port = vm._port
 
     log.info("Testing SSH")
-    yield Shgd(exe.path, user=user, port=port, keyfile=vm._ssh.keyfile, tmp=True, ex=True, fast=True)
+    yield Shgd(exe.path + "_stat", user=user, port=port, keyfile=vm._ssh.keyfile, tmp=True, ex=True, fast=True)
 
 
 for virt in virts():
