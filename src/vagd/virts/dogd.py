@@ -117,7 +117,7 @@ class Dogd(Shgd):
         helper.info('building docker image')
         hash = self._image.find('@')
         if hash != -1:
-            tag = self._image[:min(self._image[:hash].find(':'), hash)]
+            tag = self._image[:hash]
             # add first 8 characters of hash
             tag += self._image[self._image.rfind(':'):][:8]
         else:

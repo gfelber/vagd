@@ -6,7 +6,7 @@ IP = '{ip}'
 PORT = {port}
 BINARY = '{binary}'
 ARGS = []
-ENV = {env}
+ENV = {env} # os.environ
 GDB = f"""
 set follow-fork-mode parent
 
@@ -26,10 +26,10 @@ def get_target(**kw):
     # context.log_level = 'debug'
     return remote(IP, PORT)
 
-  if args.LOCAL:
+  if {is_local}:
     if args.GDB:
-      return gdb.debug([exe.path] + ARGS, env=ENV, gdbscript=GDB, **kw)
-    return process([exe.path] + ARGS, env=ENV, **kw)
+      return gdb.debug([BINARY] + ARGS, env=ENV, gdbscript=GDB, **kw)
+    return process([BINARY] + ARGS, env=ENV, **kw)
 
   try:
     from vagd import {dependencies}, Box # only load vagd if needed
