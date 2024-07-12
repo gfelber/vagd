@@ -1,7 +1,9 @@
-linfo = lambda x: log.info(x)
-lwarn = lambda x: log.warn(x)
-lerror = lambda x: log.error(x)
-lprog = lambda x: log.progress(x)
+cst = constants
+
+linfo = lambda x, *a: log.info(x, *a)
+lwarn = lambda x, *a: log.warn(x, *a)
+lerror = lambda x, *a: log.error(x, *a)
+lprog = lambda x, *a: log.progress(x, *a)
 
 byt = lambda x: x if isinstance(x, bytes) else x.encode() if isinstance(x, str) else repr(x).encode()
 phex = lambda x, y='': print(y + hex(x))
@@ -23,14 +25,16 @@ cto = lambda x: cyc(cfd(x))
 
 t = None
 gt = lambda at=None: at if at else t
-sl = lambda x, t=None: gt(t).sendline(byt(x))
-se = lambda x, t=None: gt(t).send(byt(x))
-sla = lambda x, y, t=None: gt(t).sendlineafter(byt(x), byt(y))
-sa = lambda x, y, t=None: gt(t).sendafter(byt(x), byt(y))
-ra = lambda t=None: gt(t).recvall()
-rl = lambda t=None: gt(t).recvline()
-rls = lambda t=None: rl(t)[:-1]
-re = lambda x, t=None: gt(t).recv(x)
-ru = lambda x, t=None: gt(t).recvuntil(byt(x))
-it = lambda t=None: gt(t).interactive()
-cl = lambda t=None: gt(t).close()
+sl = lambda x, t=None, *a, **kw: gt(t).sendline(byt(x), *a, **kw)
+se = lambda x, t=None, *a, **kw: gt(t).send(byt(x), *a, **kw)
+ss = lambda x, s, t=None, *a, **kw: sl(x, t, *a, **kw) if len(y) < s else se(x, *a, **kw)
+sla = lambda x, y, t=None, *a, **kw: gt(t).sendlineafter(byt(x), byt(y), *a, **kw)
+sa = lambda x, y, t=None, *a, **kw: gt(t).sendafter(byt(x), byt(y), *a, **kw)
+sas = lambda x, y, s, t=None, *a, **kw: sla(x, y, t, *a, **kw) if len(y) < s else sa(x, y, *a, **kw)
+ra = lambda t=None, *a, **kw: gt(t).recvall(*a, **kw)
+rl = lambda t=None, *a, **kw: gt(t).recvline(*a, **kw)
+rls = lambda t=None, *a, **kw: rl(t=t, *a, **kw)[:-1]
+re = lambda x, t=None, *a, **kw: gt(t).recv(x, *a, **kw)
+ru = lambda x, t=None, *a, **kw: gt(t).recvuntil(byt(x), *a, **kw)
+it = lambda t=None, *a, **kw: gt(t).interactive(*a, **kw)
+cl = lambda t=None, *a, **kw: gt(t).close(*a, **kw)
