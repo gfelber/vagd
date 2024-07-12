@@ -11,15 +11,16 @@ test :
 		source ./venv/bin/activate; \
 	fi; \
 	cd test; \
-	mkdir bin 2> /dev/null; \
+	mkdir -p bin; \
 	gcc sysinfo.c -o bin/sysinfo; \
+	gcc sysinfo.c -static -o bin/sysinfo_stat; \
 	vagd clean; \
 	echo STARTING TEST; \
 	if python ./test.py GDB; then \
-    	echo "successful"; \
-    else \
-    	echo "test unsuccessful, pls fix"; \
-    fi;
+		echo "successful"; \
+	else \
+		echo "test unsuccessful, pls fix"; \
+	fi;
 
 clean:
 	rm -r build dist src/*.egg-info || true

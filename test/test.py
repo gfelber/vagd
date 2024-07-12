@@ -1,11 +1,11 @@
-#!/bin/python
+#!/bin/env python3
 import os
 
 from pwn import *
 import vagd.virts.pwngd
 from vagd import Vagd, Qegd, Shgd, Dogd, Logd, wrapper, Box
 
-GDB_OFF = 0x555555555000
+GDB_OFF = 0x555555554000
 IP = ''
 PORT = 0
 BINARY = './bin/sysinfo'
@@ -69,37 +69,38 @@ def virts():
         os.system("vagd clean")
 
 
-    if os.path.exists(Dogd.LOCKFILE):
-        os.remove(Dogd.LOCKFILE)
-    log.info("Testing Docker for Ubuntu")
-    vm = Dogd(exe.path + "_stat", image=Box.DOCKER_NOBLE, packages=['cowsay'], tmp=True, ex=True, fast=True)
-    assert vm.is_new, "vm should be new"
-    assert vm._ssh.which('cowsay'), "cowsay wasn't installed"
-    yield vm
-    vm._ssh.close()
+    if not args.NODOGD:
+      if os.path.exists(Dogd.LOCKFILE):
+          os.remove(Dogd.LOCKFILE)
+      log.info("Testing Docker for Ubuntu")
+      vm = Dogd(exe.path + "_stat", image=Box.DOCKER_NOBLE, packages=['cowsay'], tmp=True, ex=True, fast=True)
+      assert vm.is_new, "vm should be new"
+      assert vm._ssh.which('cowsay'), "cowsay wasn't installed"
+      yield vm
+      vm._ssh.close()
 
-    log.info("Testing Docker for Ubuntu restore")
-    vm = Dogd(exe.path + "_stat", image=Box.DOCKER_NOBLE, tmp=True, ex=True, fast=True)
-    assert not vm.is_new, "vm shouldn't be new, restored"
-    yield vm
-    vm._ssh.close()
+      log.info("Testing Docker for Ubuntu restore")
+      vm = Dogd(exe.path + "_stat", image=Box.DOCKER_NOBLE, tmp=True, ex=True, fast=True)
+      assert not vm.is_new, "vm shouldn't be new, restored"
+      yield vm
+      vm._ssh.close()
 
-    os.system("vagd clean")
-    log.info("Testing Docker for Alpine")
-    vm = Dogd(exe.path + "_stat", image=Box.DOCKER_ALPINE_316, tmp=True, ex=True, fast=True)
-    assert vm.is_new, "vm should be new"
-    yield vm
-    vm._ssh.close()
+      os.system("vagd clean")
+      log.info("Testing Docker for Alpine")
+      vm = Dogd(exe.path + "_stat", image=Box.DOCKER_ALPINE_316, tmp=True, ex=True, fast=True)
+      assert vm.is_new, "vm should be new"
+      yield vm
+      vm._ssh.close()
 
-    log.info("Testing Docker for Alpine restore")
-    vm = Dogd(exe.path + "_stat", image=Box.DOCKER_ALPINE_316, tmp=True, ex=True, fast=True)
-    assert not vm.is_new, "vm shouldn't be new, restored"
-    yield vm
-    vm._ssh.close()
+      log.info("Testing Docker for Alpine restore")
+      vm = Dogd(exe.path + "_stat", image=Box.DOCKER_ALPINE_316, tmp=True, ex=True, fast=True)
+      assert not vm.is_new, "vm shouldn't be new, restored"
+      yield vm
+      vm._ssh.close()
 
-    os.system("vagd clean")
+      os.system("vagd clean")
     log.info("Testing Qemu")
-    vm = Qegd(exe.path + "_stat", img=Box.QEMU_NOBLE, tmp=True, packages=['cowsay'], ex=True, fast=True, detach=True)
+    vm = Qegd(exe.path + "_stat", img=Box.QEMU_NOBLE, tmp=True, packages=['cowsay'], ex=True, fast=True)
     assert vm.is_new, "vm should be new"
     assert vm._ssh.which('cowsay'), "cowsay wasn't installed"
     yield vm
