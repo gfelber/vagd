@@ -1,4 +1,5 @@
 cst = constants
+shc = shellcraft
 
 linfo = lambda x, *a: log.info(x, *a)
 lwarn = lambda x, *a: log.warn(x, *a)
@@ -6,12 +7,12 @@ lerror = lambda x, *a: log.error(x, *a)
 lprog = lambda x, *a: log.progress(x, *a)
 
 byt = lambda x: x if isinstance(x, bytes) else x.encode() if isinstance(x, str) else repr(x).encode()
-phex = lambda x, y='': print(y + hex(x))
-lhex = lambda x, y='': linfo(y + hex(x))
-pad = lambda x, s=8, v=b'\0', o='r': byt(x).ljust(s, byt(v)) if o == 'r' else byt(x).rjust(s, byt(v))
-padhex = lambda x, s=None: pad(hex(x)[2:],((x.bit_length()//8)+1)*2 if s is None else s, b'0', 'l')
+phex = lambda x, y='': print('0x'+padhex(x, 16) + (' <- ' + y if y else y ))
+lhex = lambda x, y='': linfo("0x%016x%s", x, ' <- ' + y if y else y )
+pad = lambda x, s=8, v=b'\0', o='l': x.ljust(s, v) if o == 'l' else x.rjust(s, v)
+padhex = lambda x, s=None: pad(hex(x)[2:],((x.bit_length()//8)+1)*2 if s is None else s, '0', 'r')
 upad = lambda x: u64(pad(x))
-tob = lambda x: bytes.fromhex(padhex(x).decode())
+tob = lambda x: bytes.fromhex(padhex(x))
 
 gelf = lambda elf=None: elf if elf else exe
 srh = lambda x, elf=None: gelf(elf).search(byt(x)).__next__()
@@ -27,10 +28,10 @@ t = None
 gt = lambda at=None: at if at else t
 sl = lambda x, t=None, *a, **kw: gt(t).sendline(byt(x), *a, **kw)
 se = lambda x, t=None, *a, **kw: gt(t).send(byt(x), *a, **kw)
-ss = lambda x, s, t=None, *a, **kw: sl(x, t, *a, **kw) if len(y) < s else se(x, *a, **kw)
+ss = lambda x, s, t=None, *a, **kw: sl(x, t, *a, **kw) if len(y) < s else lerror('ss to big: 0x%x > 0x%', len(y), s) if len(y) > s else se(x, *a, **kw)
 sla = lambda x, y, t=None, *a, **kw: gt(t).sendlineafter(byt(x), byt(y), *a, **kw)
 sa = lambda x, y, t=None, *a, **kw: gt(t).sendafter(byt(x), byt(y), *a, **kw)
-sas = lambda x, y, s, t=None, *a, **kw: sla(x, y, t, *a, **kw) if len(y) < s else sa(x, y, *a, **kw)
+sas = lambda x, y, s, t=None, *a, **kw: sla(x, y, t, *a, **kw) if len(y) < s else lerror('sas to big: 0x%x > 0x%x', len(y), s)  if len(y) > s else sa(x, y, *a, **kw)
 ra = lambda t=None, *a, **kw: gt(t).recvall(*a, **kw)
 rl = lambda t=None, *a, **kw: gt(t).recvline(*a, **kw)
 rls = lambda t=None, *a, **kw: rl(t=t, *a, **kw)[:-1]
@@ -38,3 +39,4 @@ re = lambda x, t=None, *a, **kw: gt(t).recv(x, *a, **kw)
 ru = lambda x, t=None, *a, **kw: gt(t).recvuntil(byt(x), *a, **kw)
 it = lambda t=None, *a, **kw: gt(t).interactive(*a, **kw)
 cl = lambda t=None, *a, **kw: gt(t).close(*a, **kw)
+
