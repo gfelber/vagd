@@ -19,7 +19,7 @@ context.aslr = {aslr}
 {aliases}
 
 vm = None
-def get_target(**kw):
+def get_target(**kw) -> tubes.tube:
   global vm
 
   if args.REMOTE:
