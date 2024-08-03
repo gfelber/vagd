@@ -29,8 +29,7 @@ class Logd(Pwngd):
         helper.error("NOT IMPLEMENTED")
 
     def __init__(self,
-                 binary: str,
-                 **kwargs):
+                 binary: str):
         """
         :param binary: binary to execute
         """

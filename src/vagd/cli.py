@@ -131,7 +131,6 @@ def template(
     if files:
         args['files'] = '[' + ','.join(f"'{file}'" for file in files) + ']'
 
-    args['ex'] = 'True'
     args['fast'] = 'True'
 
     if dogd:

@@ -176,8 +176,7 @@ class Pwngd(ABC):
                  symbols=True,
                  tmp: bool = False,
                  gdbsrvport: int = -1,
-                 fast: bool = False,
-                 ex: bool = False):
+                 fast: bool = False):
         """
         Default init setups provided ssh machine
 

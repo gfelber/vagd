@@ -163,7 +163,6 @@ class Dogd(Shgd):
                  forward: Dict[str, int] = None,
                  packages: List[str] = None,
                  symbols=True,
-                 ex: bool = False,
                  fast: bool = False,
                  **kwargs):
         """
