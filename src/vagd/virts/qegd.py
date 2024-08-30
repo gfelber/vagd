@@ -177,7 +177,7 @@ users:
                     user_data_file.write(Qegd._USER_DATA.format(pubkey=pubkey))
             os.system(Qegd._GENERATE_SEED_IMG)
 
-    _QEMU_PORT_FORWARDING = ',hostfwd={type}::{host}-:{guest}'
+    _QEMU_PORT_FORWARDING = ',hostfwd={type}::{guest}-:{host}'
     _QEMU_START = "{qemu} " \
                   + "{machine} " \
                   + "{cores} " \
