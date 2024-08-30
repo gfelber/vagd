@@ -10,6 +10,7 @@ class Box:
     QEMU_BIONIC = 'https://cloud-images.ubuntu.com/bionic/current/bionic-server-cloudimg-amd64.img'
     QEMU_XENIAL = 'https://cloud-images.ubuntu.com/xenial/current/xenial-server-cloudimg-amd64-disk1.img'
     QEMU_JAMMY_ARM = 'https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-arm64.img'
+    # QEMU_KALI = 'https://kali.download/base-images/kali-2024.2/kali-linux-2024.2-qemu-amd64.7z'
     DOCKER_NOBLE = 'ubuntu:noble'
     DOCKER_JAMMY = 'ubuntu:jammy'
     DOCKER_FOCAL = 'ubuntu:focal'

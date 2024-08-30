@@ -15,7 +15,7 @@ from vagd import helper
 
 class Pwngd(ABC):
     """
-    start binary on remote and return pwnlib.tubes.process.process
+    start binary on remote and return tubes.process.process
 
     :param binary: binary for VM debugging
     :param files: other files or directories that need to be uploaded to VM
@@ -175,7 +175,7 @@ class Pwngd(ABC):
                  packages: List[str] = None,
                  symbols=True,
                  tmp: bool = False,
-                 gdbsrvport: int = -1,
+                 gdbsrvport: int = 0,
                  fast: bool = False):
         """
         Default init setups provided ssh machine
