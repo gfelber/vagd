@@ -7,8 +7,8 @@ lerror = lambda x, *a: log.error(x, *a)
 lprog = lambda x, *a: log.progress(x, *a)
 
 byt = lambda x: x if isinstance(x, bytes) else x.encode() if isinstance(x, str) else repr(x).encode()
-phex = lambda x, y='': print('0x'+padhex(x, 16) + (' <- ' + y if y else y ))
-lhex = lambda x, y='': linfo("0x%016x%s", x, ' <- ' + y if y else y )
+phex = lambda x, y='leak': print('0x'+padhex(x, 16) + ' <- ' + y )
+lhex = lambda x, y='leak': linfo("0x%016x <- %s", x, y)
 pad = lambda x, s=8, v=b'\0', o='l': x.ljust(s, v) if o == 'l' else x.rjust(s, v)
 padhex = lambda x, s=None: pad(hex(x)[2:],((x.bit_length()//8)+1)*2 if s is None else s, '0', 'r')
 upad = lambda x: u64(pad(x))
@@ -35,8 +35,7 @@ sas = lambda x, y, s, t=None, *a, **kw: sla(x, y, t, *a, **kw) if len(y) < s els
 ra = lambda t=None, *a, **kw: gt(t).recvall(*a, **kw)
 rl = lambda t=None, *a, **kw: gt(t).recvline(*a, **kw)
 rls = lambda t=None, *a, **kw: rl(t=t, *a, **kw)[:-1]
-re = lambda x, t=None, *a, **kw: gt(t).recv(x, *a, **kw)
+rcv = lambda x, t=None, *a, **kw: gt(t).recv(x, *a, **kw)
 ru = lambda x, t=None, *a, **kw: gt(t).recvuntil(byt(x), *a, **kw)
 it = lambda t=None, *a, **kw: gt(t).interactive(*a, **kw)
 cl = lambda t=None, *a, **kw: gt(t).close(*a, **kw)
-

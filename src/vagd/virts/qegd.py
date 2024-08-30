@@ -55,7 +55,7 @@ class Qegd(Shgd):
     | (shutdown host while vm is running) it might remain and use up space. You can find remaining images with:
 
     .. code-block:: bash
-        
+
         find ~/ -name current.img
         rm <path/current.img>
 
@@ -95,7 +95,7 @@ class Qegd(Shgd):
     _user: str
     _host: str
     _port: int
-    _ports: Dict[int, int]
+    _forward: Dict[str, int]
     _qemu: str
     _cpu: str
     _cores: str
@@ -177,7 +177,7 @@ users:
                     user_data_file.write(Qegd._USER_DATA.format(pubkey=pubkey))
             os.system(Qegd._GENERATE_SEED_IMG)
 
-    _QEMU_PORT_FORWARDING = ',hostfwd=tcp::{host}-:{guest}'
+    _QEMU_PORT_FORWARDING = ',hostfwd={type}::{host}-:{guest}'
     _QEMU_START = "{qemu} " \
                   + "{machine} " \
                   + "{cores} " \
@@ -207,8 +207,8 @@ users:
         helper.info(f"starting qemu machine, ssh port {self._port}")
         with open(Qegd.LOCKFILE, 'w') as lockfile:
             lockfile.write(str(self._port))
-        port_forwarding = "".join(Qegd._QEMU_PORT_FORWARDING.format(host=host, guest=guest)
-                                  for host, guest in self._ports.items())
+        port_forwarding = "".join(Qegd._QEMU_PORT_FORWARDING.format(type=host.split('/')[0], host=host.split('/')[1], guest=guest)
+                                  for host, guest in self._forward.items())
         qemu_cmd = Qegd._QEMU_START.format(qemu=self._qemu,
                                            machine=f'{Qegd.DEFAULT_QEMU_MACHINE_PREFIX} {self._machine}' if self._machine else '',
                                            cores=f'{Qegd.DEFAULT_QEMU_CORES_PREFIX} {self._cores}' if self._cores else '',
@@ -271,7 +271,7 @@ users:
                  binary: str,
                  img: str = DEFAULT_IMG,
                  user: str = DEFAULT_USER,
-                 ports: Dict[int, int] = None,
+                 forward: Dict[str, int] = None,
                  packages: List[str] = None,
                  arm: bool = False,
                  qemu: str = DEFAULT_QEMU_CMD,
@@ -288,7 +288,7 @@ users:
         :param binary: binary for VM debugging
         :param img: qemu image to use (requires ssh)
         :param user: user inside qemu image
-        :param ports: forwarded ports
+        :param forward: Dictionary of forwarded ports, needs to follows format: 'hostport/(tcp|udp)' : guestport
         :param packages: packages to install on vm
         :param arm: emulate arm in qemu
         :param qemu: qemu cmd
@@ -319,7 +319,7 @@ users:
             bios = Qegd.DEFAULT_QEMU_ARM_BIOS if bios is None else bios
 
         self._img = img
-        self._ports = ports if ports else dict()
+        self._forward = forward if forward else dict()
         self._qemu = qemu
         self._cpu = cpu
         self._memory = memory
