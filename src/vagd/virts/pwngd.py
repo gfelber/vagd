@@ -5,6 +5,7 @@ from abc import ABC, abstractmethod
 from shutil import which
 from typing import Union, Dict, Iterable, List
 
+from paramiko import util
 import pwnlib.args
 import pwnlib.filesystem
 import pwnlib.gdb
@@ -30,8 +31,6 @@ class Pwngd(ABC):
     HOME_DIR = os.path.expanduser('~/.local/share/vagd/')
     SYSROOT = LOCAL_DIR + 'sysroot/'
     LOCKFILE = LOCAL_DIR + 'vagd.lock'
-    SYSROOT_LIB = SYSROOT + 'lib/'
-    SYSROOT_LIB_DEBUG = SYSROOT + 'lib/debug'
     KEYFILE = HOME_DIR + 'keyfile'
     PUBKEYFILE = KEYFILE + '.pub'
     DEFAULT_PORT = 2222
@@ -98,15 +97,15 @@ class Pwngd(ABC):
         with open(Pwngd.LOCKFILE, 'w') as lfile:
             lfile.write(typ)
 
-    def _mount_lib(self, remote_lib: str = '/usr/lib') -> None:
+    def _mount_root(self, remote_lib: str = '/') -> None:
         """
         mount the lib directory of remote
         """
-        if not (os.path.exists(Pwngd.SYSROOT) and os.path.exists(Pwngd.SYSROOT_LIB)):
-            os.makedirs(Pwngd.SYSROOT_LIB)
-        if not os.path.ismount(Pwngd.SYSROOT_LIB):
+        if not os.path.exists(Pwngd.SYSROOT):
+            os.makedirs(Pwngd.SYSROOT)
+        if not os.path.ismount(Pwngd.SYSROOT):
             helper.info('mounting libs in sysroot')
-            self._mount(remote_lib, Pwngd.SYSROOT_LIB)
+            self._mount(remote_lib, Pwngd.SYSROOT)
 
     def system(self, cmd: str) -> pwnlib.tubes.ssh.ssh_channel:
         """
@@ -129,7 +128,7 @@ class Pwngd(ABC):
         """
         self.system("sudo apt update").recvall()
         packages_str = " ".join(packages)
-        self.system(f"sudo NEEDRESTART_MODE=a apt install -y {packages_str}").recvall()
+        self.system(f"sudo DEBIAN_FRONTEND=noninteractive apt install -y {packages_str}").recvall()
 
     def put(self, file: str, remote: str = None):
         """
@@ -230,7 +229,7 @@ class Pwngd(ABC):
 
         if self._fast:
             if self._experimental:
-                self._mount_lib()
+                self._mount_root()
             else:
                 helper.error('requires experimental features, activate with ex=True')
 
@@ -309,12 +308,8 @@ class Pwngd(ABC):
 
         if self._fast:
             gdb_args += ["-ex", f"set sysroot {pathlib.Path().resolve()}/{Pwngd.SYSROOT}"]
-            gdbscript = f"set debug-file-directory {Pwngd.SYSROOT_LIB_DEBUG}\n" + gdbscript
         elif sysroot:
             gdb_args += ["-ex", f"set sysroot {sysroot}"]
-            gdbscript = f"set debug-file-directory ./{sysroot}/lib/debug\n" + gdbscript
-        else:
-            gdbscript = "set debug-file-directory /lib/debug\n" + gdbscript
 
         gdb_args += ["-ex", f"file -readnow {self._path}"]
 
