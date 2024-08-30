@@ -13,23 +13,14 @@ set follow-fork-mode parent
 c"""
 
 context.binary = exe = ELF(BINARY, checksec=False)
-# libc = ELF('{libc}', checksec=False)
 context.aslr = {aslr}
 
 {aliases}
 
-vm = None
-def get_target(**kw) -> tubes.tube:
+def setup():
   global vm
-
-  if args.REMOTE:
-    # context.log_level = 'debug'
-    return remote(IP, PORT)
-
-  if {is_local}:
-    if args.GDB:
-      return gdb.debug([BINARY] + ARGS, env=ENV, gdbscript=GDB, **kw)
-    return process([BINARY] + ARGS, env=ENV, **kw)
+  if args.REMOTE or {is_local}:
+    return
 
   try:
     from vagd import {dependencies}, Box # only load vagd if needed
@@ -39,8 +30,24 @@ def get_target(**kw) -> tubes.tube:
     {vms}
   if vm.is_new:
     log.info("new vagd instance") # additional setup here
+
+
+vm = None
+def get_target(**kw) -> tubes.tube:
+  if args.REMOTE:
+    # context.log_level = 'debug'
+    return remote(IP, PORT)
+
+  if {is_local}:
+    if args.GDB:
+      return gdb.debug([BINARY] + ARGS, env=ENV, gdbscript=GDB, **kw)
+    return process([BINARY] + ARGS, env=ENV, **kw)
+
   return vm.start(argv=ARGS, env=ENV, gdbscript=GDB, **kw)
 
+setup()
+
+# libc = ELF('{libc}', checksec=False)
 
 t = get_target()
 

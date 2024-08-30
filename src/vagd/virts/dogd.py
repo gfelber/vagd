@@ -29,7 +29,7 @@ class Dogd(Shgd):
 
         vagd ssh
         # or
-        ssh -o "StrictHostKeyChecking=no" -i ~/.vagd/keyfile -p $(cut .vagd/docker.lock -d":" -f 2) vagd@0.0.0.0
+        ssh -o "StrictHostKeyChecking=no" -i ~/.share/local/vagd/keyfile -p $(cut .vagd/docker.lock -d":" -f 2) vagd@0.0.0.0
 
     | connect with docker exec
 
@@ -47,7 +47,7 @@ class Dogd(Shgd):
 
     | Docker containers are automatically removed after they stop
     | Docker images need to be manually removed from docker
-    | Dockerfiles are stored in home directory to allow caching ~/.vagd/docker/<image>/Dockerfile
+    | Dockerfiles are stored in home directory to allow caching ~/.share/local/vagd/docker/<image>/Dockerfile
 
     .. code-block:: bash
 
@@ -67,6 +67,7 @@ class Dogd(Shgd):
     _gdbsrvport: int
     _ex: bool
     _forward: Dict[str, int]
+    _symbols: bool
 
     TYPE = 'dogd'
     DOCKERHOME = Pwngd.HOME_DIR + "docker/"
@@ -117,11 +118,18 @@ class Dogd(Shgd):
         helper.info('building docker image')
         hash = self._image.find('@')
         if hash != -1:
-            tag = self._image[:hash]
+            tag = self._image[:hash].replace(':', '_')
             # add first 8 characters of hash
             tag += self._image[self._image.rfind(':'):][:8]
         else:
             tag = self._image
+
+        if self._symbols:
+            if ':' not in tag:
+                tag += ':'
+            else:
+              tag += '_'
+            tag += 'symbols'
 
         return self._client.images.build(path=os.path.dirname(self._dockerfile), tag=f'vagd/{tag}')[0]
 
@@ -206,6 +214,7 @@ class Dogd(Shgd):
         self._user = user
         self._forward = forward
         self._ex = ex
+        self._symbols = symbols
         if self._isalpine and not self._ex:
             helper.error("Docker alpine images requires experimental features")
         if self._forward is None:

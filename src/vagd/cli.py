@@ -109,17 +109,17 @@ def template(
     aliasesPath = templatePath + "/res/aliases.txt"
     templatePath += '/res/template.txt'
     multi = False
+
     if not any((dogd, qegd, vagd, shgd)):
         dogd = qegd = True
 
     if sum((dogd, qegd, vagd, shgd)) > 1:
         multi = True
 
-
     env = {}
+
     if libc:
         files.append(libc)
-        env['LD_PRELOAD'] = os.path.basename(libc)
 
     dependencies = []
     vms = []
@@ -127,6 +127,8 @@ def template(
 
     if libs:
         args['libs'] = True
+        if not libc:
+          libc = './libs/libc.so.6'
 
     if files:
         args['files'] = '[' + ','.join(f"'{file}'" for file in files) + ']'
@@ -146,14 +148,10 @@ def template(
     with open(aliasesPath, 'r') as aliases_file:
         aliases = aliases_file.read()
 
-
-    if libc and libs:
-        err_console.print("using --libs and --libc, uncomment libc after init")
-
     with (open(templatePath, 'r') as templateFile):
         for line in templateFile.readlines():
 
-            if libc and not libs and line.startswith('# libc'):
+            if libc and line.startswith('# libc'):
                 templateChunks.append(line[2:])
             else:
                 templateChunks.append(line)

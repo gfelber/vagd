@@ -1,4 +1,5 @@
 venv
+env
 .idea
 .vagrant
 Vagrantfile
@@ -11,3 +12,6 @@ sysroot/
 .vagd
 __pycache__/
 _build
+test/exploit.py
+test/flag
+test/libs

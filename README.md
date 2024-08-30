@@ -4,24 +4,22 @@
 
 VirtuAlization GDb integrations in pwntools
 
-
-
 ## Installation
 
 ```bash
 pip install vagd
 ```
+
 or from repo with
+
 ```bash
 git clone https://github.com/gfelber/vagd
 pip install ./vagd/
 ```
 
-
-
 ## Usage
 
-+ `vagd template [OPTIONS] [BINARY] [IP] [PORT]` to generate a template, list OPTIONS with help `-h`
+- `vagd template [OPTIONS] [BINARY] [IP] [PORT]` to generate a template, list OPTIONS with help `-h`
 
 ```python
 #!/usr/bin/env python
@@ -30,7 +28,7 @@ from pwn import *
 IP = ''         # remote IP
 PORT = 0        # remote PORT
 BINARY = ''     # PATH to local binary e.g. ./chal
-ARGS = []       # ARGS supplied to binary 
+ARGS = []       # ARGS supplied to binary
 ENV = {}        # ENVs supplied to binary
 # GDB SCRIPT, executed at start of GDB session (set breakpoint here)
 GDB = f"""
@@ -51,7 +49,7 @@ def get_target(**kw):
 
     from vagd import Dogd, Qegd, Shgd
     if not vm:
-        # Docker 
+        # Docker
         vm = Dogd(exe.path, image="ubuntu:jammy", ex=True, fast=True)
         # or Qemu
         vm = Qegd(exe.path, img="https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img", ex=True, fast=True)
@@ -65,7 +63,7 @@ t = get_target()
 t.interactive()
 ```
 
-+ `vagd info BINARY` to print info about binary
+- `vagd info BINARY` to print info about binary
 
 ```bash
 # run as process in VM
@@ -78,13 +76,9 @@ t.interactive()
 
 I recommend using [pwndbg](https://github.com/pwndbg/pwndbg).
 
- 
-
 ## Files
 
-All created files ares stored in the local `./.vagd/` directory. Additional large files (e.g. cloudimages) are stored in the home directory `~/.vagd/` or handled by tools themselfs (e.g. Docker).
-
-
+All created files ares stored in the local `./.vagd/` directory. Additional large files (e.g. cloudimages) are stored in the home directory `~/.share/local/vagd/` or handled by tools themselfs (e.g. Docker).
 
 ## CLI
 
@@ -105,19 +99,13 @@ vagd scp [OPTIONS] SOURCE [TARGET]
 vagd clean [OPTIONS]
 ```
 
-
-
 ## [Documentation](https://vagd.gfelber.dev)
-
-
 
 ## Boxes
 
 A listed of known working Boxes can be found in the [Documentation](http://vagd.gfelber.dev/autoapi/vagd/box/index.html#module-vagd.box).
 Other images might also work but currently only distributions that use `apt` and alpine for Docker are supported.
 This limitation may be circumvented by creating a target yourself (with the dependencies gdbserver, python, openssh) and creating a ssh connection via Shgd.
-
-
 
 ## Troubleshooting
 
@@ -135,9 +123,7 @@ files on the virtual instance are never overwritten this has performance reason 
 
 ### gdb performance
 
-Using gdbserver and gdb to index libraries can be very slow. Therefore an experimental feature is available that mounts libraries locally: `Dogd(..., ex=True, fast=True)` 
-
-
+Using gdbserver and gdb to index libraries can be very slow. Therefore an experimental feature is available that mounts libraries locally: `Dogd(..., ex=True, fast=True)`
 
 ## Future plans
 

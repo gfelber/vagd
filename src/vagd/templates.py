@@ -11,9 +11,12 @@ end'''
 
 DOCKER_TEMPLATE = '''FROM {image}
 
+USER root
+
 # install packages
-RUN apt-get update && \\
-    NEEDRESTART_MODE=a apt-get install -y {packages}
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update
+RUN apt-get install -y {packages}
 
 # init user and ssh
 EXPOSE 22
@@ -29,14 +32,17 @@ COPY {keyfile} .ssh/authorized_keys
 USER root
 RUN mkdir -p /run/sshd && \\
     chmod 755 /run/sshd
-    
-    
+
+ENTRYPOINT []
+
 CMD /usr/sbin/sshd; \\
     while true; do sleep 1m; done
 '''
 
 # TODO: proper template generation for alpine
 DOCKER_ALPINE_TEMPLATE = '''FROM {image}
+
+USER root
 
 # install packages
 RUN apk update
@@ -66,6 +72,7 @@ RUN ssh-keygen -A
 RUN mkdir -p /run/sshd && \
     chmod 755 /run/sshd
 
+ENTRYPOINT []
 
 CMD /usr/sbin/sshd; \
     while true; do sleep 1m; done

@@ -38,7 +38,7 @@ class Qegd(Shgd):
 
         vagd ssh
         # or
-        ssh -o "StrictHostKeyChecking=no" -i ~/.vagd/keyfile -p $(cat .vagd/qemu.lock) ubuntu@0.0.0.0
+        ssh -o "StrictHostKeyChecking=no" -i ~/.share/local/vagd/keyfile -p $(cat .vagd/qemu.lock) ubuntu@0.0.0.0
 
     | Kill from cmd:
 
@@ -48,7 +48,7 @@ class Qegd(Shgd):
         # or
         kill $(pgrep qemu)
 
-    | Qemu images are cached in the home directory: :code:`~/.vagd/qemu-imgs/`
+    | Qemu images are cached in the home directory: :code:`~/.share/local/vagd/qemu-imgs/`
     |
     | current used images are stored in the local directory: :code:`./.vagd/current.img`
     | These should be deleted automatically, but if a machine gets improperly stopped

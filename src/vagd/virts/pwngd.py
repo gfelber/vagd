@@ -27,7 +27,7 @@ class Pwngd(ABC):
     :param ex: if experimental features should be enabled
     """
     LOCAL_DIR = './.vagd/'
-    HOME_DIR = os.path.expanduser('~/.vagd/')
+    HOME_DIR = os.path.expanduser('~/.local/share/vagd/')
     SYSROOT = LOCAL_DIR + 'sysroot/'
     LOCKFILE = LOCAL_DIR + 'vagd.lock'
     SYSROOT_LIB = SYSROOT + 'lib/'
