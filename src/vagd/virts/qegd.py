@@ -207,7 +207,7 @@ users:
         helper.info(f"starting qemu machine, ssh port {self._port}")
         with open(Qegd.LOCKFILE, 'w') as lockfile:
             lockfile.write(str(self._port))
-        port_forwarding = "".join(Qegd._QEMU_PORT_FORWARDING.format(type=host.split('/')[0], host=host.split('/')[1], guest=guest)
+        port_forwarding = "".join(Qegd._QEMU_PORT_FORWARDING.format(type=host.split('/')[1], host=host.split('/')[0], guest=guest)
                                   for host, guest in self._forward.items())
         qemu_cmd = Qegd._QEMU_START.format(qemu=self._qemu,
                                            machine=f'{Qegd.DEFAULT_QEMU_MACHINE_PREFIX} {self._machine}' if self._machine else '',
