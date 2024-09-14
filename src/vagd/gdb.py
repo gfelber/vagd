@@ -1,2 +1,2 @@
 class GDB:
-    """ allows GDB Type hints """
+  """allows GDB Type hints"""

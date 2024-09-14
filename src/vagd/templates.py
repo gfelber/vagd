@@ -1,4 +1,4 @@
-VAGRANT_TEMPLATE = '''# -*- mode: ruby -*-
+VAGRANT_TEMPLATE = """# -*- mode: ruby -*-
 # vi: set ft=ruby :
 
 VAGRANTFILE_API_VERSION = "2"
@@ -7,9 +7,10 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   config.vm.box = "{box}"
 
-end'''
+end"""
 
-DOCKER_TEMPLATE = '''FROM {image}
+
+DOCKER_TEMPLATE = """FROM {image}
 
 USER root
 
@@ -31,16 +32,17 @@ COPY {keyfile} .ssh/authorized_keys
 
 USER root
 RUN mkdir -p /run/sshd && \\
-    chmod 755 /run/sshd
+  chmod 755 /run/sshd
 
 ENTRYPOINT []
 
 CMD /usr/sbin/sshd; \\
-    while true; do sleep 1m; done
-'''
+  while true; do sleep 1m; done
+"""
+
 
 # TODO: proper template generation for alpine
-DOCKER_ALPINE_TEMPLATE = '''FROM {image}
+DOCKER_ALPINE_TEMPLATE = """FROM {image}
 
 USER root
 
@@ -70,11 +72,11 @@ COPY keyfile.pub .ssh/authorized_keys
 USER root
 RUN ssh-keygen -A
 RUN mkdir -p /run/sshd && \
-    chmod 755 /run/sshd
+  chmod 755 /run/sshd
 
 ENTRYPOINT []
 
 CMD /usr/sbin/sshd; \
-    while true; do sleep 1m; done
+  while true; do sleep 1m; done
 
-'''
+"""
