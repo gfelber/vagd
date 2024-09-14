@@ -15,9 +15,9 @@ from vagd.virts.pwngd import Pwngd
 from vagd.virts.qegd import Qegd
 from vagd.virts.vagd import Vagd
 
-DOGD_BOX = "Box.DOCKER_JAMMY"
+DOGD_BOX = "Box.DOCKER_NOBLE"
 DOGD = "vm = Dogd(BINARY, image={box}, {args})  # Docker"
-QEGD_BOX = "Box.QEMU_JAMMY"
+QEGD_BOX = "Box.QEMU_NOBLE"
 QEGD = "vm = Qegd(BINARY, img={box}, {args})  # Qemu"
 SHGD = "vm = Shgd(BINARY, user='user', host='localhost', port=22, {args})  # SSH"
 

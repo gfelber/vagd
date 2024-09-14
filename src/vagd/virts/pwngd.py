@@ -5,7 +5,6 @@ from abc import ABC, abstractmethod
 from shutil import which
 from typing import Union, Dict, Iterable, List
 
-from paramiko import util
 import pwnlib.args
 import pwnlib.filesystem
 import pwnlib.gdb
@@ -126,6 +125,7 @@ class Pwngd(ABC):
 
         :param packages: packages to install on remote machine
         """
+        helper.info(f'installing packages: {' '.join(packages)}')
         self.system("sudo apt update").recvall()
         packages_str = " ".join(packages)
         self.system(f"sudo DEBIAN_FRONTEND=noninteractive apt install -y {packages_str}").recvall()
