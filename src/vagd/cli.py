@@ -119,6 +119,9 @@ def template(
   local: Optional[bool] = typer.Option(
     False, "--local", help="create local template"
   ),
+  ataka: Optional[bool] = typer.Option(
+    False, "--ataka", help="create an ataka compatible template"
+  ),
 ):
   """
   creates a template
@@ -189,16 +192,20 @@ def template(
 
     template = "".join(templateChunks).format(
       "{}",
+      dependencies=", ".join(dependencies),
       aliases=aliases,
       binary=binary,
       ip=ip,
       port=str(port),
       env=env,
+      ataka_env="# ataka envs\nIP = os.getenv('TARGET_IP', IP)\nEXTRA = json.loads(os.getenv('TARGET_EXTRA', '[]'))"
+      if ataka
+      else "",
+      vms=("\n" + " " * 4).join(vms),
       libc=libc,
       aslr=aslr,
       is_local=True if local else "args.LOCAL",
-      dependencies=", ".join(dependencies),
-      vms=("\n" + " " * 4).join(vms),
+      is_ataka=" or os.getenv('TARGET_IP')" if ataka else "",
     )
 
     if output_exploit:

@@ -15,11 +15,13 @@ c"""
 context.binary = exe = ELF(BINARY, checksec=False)
 context.aslr = {aslr}
 
+{ataka_env}
+
 {aliases}
 
 def setup():
   global vm
-  if args.REMOTE or {is_local}:
+  if args.REMOTE or {is_local}{is_ataka}:
     return
 
   try:
@@ -34,7 +36,7 @@ def setup():
 
 vm = None
 def get_target(**kw) -> tubes.tube:
-  if args.REMOTE:
+  if args.REMOTE{is_ataka}:
     # context.log_level = 'debug'
     return remote(IP, PORT)
 
