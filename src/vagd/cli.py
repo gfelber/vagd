@@ -76,25 +76,24 @@ def add_virt(
 
 def _info(binary, color=True) -> str:
   from pwnlib.elf.elf import ELF
+  from pwnlib.term import text
+
+  red = text.red if color else str
+  green = text.green if color else str
 
   exe = ELF(binary, checksec=False)
   out = list()
-  out.append("Arch:       ")
-  arch = "-".join((exe.arch, str(exe.bits), exe.endian))
-  if color:
-    arch = typer.style(arch, fg=typer.colors.GREEN)
+  out.append("Arch:".ljust(12))
+  arch = green("-".join((exe.arch, str(exe.bits), exe.endian)))
   out.append(arch)
   out.append("\n")
   out.append(exe.checksec(color=color))
-  out.append("\nComment:    ")
+  out.append("\n")
+  out.append("Comment:".ljust(12))
   if exe.get_section_by_name(".comment") is not None:
-    comment = exe.section(".comment").replace(b"\0", b"").decode()
-    if color:
-      comment = typer.style(comment, fg=typer.colors.GREEN)
+    comment = green(exe.section(".comment").replace(b"\0", b"").decode())
   else:
-    comment = "No Comment"
-    if color:
-      comment = typer.style(comment, fg=typer.colors.RED)
+    comment = red("No Comment")
 
   out.append(comment)
   return "".join(out)
@@ -213,7 +212,7 @@ def template(
 
   if not no_info:
     try:
-      info = "# " + "\n# ".join(_info(binary, color=False).splitlines())
+      info = "# " + "\n# ".join(_info(binary, color=False).splitlines()) + "\n"
     except Exception:
       info = ""
   else:
