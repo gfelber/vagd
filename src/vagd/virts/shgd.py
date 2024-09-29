@@ -72,9 +72,9 @@ class Shgd(Pwngd):
         )
         progress.success("Done")
         break
-      except:
+      except Exception as e:
         if i + 1 == Shgd._TRIES:
-          progress.failure("Failed")
+          progress.failure("%s", e)
           helper.error("Failed to connect to ssh")
         else:
           progress.status("Trying again")

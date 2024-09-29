@@ -20,6 +20,8 @@ class Dogd(Shgd):
   :param packages: packages to install on the container
   :param symbols: additionally install libc6 debug symbols (also updates libc6)
   :param ex: if experimental features, e.g. alpine, gdbserver should be enabled
+  :param rm: remove container after exit
+  :param alpine: if the conainter is alpine (also autochecks image name)
   :param fast: mounts libs locally for faster symbol extraction (experimental) NOT COMPATIBLE WITH ALPINE
   :param kwargs: parameters to pass through to super
 
@@ -56,6 +58,7 @@ class Dogd(Shgd):
   """
 
   _image: str
+  _name: str
   _user: str
   _port: int
   _packages: List[str]
@@ -65,10 +68,12 @@ class Dogd(Shgd):
   _dockerfile: str
   _isalpine: bool
   _gdbsrvport: int
+  _rm: bool
   _ex: bool
   _forward: Dict[str, int]
   _symbols: bool
 
+  VAGD_PREFIX = "vagd-"
   TYPE = "dogd"
   DOCKERHOME = Pwngd.HOME_DIR + "docker/"
   DEFAULT_USER = "vagd"
@@ -78,8 +83,72 @@ class Dogd(Shgd):
   DEFAULT_PACKAGES = Pwngd.DEFAULT_PACKAGES + ["openssh-server"]
   LOCKFILE = Pwngd.LOCAL_DIR + "docker.lock"
 
+  def __init__(
+    self,
+    binary: str,
+    image: str = DEFAULT_IMAGE,
+    user: str = DEFAULT_USER,
+    forward: Dict[str, int] = None,
+    packages: List[str] = None,
+    symbols=True,
+    rm=True,
+    ex: bool = False,
+    fast: bool = False,
+    alpine: bool = False,
+    **kwargs,
+  ):
+    self._image = image
+    self._name = Dogd.VAGD_PREFIX + os.path.basename(binary)
+    self._packages = list(Dogd.DEFAULT_PACKAGES)
+
+    if symbols:
+      helper.warn(
+        f"installing {Pwngd.LIBC6_DEBUG} might update libc binary, consider using symbols=False"
+      )
+      self._packages.append(Pwngd.LIBC6_DEBUG)
+
+    self._isalpine = alpine or "alpine" in image
+
+    if packages is not None:
+      if self._isalpine:
+        helper.error("additional package installation not supported for alpine")
+    else:
+      # trigger package detection in Pwngdb
+      packages = list()
+
+    self._gdbsrvport = -1
+    self._dockerdir = Dogd.DOCKERHOME + f"{self._image}/"
+    if not (
+      os.path.exists(Dogd.DOCKERHOME) and os.path.exists(self._dockerdir)
+    ):
+      os.makedirs(self._dockerdir)
+    self._dockerfile = self._dockerdir + "Dockerfile"
+    self._user = user
+    self._forward = forward
+    self._rm = rm
+    self._ex = ex
+    self._symbols = symbols
+    if self._isalpine and not self._ex:
+      helper.error("Docker alpine images requires experimental features")
+    if self._forward is None:
+      self._forward = dict()
+
+    self._vm_setup()
+
+    super().__init__(
+      binary=binary,
+      user=self._user,
+      port=self._port,
+      packages=packages,
+      ex=ex,
+      fast=fast,
+      symbols=False,
+      gdbsrvport=self._gdbsrvport,
+      **kwargs,
+    )
+
   def _create_dockerfile(self):
-    helper.info(f"create new Dockerfile at f{self._dockerfile}")
+    helper.info(f"create new Dockerfile at {self._dockerfile}")
     if not os.path.exists(Pwngd.KEYFILE):
       helper.generate_keypair()
 
@@ -96,7 +165,7 @@ class Dogd(Shgd):
         template.format(
           image=self._image,
           packages=" ".join(self._packages),
-          user=self._user,
+          user=self._user if self._user != "root" else Dogd.DEFAULT_USER,
           keyfile=os.path.basename(self._dockerdir + "keyfile.pub"),
         )
       )
@@ -116,9 +185,10 @@ class Dogd(Shgd):
 
     container = self._client.containers.run(
       self._bimage,
+      name=self._name,
       ports=self._forward,
       detach=True,
-      remove=True,
+      remove=self._rm,
       security_opt=[f"seccomp:{seccomp_rules}"],
     )
     self._id = container.id
@@ -129,7 +199,7 @@ class Dogd(Shgd):
       )
 
   def _build_image(self):
-    helper.info("building docker image")
+    build_progress = helper.progress("building docker image")
     hash = self._image.find("@")
     if hash != -1:
       tag = self._image[:hash].replace(":", "_")
@@ -145,9 +215,13 @@ class Dogd(Shgd):
         tag += "_"
       tag += "symbols"
 
-    return self._client.images.build(
+    bimage = self._client.images.build(
       path=os.path.dirname(self._dockerfile), tag=f"vagd/{tag}"
     )[0]
+
+    build_progress.success("done")
+
+    return bimage
 
   def _vm_create(self):
     self._lock(Dogd.TYPE)
@@ -185,76 +259,3 @@ class Dogd(Shgd):
         helper.info(
           f"Lockfile {Dogd.LOCKFILE} found, Docker Instance f{self._client.containers.get(self._id).short_id}"
         )
-
-  def __init__(
-    self,
-    binary: str,
-    image: str = DEFAULT_IMAGE,
-    user: str = DEFAULT_USER,
-    forward: Dict[str, int] = None,
-    packages: List[str] = None,
-    symbols=True,
-    ex: bool = False,
-    fast: bool = False,
-    **kwargs,
-  ):
-    """
-
-    :param binary: binary to execute
-    :param image: docker base image
-    :param user: name of user on docker container
-    :param forward: Dictionary of forwarded ports, needs to follow docker api format: 'hostport/(tcp|udp)' : guestport
-    :param packages: packages to install on the container
-    :param symbols: additionally install libc6 debug symbols (also updates libc6)
-    :param ex: if experimental features, e.g. alpine, gdbserver should be enabled
-    :param fast: mounts libs locally for faster symbol extraction (experimental) NOT COMPATIBLE WITH ALPINE
-    :param kwargs: parameters to pass through to super
-    """
-
-    self._image = image
-    self._packages = Dogd.DEFAULT_PACKAGES
-
-    if symbols:
-      helper.warn(
-        f"installing {Pwngd.LIBC6_DEBUG} might update libc binary, consider using symbols=False"
-      )
-      self._packages.append(Pwngd.LIBC6_DEBUG)
-
-    self._isalpine = "alpine" in image
-
-    if packages is not None:
-      if self._isalpine:
-        helper.error("additional package installation not supported for alpine")
-    else:
-      # trigger package detection in Pwngdb
-      packages = list()
-
-    self._gdbsrvport = -1
-    self._dockerdir = Dogd.DOCKERHOME + f"{self._image}/"
-    if not (
-      os.path.exists(Dogd.DOCKERHOME) and os.path.exists(self._dockerdir)
-    ):
-      os.makedirs(self._dockerdir)
-    self._dockerfile = self._dockerdir + "Dockerfile"
-    self._user = user
-    self._forward = forward
-    self._ex = ex
-    self._symbols = symbols
-    if self._isalpine and not self._ex:
-      helper.error("Docker alpine images requires experimental features")
-    if self._forward is None:
-      self._forward = dict()
-
-    self._vm_setup()
-
-    super().__init__(
-      binary=binary,
-      user=self._user,
-      port=self._port,
-      packages=packages,
-      ex=ex,
-      fast=fast,
-      symbols=False,
-      gdbsrvport=self._gdbsrvport,
-      **kwargs,
-    )

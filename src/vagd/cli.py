@@ -16,9 +16,9 @@ from vagd.virts.pwngd import Pwngd
 from vagd.virts.qegd import Qegd
 from vagd.virts.vagd import Vagd
 
-DOGD_BOX = "Box.DOCKER_NOBLE"
+DOGD_BOX = "Box.DOCKER_UBUNTU"
 DOGD = "vm = Dogd(BINARY, image={box}, {args})  # Docker"
-QEGD_BOX = "Box.QEMU_NOBLE"
+QEGD_BOX = "Box.QEMU_UBUNTU"
 QEGD = "vm = Qegd(BINARY, img={box}, {args})  # Qemu"
 SHGD = (
   "vm = Shgd(BINARY, user='user', host='localhost', port=22, {args})  # SSH"
@@ -27,6 +27,11 @@ SHGD = (
 # deprecated
 VAGD_BOX = "Box.VAGRANT_JAMMY64"
 VAGD = "vm = Vagd(BINARY, {box}, {args})  # Vagrant"
+
+ATAKA_ENV = """# ataka envs
+ATAKA  = os.getenv('TARGET_IP') is not None
+IP     = os.getenv('TARGET_IP', IP)
+EXTRA  = json.loads(os.getenv('TARGET_EXTRA', '[]'))"""
 
 app = typer.Typer(context_settings={"help_option_names": ["-h", "--help"]})
 
@@ -122,11 +127,13 @@ def template(
   ataka: Optional[bool] = typer.Option(
     False, "--ataka", help="create an ataka compatible template"
   ),
+  root: Optional[bool] = typer.Option(
+    False, "--root", "-r", help="create a root environment"
+  ),
 ):
   """
   creates a template
   """
-
   if image != DOGD_BOX:
     dogd = True
     image = f"'{image}'"
@@ -140,7 +147,7 @@ def template(
     vbox = f"'{vbox}'"
 
   templatePath = os.path.dirname(os.path.realpath(__file__))
-  templateChunks = []
+  templateChunks = list()
   aliasesPath = templatePath + "/res/aliases.txt"
   templatePath += "/res/template.txt"
   multi = False
@@ -160,6 +167,9 @@ def template(
   vms = []
   args = dict()
 
+  if root:
+    args["user"] = "'root'"
+
   if libs:
     args["libs"] = True
     if not libc:
@@ -167,6 +177,10 @@ def template(
 
   if files:
     args["files"] = "[" + ",".join(f"'{file}'" for file in files) + "]"
+
+  modules = list()
+  if ataka:
+    modules.append("json")
 
   args["ex"] = "True"
   args["fast"] = "True"
@@ -190,35 +204,34 @@ def template(
       else:
         templateChunks.append(line)
 
-    template = "".join(templateChunks).format(
-      "{}",
-      dependencies=", ".join(dependencies),
-      aliases=aliases,
-      binary=binary,
-      ip=ip,
-      port=str(port),
-      env=env,
-      ataka_env="# ataka envs\nIP = os.getenv('TARGET_IP', IP)\nEXTRA = json.loads(os.getenv('TARGET_EXTRA', '[]'))"
-      if ataka
-      else "",
-      vms=("\n" + " " * 4).join(vms),
-      libc=libc,
-      aslr=aslr,
-      is_local=True if local else "args.LOCAL",
-      is_ataka=" or os.getenv('TARGET_IP')" if ataka else "",
-    )
+  template = "".join(templateChunks).format(
+    "{}",
+    modules="\n".join(f"import {module}" for module in modules),
+    dependencies=", ".join(dependencies),
+    aliases=aliases,
+    binary=binary,
+    ip=ip,
+    port=str(port),
+    env=env,
+    ataka_env=ATAKA_ENV if ataka else "",
+    vms=("\n" + " " * 4).join(vms),
+    libc=libc,
+    aslr=aslr,
+    is_local=True if local else "args.LOCAL",
+    is_ataka=" or ATAKA" if ataka else "",
+  )
 
-    if output_exploit:
-      output = "exploit.py"
-    if output:
-      with open(output, "w") as exploitFile:
-        exploitFile.write(template)
-      current_permissions = os.stat(output).st_mode
-      new_permissions = current_permissions | (stat.S_IXUSR)
-      os.chmod(output, new_permissions)
-    else:
-      syntax = Syntax(template, "python", theme="ansi_dark")
-      console.print(syntax)
+  if output_exploit:
+    output = "exploit.py"
+  if output:
+    with open(output, "w") as exploitFile:
+      exploitFile.write(template)
+    current_permissions = os.stat(output).st_mode
+    new_permissions = current_permissions | (stat.S_IXUSR)
+    os.chmod(output, new_permissions)
+  else:
+    syntax = Syntax(template, "python", theme="ansi_dark")
+    console.print(syntax)
 
 
 @app.command()

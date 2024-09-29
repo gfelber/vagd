@@ -17,6 +17,7 @@ class Pwngd(ABC):
   start binary on remote and return pwnlib.tubes.process.process
 
   :param binary: binary for VM debugging
+  :param libs: download libraries (using ldd) from VM
   :param files: other files or directories that need to be uploaded to VM
   :param packages: packages to install on vm
   :param symbols: additionally install libc6 debug symbols
@@ -42,6 +43,64 @@ class Pwngd(ABC):
   _ssh: pwnlib.tubes.ssh.ssh
   _experimental: bool
   _fast: bool
+
+  def __init__(
+    self,
+    binary: str,
+    libs=False,
+    files: Union[str, list[str]] = None,
+    packages: List[str] = None,
+    symbols=True,
+    tmp: bool = False,
+    gdbsrvport: int = -1,
+    root: bool = False,
+    fast: bool = False,
+    ex: bool = False,
+  ):
+    self._path = binary
+    self._gdbsrvport = gdbsrvport
+    self._binary = "./" + os.path.basename(binary)
+
+    pwnlib.context.context.ssh_session = self._ssh
+
+    if tmp:
+      self._ssh.set_working_directory()
+
+    if self._sync(self._path):
+      self.system("chmod +x " + self._binary)
+
+    if self.is_new and libs:
+      if not (os.path.exists(Pwngd.LIBS_DIRECTORY)):
+        os.makedirs(Pwngd.LIBS_DIRECTORY)
+
+      self.libs(Pwngd.LIBS_DIRECTORY)
+
+    if self.is_new and packages is not None:
+      if symbols:
+        packages.append(Pwngd.LIBC6_DEBUG)
+      try:
+        elf = pwnlib.elf.ELF(binary, checksec=False)
+        if elf.arch == "i386":
+          packages.append(Pwngd.LIBC6_I386)
+      except:
+        helper.warn("failed to get architecture from binary")
+      self._install_packages(packages)
+
+    self._fast = fast
+    self._experimental = ex
+
+    if self._fast:
+      if self._experimental:
+        self._mount_root()
+      else:
+        helper.error("requires experimental features, activate with ex=True")
+
+    # Copy files to remote
+    if isinstance(files, str):
+      self._sync(files)
+    elif hasattr(files, "__iter__"):
+      for file in files:
+        self._sync(file)
 
   @abstractmethod
   def _vm_setup(self) -> None:
@@ -172,77 +231,6 @@ class Pwngd(ABC):
     """
     for lib in self._ssh._libs_remote(self._binary).keys():
       self.pull(lib, directory + "/" + os.path.basename(lib))
-
-  def __init__(
-    self,
-    binary: str,
-    libs=False,
-    files: Union[str, list[str]] = None,
-    packages: List[str] = None,
-    symbols=True,
-    tmp: bool = False,
-    gdbsrvport: int = -1,
-    fast: bool = False,
-    ex: bool = False,
-  ):
-    """
-    Default init setups provided ssh machine
-
-    :param binary: binary for VM debugging
-    :param libs: download libraries (using ldd) from VM
-    :param files: other files or directories that need to be uploaded to VM
-    :param packages: packages to install on vm
-    :param symbols: additionally install libc6 debug symbols
-    :param tmp: if a temporary directory should be created for files
-    :param gdbsrvport: specify static gdbserver port, REQURIES port forwarding to localhost
-    :param fast: mounts libs locally for faster symbol extraction (experimental)
-    :param ex: if experimental features should be enabled
-    """
-
-    self._path = binary
-    self._gdbsrvport = gdbsrvport
-    self._binary = "./" + os.path.basename(binary)
-
-    pwnlib.context.context.ssh_session = self._ssh
-
-    if tmp:
-      self._ssh.set_working_directory()
-
-    if self._sync(self._path):
-      self.system("chmod +x " + self._binary)
-
-    if self.is_new and libs:
-      if not (os.path.exists(Pwngd.LIBS_DIRECTORY)):
-        os.makedirs(Pwngd.LIBS_DIRECTORY)
-
-      self.libs(Pwngd.LIBS_DIRECTORY)
-
-    if self.is_new and packages is not None:
-      if symbols:
-        packages.append(Pwngd.LIBC6_DEBUG)
-      try:
-        elf = pwnlib.elf.ELF(binary)
-        if elf.arch == "i386":
-          packages.append(Pwngd.LIBC6_I386)
-      except:
-        helper.warn("failed to get architecture from binary")
-      self._install_packages(packages)
-
-    self._fast = fast
-    self._experimental = ex
-
-    if self._fast:
-      if self._experimental:
-        self._mount_root()
-      else:
-        helper.error("requires experimental features, activate with ex=True")
-
-    # Copy files to remote
-    if isinstance(files, str):
-      self._sync(files)
-    elif hasattr(files, "__iter__"):
-      for file in files:
-        self._sync(file)
 
   def debug(
     self,

@@ -11,6 +11,7 @@ class Box:
   QEMU_FOCAL = "https://cloud-images.ubuntu.com/focal/current/focal-server-cloudimg-amd64.img"
   QEMU_BIONIC = "https://cloud-images.ubuntu.com/bionic/current/bionic-server-cloudimg-amd64.img"
   QEMU_XENIAL = "https://cloud-images.ubuntu.com/xenial/current/xenial-server-cloudimg-amd64-disk1.img"
+  QEMU_UBUNTU = QEMU_NOBLE
   QEMU_JAMMY_ARM = "https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-arm64.img"
 
   DOCKER_NOBLE = "ubuntu:noble"
@@ -18,7 +19,11 @@ class Box:
   DOCKER_FOCAL = "ubuntu:focal"
   DOCKER_BIONIC = "ubuntu:bionic"
   DOCKER_XENIAL = "ubuntu:xenial"
+  DOCKER_UBUNTU = DOCKER_NOBLE
+
   DOCKER_I386_FOCAL = "i386/ubuntu:focal"
   DOCKER_I386_BIONIC = "i386/ubuntu:bionic"
   DOCKER_I386_XENIAL = "i386/ubuntu:xenial"
-  DOCKER_ALPINE_316 = "alpine:3.16.6"
+
+  DOCKER_ALPINE_320 = "alpine:3.20"
+  DOCKER_ALPINE = DOCKER_ALPINE_320

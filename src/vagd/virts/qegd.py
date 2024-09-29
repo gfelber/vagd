@@ -105,6 +105,71 @@ class Qegd(Shgd):
   _machine: str
   _detach: bool
 
+  def __init__(
+    self,
+    binary: str,
+    img: str = DEFAULT_IMG,
+    user: str = DEFAULT_USER,
+    forward: Dict[str, int] = None,
+    packages: List[str] = None,
+    arm: bool = False,
+    qemu: str = DEFAULT_QEMU_CMD,
+    cpu: str = DEFAULT_QEMU_CPU,
+    memory: str = DEFAULT_QEMU_MEMORY,
+    machine: str = DEFAULT_QEMU_MACHINE,
+    cores: str = DEFAULT_QEMU_CORES,
+    bios: str = None,
+    detach: bool = False,
+    custom: str = "",
+    **kwargs,
+  ):
+    if not which(qemu):
+      helper.error(qemu + " isn't installed")
+
+    if packages is None:
+      packages = list()
+
+    if not os.path.exists(Qegd.QEMU_DIR):
+      helper.info(f"Generating {Qegd.QEMU_DIR} dir")
+      os.makedirs(Qegd.QEMU_DIR)
+
+    if arm:
+      qemu = (
+        Qegd.DEFAULT_QEMU_ARM_CMD if qemu == Qegd.DEFAULT_QEMU_CMD else qemu
+      )
+      cpu = Qegd.DEFAULT_QEMU_ARM_CPU if cpu == Qegd.DEFAULT_QEMU_CPU else cpu
+      machine = (
+        Qegd.DEFAULT_QEMU_ARM_MACHINE
+        if machine == Qegd.DEFAULT_QEMU_MACHINE
+        else machine
+      )
+      bios = Qegd.DEFAULT_QEMU_ARM_BIOS if bios is None else bios
+
+    self._img = img
+    self._user = user
+    self._forward = forward if forward else dict()
+    self._qemu = qemu
+    self._cpu = cpu
+    self._memory = memory
+    self._cores = cores
+    self._machine = machine
+    self._bios = bios
+    self._custom = custom
+    self._detach = detach
+
+    self._vm_setup()
+
+    packages += Pwngd.DEFAULT_PACKAGES
+
+    super().__init__(
+      binary=binary,
+      user=user,
+      host=self._host,
+      port=self._port,
+      packages=packages,
+      **kwargs,
+    )
+
   @staticmethod
   def _is_local(url) -> bool:
     """
@@ -146,7 +211,7 @@ local-hostname: cloudimg
   _USER_DATA = """#cloud-config
 users:
   - default
-  - name: vagd
+  - name: {user}
     groups: sudo
     shell: /bin/bash
     sudo: ['ALL=(ALL) NOPASSWD:ALL']
@@ -166,20 +231,19 @@ users:
     """
     if not which("cloud-localds"):
       helper.error("cloud-image-utils is not installed")
-    if not os.path.exists(Qegd.SEED_FILE):
-      helper.info(f"{Qegd.SEED_FILE} not found generating new one")
-      if not os.path.exists(Qegd.METADATA_FILE):
-        helper.info(f"{Qegd.METADATA_FILE} not found generating new one")
-        with open(Qegd.METADATA_FILE, "w") as metadata_file:
-          metadata_file.write(Qegd._METADATA)
-      if not os.path.exists(Qegd.USER_DATA_FILE):
-        helper.info(f"{Qegd.USER_DATA_FILE} not found generating new one")
-        helper.generate_keypair()
-        with open(Qegd.USER_DATA_FILE, "w") as user_data_file:
-          with open(Pwngd.PUBKEYFILE, "r") as pubkey_file:
-            pubkey = pubkey_file.readline()
-          user_data_file.write(Qegd._USER_DATA.format(pubkey=pubkey))
-      os.system(Qegd._GENERATE_SEED_IMG)
+
+    if os.path.exists(Qegd.SEED_FILE):
+      os.remove(Qegd.SEED_FILE)
+    with open(Qegd.METADATA_FILE, "w") as metadata_file:
+      metadata_file.write(Qegd._METADATA)
+    helper.generate_keypair()
+    with open(Qegd.USER_DATA_FILE, "w") as user_data_file:
+      with open(Pwngd.PUBKEYFILE, "r") as pubkey_file:
+        pubkey = pubkey_file.readline()
+      user_data_file.write(
+        Qegd._USER_DATA.format(pubkey=pubkey, user=self._user)
+      )
+    os.system(Qegd._GENERATE_SEED_IMG)
 
   _QEMU_PORT_FORWARDING = ",hostfwd={type}::{guest}-:{host}"
   _QEMU_START = (
@@ -290,86 +354,3 @@ users:
       helper.info(
         f"Lockfile in {Qegd.LOCKFILE}. Using running qemu instance at port {self._port}"
       )
-
-  def __init__(
-    self,
-    binary: str,
-    img: str = DEFAULT_IMG,
-    user: str = DEFAULT_USER,
-    forward: Dict[str, int] = None,
-    packages: List[str] = None,
-    arm: bool = False,
-    qemu: str = DEFAULT_QEMU_CMD,
-    cpu: str = DEFAULT_QEMU_CPU,
-    memory: str = DEFAULT_QEMU_MEMORY,
-    machine: str = DEFAULT_QEMU_MACHINE,
-    cores: str = DEFAULT_QEMU_CORES,
-    bios: str = None,
-    detach: bool = False,
-    custom: str = "",
-    **kwargs,
-  ):
-    """
-
-    :param binary: binary for VM debugging
-    :param img: qemu image to use (requires ssh)
-    :param user: user inside qemu image
-    :param forward: Dictionary of forwarded ports, needs to follows format: 'hostport/(tcp|udp)' : guestport
-    :param packages: packages to install on vm
-    :param arm: emulate arm in qemu
-    :param qemu: qemu cmd
-    :param cpu: value for :code -cpu
-    :param memory: value for :code -m
-    :param cores: value for :code -smp
-    :param machine: value for :code -machine
-    :param bios: value for :code -bios
-    :param custom: custom qemu arguments
-    :param detach: run qemu in new terminal
-    :param kwargs: parameters to pass through to super
-    """
-
-    if not which(qemu):
-      helper.error(qemu + " isn't installed")
-
-    if packages is None:
-      packages = list()
-
-    if not os.path.exists(Qegd.QEMU_DIR):
-      helper.info(f"Generating {Qegd.QEMU_DIR} dir")
-      os.makedirs(Qegd.QEMU_DIR)
-
-    if arm:
-      qemu = (
-        Qegd.DEFAULT_QEMU_ARM_CMD if qemu == Qegd.DEFAULT_QEMU_CMD else qemu
-      )
-      cpu = Qegd.DEFAULT_QEMU_ARM_CPU if cpu == Qegd.DEFAULT_QEMU_CPU else cpu
-      machine = (
-        Qegd.DEFAULT_QEMU_ARM_MACHINE
-        if machine == Qegd.DEFAULT_QEMU_MACHINE
-        else machine
-      )
-      bios = Qegd.DEFAULT_QEMU_ARM_BIOS if bios is None else bios
-
-    self._img = img
-    self._forward = forward if forward else dict()
-    self._qemu = qemu
-    self._cpu = cpu
-    self._memory = memory
-    self._cores = cores
-    self._machine = machine
-    self._bios = bios
-    self._custom = custom
-    self._detach = detach
-
-    self._vm_setup()
-
-    packages += Pwngd.DEFAULT_PACKAGES
-
-    super().__init__(
-      binary=binary,
-      user=user,
-      host=self._host,
-      port=self._port,
-      packages=packages,
-      **kwargs,
-    )
