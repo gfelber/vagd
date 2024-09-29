@@ -7,7 +7,6 @@ from typing import Dict, List, Optional
 import typer
 from rich.console import Console
 from rich.syntax import Syntax
-from rich import print as rprint
 
 
 # prevents term.init
@@ -30,11 +29,6 @@ ATAKA_ENV = """# ataka envs
 ATAKA  = os.getenv('TARGET_IP') is not None           # running on ataka
 IP     = os.getenv('TARGET_IP', IP)                   # remote ip
 EXTRA  = json.loads(os.getenv('TARGET_EXTRA', '[]'))  # flag ids"""
-
-INFO_TEMPLATE = """# Arch:       {arch}
-# {checksec}
-# Comment:    {comment}
-"""
 
 app = typer.Typer(context_settings={"help_option_names": ["-h", "--help"]})
 
@@ -78,6 +72,32 @@ def add_virt(
   args_str = ", ".join(f"{k}={v}" for k, v in args.items())
   vm = template.format(box=box, args=args_str)
   vms.append(("# " if multi else "") + vm)
+
+
+def _info(binary, color=True) -> str:
+  from pwnlib.elf.elf import ELF
+
+  exe = ELF(binary, checksec=False)
+  out = list()
+  out.append("Arch:       ")
+  arch = "-".join((exe.arch, str(exe.bits), exe.endian))
+  if color:
+    arch = typer.style(arch, fg=typer.colors.GREEN)
+  out.append(arch)
+  out.append("\n")
+  out.append(exe.checksec(color=color))
+  out.append("\nComment:    ")
+  if exe.get_section_by_name(".comment") is not None:
+    comment = exe.section(".comment").replace(b"\0", b"").decode()
+    if color:
+      comment = typer.style(comment, fg=typer.colors.GREEN)
+  else:
+    comment = "No Comment"
+    if color:
+      comment = typer.style(comment, fg=typer.colors.RED)
+
+  out.append(comment)
+  return "".join(out)
 
 
 @app.command()
@@ -192,19 +212,8 @@ def template(
         templateChunks.append(line)
 
   if not no_info:
-    from pwnlib.elf.elf import ELF
-
     try:
-      exe = ELF(binary, checksec=False)
-      if exe.get_section_by_name(".comment") is not None:
-        comment = exe.section(".comment").decode().strip()
-      else:
-        comment = "no comment section"
-      info = INFO_TEMPLATE.format(
-        arch="-".join((exe.arch, str(exe.bits), exe.endian)),
-        checksec="\n# ".join(exe.checksec(color=False).splitlines()),
-        comment=comment,
-      )
+      info = "# " + "\n# ".join(_info(binary, color=False).splitlines())
     except Exception:
       info = ""
   else:
@@ -249,15 +258,8 @@ def info(
   """
   analyses the binary, prints checksec and .comment (often includes Distro and Compiler info)
   """
-  import pwn
 
-  elf = pwn.ELF(binary)
-  if elf.get_section_by_name(".comment") is not None:
-    rprint(
-      "    Comment:    [green]%s[/green]" % elf.section(".comment").decode().replace("\0", "\n")
-    )
-  else:
-    rprint("    Comment:    [red]No comment section[/red]")
+  print(_info(binary))
 
 
 def _get_type() -> str:
