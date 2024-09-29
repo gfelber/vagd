@@ -7,8 +7,8 @@ from typing import Dict, List, Optional
 import typer
 from rich.console import Console
 from rich.syntax import Syntax
+from rich import print as rprint
 
-from vagd import helper
 
 # prevents term.init
 from vagd.virts.dogd import Dogd
@@ -20,23 +20,28 @@ DOGD_BOX = "Box.DOCKER_UBUNTU"
 DOGD = "vm = Dogd(BINARY, image={box}, {args})  # Docker"
 QEGD_BOX = "Box.QEMU_UBUNTU"
 QEGD = "vm = Qegd(BINARY, img={box}, {args})  # Qemu"
-SHGD = (
-  "vm = Shgd(BINARY, user='user', host='localhost', port=22, {args})  # SSH"
-)
+SHGD = "vm = Shgd(BINARY, user='user', host='localhost', port=22, {args})  # SSH"
 
 # deprecated
 VAGD_BOX = "Box.VAGRANT_JAMMY64"
 VAGD = "vm = Vagd(BINARY, {box}, {args})  # Vagrant"
 
 ATAKA_ENV = """# ataka envs
-ATAKA  = os.getenv('TARGET_IP') is not None
-IP     = os.getenv('TARGET_IP', IP)
-EXTRA  = json.loads(os.getenv('TARGET_EXTRA', '[]'))"""
+ATAKA  = os.getenv('TARGET_IP') is not None           # running on ataka
+IP     = os.getenv('TARGET_IP', IP)                   # remote ip
+EXTRA  = json.loads(os.getenv('TARGET_EXTRA', '[]'))  # flag ids"""
+
+INFO_TEMPLATE = """# Arch:       {arch}
+# {checksec}
+# Comment:    {comment}
+"""
 
 app = typer.Typer(context_settings={"help_option_names": ["-h", "--help"]})
 
 err_console = Console(stderr=True)
 console = Console()
+
+quote = lambda x: f"'{x}'"
 
 
 def _version(value: bool) -> None:
@@ -78,9 +83,7 @@ def add_virt(
 @app.command()
 def template(
   binary: Optional[str] = typer.Argument("", help="Binary to Exploit"),
-  ip: Optional[str] = typer.Argument(
-    "", help="Ip or Domain of the remote target"
-  ),
+  ip: Optional[str] = typer.Argument("", help="Ip or Domain of the remote target"),
   port: Optional[int] = typer.Argument(0, help="port of the remote target"),
   output_exploit: Optional[bool] = typer.Option(
     False, "-e", help="output file of the template (also add +x) to exploit.py"
@@ -88,63 +91,47 @@ def template(
   output: Optional[str] = typer.Option(
     "", "-o", help="output file of the template (also add +x), default stdout"
   ),
-  libc: Optional[str] = typer.Option(
-    "", "--libc", "-l", help="add libc to template"
-  ),
-  libs: Optional[bool] = typer.Option(
-    False, "--libs", help="download libraries from virt"
-  ),
-  files: Optional[List[str]] = typer.Option(
-    [], "--files", "-f", help="add files to remote"
-  ),
+  libc: Optional[str] = typer.Option("", "--libc", "-l", help="add libc to template"),
+  libs: Optional[bool] = typer.Option(False, "--libs", help="download libraries from virt"),
+  files: Optional[List[str]] = typer.Option([], "--files", "-f", help="add files to remote"),
   aslr: Optional[bool] = typer.Option(
     False, "--aslr", "-a", help="enable gdb ASLR (default: disabled for gdb)"
   ),
   dogd: Optional[bool] = typer.Option(
     False, "--dogd", "--docker", "-d", help="create docker template"
   ),
-  image: Optional[str] = typer.Option(
-    DOGD_BOX, "--image", help="docker image to use"
-  ),
-  qegd: Optional[bool] = typer.Option(
-    False, "--qegd", "--qemu", "-q", help="create qemu template"
-  ),
-  img: Optional[str] = typer.Option(
-    QEGD_BOX, "--img", help="qemu cloud image to use"
-  ),
+  image: Optional[str] = typer.Option(DOGD_BOX, "--image", help="docker image to use"),
+  qegd: Optional[bool] = typer.Option(False, "--qegd", "--qemu", "-q", help="create qemu template"),
+  img: Optional[str] = typer.Option(QEGD_BOX, "--img", help="qemu cloud image to use"),
   vagd: Optional[bool] = typer.Option(
     False, "--vagd", "--vagrant", help="DEPRECATED: create vagrant template"
   ),
-  vbox: Optional[str] = typer.Option(
-    VAGD_BOX, "--vbox", help="vagrant box to use"
-  ),
-  shgd: Optional[bool] = typer.Option(
-    False, "--shgd", "--ssh", "-s", help="create ssh template"
-  ),
-  local: Optional[bool] = typer.Option(
-    False, "--local", help="create local template"
-  ),
+  vbox: Optional[str] = typer.Option(VAGD_BOX, "--vbox", help="vagrant box to use"),
+  shgd: Optional[bool] = typer.Option(False, "--shgd", "--ssh", "-s", help="create ssh template"),
+  local: Optional[bool] = typer.Option(False, "--local", help="create local template"),
   ataka: Optional[bool] = typer.Option(
     False, "--ataka", help="create an ataka compatible template"
   ),
-  root: Optional[bool] = typer.Option(
-    False, "--root", "-r", help="create a root environment"
+  root: Optional[bool] = typer.Option(False, "--root", "-r", help="create a root environment"),
+  no_aliases: Optional[bool] = typer.Option(
+    False, "--no-aliases", help="no aliases in the template"
   ),
+  no_info: Optional[bool] = typer.Option(False, "--no-info", help="no binary info"),
 ):
   """
   creates a template
   """
   if image != DOGD_BOX:
     dogd = True
-    image = f"'{image}'"
+    image = quote(image)
 
   if img != QEGD_BOX:
     qegd = True
-    img = f"'{img}'"
+    img = quote(img)
 
   if vbox != VAGD_BOX:
     vagd = True
-    vbox = f"'{vbox}'"
+    vbox = quote(vbox)
 
   templatePath = os.path.dirname(os.path.realpath(__file__))
   templateChunks = list()
@@ -204,21 +191,42 @@ def template(
       else:
         templateChunks.append(line)
 
+  if not no_info:
+    from pwnlib.elf.elf import ELF
+
+    try:
+      exe = ELF(binary, checksec=False)
+      if exe.get_section_by_name(".comment") is not None:
+        comment = exe.section(".comment").decode().strip()
+      else:
+        comment = "no comment section"
+      info = INFO_TEMPLATE.format(
+        arch="-".join((exe.arch, str(exe.bits), exe.endian)),
+        checksec="\n# ".join(exe.checksec(color=False).splitlines()),
+        comment=comment,
+      )
+    except Exception:
+      info = ""
+  else:
+    info = ""
+
   template = "".join(templateChunks).format(
     "{}",
+    cmd_args=" ".join(sys.argv[1:]),
     modules="\n".join(f"import {module}" for module in modules),
     dependencies=", ".join(dependencies),
-    aliases=aliases,
-    binary=binary,
-    ip=ip,
+    aliases=aliases if not no_aliases else "",
+    binary=quote(binary),
+    ip=quote(ip),
     port=str(port),
-    env=env,
+    env=repr(env),
     ataka_env=ATAKA_ENV if ataka else "",
     vms=("\n" + " " * 4).join(vms),
-    libc=libc,
-    aslr=aslr,
+    libc=quote(libc),
+    aslr=repr(aslr),
     is_local=True if local else "args.LOCAL",
     is_ataka=" or ATAKA" if ataka else "",
+    info=info,
   )
 
   if output_exploit:
@@ -244,7 +252,12 @@ def info(
   import pwn
 
   elf = pwn.ELF(binary)
-  helper.info(elf.section(".comment").decode().replace("\0", "\n"))
+  if elf.get_section_by_name(".comment") is not None:
+    rprint(
+      "    Comment:    [green]%s[/green]" % elf.section(".comment").decode().replace("\0", "\n")
+    )
+  else:
+    rprint("    Comment:    [red]No comment section[/red]")
 
 
 def _get_type() -> str:
@@ -264,9 +277,7 @@ def _exec(cmd: str, env: Dict = None):
 
 
 def _ssh(port, user):
-  os.system(
-    f'ssh -o "StrictHostKeyChecking=no" -i {Pwngd.KEYFILE} -p {port} {user}@0.0.0.0'
-  )
+  os.system(f'ssh -o "StrictHostKeyChecking=no" -i {Pwngd.KEYFILE} -p {port} {user}@0.0.0.0')
 
 
 @app.command()
@@ -310,18 +321,14 @@ def _scp(
   if ":" in target:
     file = target[target.find(":") + 1 :]
     target = f"{user}@0.0.0.0:{file}"
-  os.system(
-    f"scp -P {port} -o StrictHostKeyChecking=no -i {keyfile} {options} {source} {target}"
-  )
+  os.system(f"scp -P {port} -o StrictHostKeyChecking=no -i {keyfile} {options} {source} {target}")
 
 
 @app.command()
 def scp(
   source: str = typer.Argument(..., help="source file"),
   target: str = typer.Argument("vagd:./", help="target file"),
-  recursive: bool = typer.Option(
-    False, "-r", "--recursive", help="recursive copy"
-  ),
+  recursive: bool = typer.Option(False, "-r", "--recursive", help="recursive copy"),
   user: Optional[str] = typer.Option(None, "--user", "-u", help="ssh user"),
 ):
   """
@@ -364,15 +371,11 @@ def clean():
 
       client = docker.from_env()
       if not client.containers.list(filters={"id": id}):
-        sys.stderr.write(
-          f"Lockfile {Dogd.LOCKFILE} found, container not running\n"
-        )
+        sys.stderr.write(f"Lockfile {Dogd.LOCKFILE} found, container not running\n")
         exit(1)
       else:
         container = client.containers.get(id)
-        typer.echo(
-          f"Lockfile {Dogd.LOCKFILE} found, Docker Instance f{container.short_id}"
-        )
+        typer.echo(f"Lockfile {Dogd.LOCKFILE} found, Docker Instance f{container.short_id}")
         container.kill()
   elif typ == Qegd.TYPE:
     os.system("kill $(pgrep qemu)")

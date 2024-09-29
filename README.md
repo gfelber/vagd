@@ -22,45 +22,70 @@ pip install ./vagd/
 - `vagd template [OPTIONS] [BINARY] [IP] [PORT]` to generate a template, list OPTIONS with help `-h`
 
 ```python
-#!/usr/bin/env python
 from pwn import *
 
-IP = ''         # remote IP
-PORT = 0        # remote PORT
-BINARY = ''     # PATH to local binary e.g. ./chal
-ARGS = []       # ARGS supplied to binary
-ENV = {}        # ENVs supplied to binary
-# GDB SCRIPT, executed at start of GDB session (set breakpoint here)
-GDB = f"""
+GOFF   = 0x555555554000                               # GDB default base address
+IP     = ''                                           # remote IP
+PORT   = 0                                            # remote PORT
+BINARY = ''                                           # PATH to local binary
+ARGS   = []                                           # ARGS supplied to binary
+ENV    = {}                                           # ENV supplied to binary
+
+# GDB SCRIPT, executed at start of GDB session (e.g. set breakpoints here)
+GDB    = f"""
+set follow-fork-mode parent
 
 c"""
 
-context.binary = exe = ELF(BINARY, checksec=False)
-# enable disable ASLR (works for GDB)
-context.aslr = False
+context.binary = exe = ELF(BINARY, checksec=False)    # binary
+context.aslr = False                                  # ASLR enabled (only GDB)
 
 vm = None
-def get_target(**kw):
-    global vm
+# setup vagd vm
+def setup():
+  global vm
+  if args.REMOTE or args.LOCAL:
+    return
 
-    if args.REMOTE:
-        context.log_level = 'debug'
-        return remote(IP, PORT)
+  try:
+    # only load vagd if needed
+    from vagd import Dogd, Qegd, Box
+  except:
+    log.error('Failed to import vagd, either run locally using LOCAL or install it')
+  if not vm:
+    vm = Dogd(BINARY, image=Box.DOCKER_UBUNTU, ex=True, fast=True)  # Docker
+    # vm = Qegd(BINARY, img=Box.QEMU_UBUNTU, ex=True, fast=True)  # Qemu
+  if vm.is_new:
+    # additional setup here
+    log.info('new vagd instance')
 
-    from vagd import Dogd, Qegd, Shgd
-    if not vm:
-        # Docker
-        vm = Dogd(exe.path, image="ubuntu:jammy", ex=True, fast=True)
-        # or Qemu
-        vm = Qegd(exe.path, img="https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img", ex=True, fast=True)
-        # or SSH
-        vm = Shgd(exe.path, user='user', host='localhost', port=22, ex=True, fast=True)
-    return vm.start(argv=ARGS, env=ENV, gdbscript=GDB, **kw) # returns a pwn.process (similar to pwn.process())
 
+# get target (pwnlib.tubes.tube)
+def get_target(**kw) -> tubes.tube:
+  if args.REMOTE:
+    # context.log_level = 'debug'
+    return remote(IP, PORT)
+
+  if args.LOCAL:
+    if args.GDB:
+      return gdb.debug([BINARY] + ARGS, env=ENV, gdbscript=GDB, **kw)
+    return process([BINARY] + ARGS, env=ENV, **kw)
+
+  return vm.start(argv=ARGS, env=ENV, gdbscript=GDB, **kw)
+
+
+setup()
+
+#===========================================================
+#                   EXPLOIT STARTS HERE
+#===========================================================
+
+# libc = ELF('', checksec=False)
 
 t = get_target()
 
-t.interactive()
+t.interactive() # or it()
+
 ```
 
 - `vagd info BINARY` to print info about binary
@@ -72,6 +97,8 @@ t.interactive()
 ./exploit.py GDB
 # run on remote IP:PORT
 ./exploit.py REMOTE
+# run process locally
+./exploit.py LOCAL [GDB]
 ```
 
 I recommend using [pwndbg](https://github.com/pwndbg/pwndbg).
@@ -127,10 +154,11 @@ Using gdbserver and gdb to index libraries can be very slow. Therefore an experi
 
 ## Future plans
 
-### pre configured QEMU Images / Docker Image
-
-created pre configured environments with preinstalled lib debug symbols and gdbserver to lower init runtime.
-
 ### Better Docker integration
 
-created a Docker integration that allows loading existing Dockerfiles (maybe docker-compose), also add a feature that additionally visualizes (Qemu) them to change the used kernel.
+- migrate away from ssh (attach from host) to get lower latency
+- additionally virtualize containers (Qemu) in order to change the used kernel.
+
+### Qemu user
+
+- add templates that make use of pwntools qemu-user integration
