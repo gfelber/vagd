@@ -1,9 +1,15 @@
 build: clean
-	python3 -m build
+	@ if [ "${VIRTUAL_ENV}" = "" ]; then \
+		source ./venv/bin/activate; \
+	fi; \
+	python3 -m build;
 
 publish: build
-	python3 -m twine check dist/*
-	python3 -m twine upload --repository pypi dist/*
+	@ if [ "${VIRTUAL_ENV}" = "" ]; then \
+		source ./venv/bin/activate; \
+	fi; \
+	python3 -m twine check dist/*; \
+	python3 -m twine upload --repository pypi dist/*;
 
 .PHONY: test
 test :
@@ -23,4 +29,4 @@ test :
 	fi;
 
 clean:
-	rm -r build dist src/*.egg-info || true
+	rm -r build dist src/*.egg-info || true;
