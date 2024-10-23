@@ -143,6 +143,21 @@ def virts():
     vm._ssh.close()
 
     os.system("vagd clean")
+    sleep(1)
+    stage("Testing Docker for Alpine (root)")
+    vm = Dogd(
+      exe.path,
+      image=Box.DOCKER_ALPINE,
+      user='root',
+      tmp=True,
+      ex=True,
+      fast=True,
+    )
+    assert vm.is_new, "vm should be new"
+    yield vm
+    vm._ssh.close()
+
+    os.system("vagd clean")
 
   stage("Testing Qemu")
   vm = Qegd(

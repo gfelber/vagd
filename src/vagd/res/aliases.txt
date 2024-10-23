@@ -7,15 +7,16 @@ linfo = lambda x, *a: log.info(x, *a)
 lwarn = lambda x, *a: log.warn(x, *a)
 lerr  = lambda x, *a: log.error(x, *a)
 lprog = lambda x, *a: log.progress(x, *a)
+lhex  = lambda x, y="leak": linfo(f"0x{x:016x} <- {y}")
+phex  = lambda x, y="leak": print(f"0x{x:016x} <- {y}")
 
 # type manipulation
-byt   = lambda x: x if isinstance(x, bytes) else f"{x}".encode()
-phex  = lambda x, y="leak": print(f"0x{x:016x} <- {y}")
-lhex  = lambda x, y="leak": linfo("0x%016x <- %s", x, y)
+byt   = lambda x: x if isinstance(x, (bytes, bytearray)) else f"{x}".encode()
 rpad  = lambda x, s=8, v=b"\0": x.ljust(s, v)
 lpad  = lambda x, s=8, v=b"\0": x.rjust(s, v)
-hpad  = lambda x, s=None: f"%0{((x.bit_length() // 8) + 1) * 2 if s is None else s}x" % x
+hpad  = lambda x, s=0: f"%0{s if s else ((x.bit_length() // 8) + 1) * 2}x" % x
 upad  = lambda x: u64(rpad(x))
+cpad  = lambda x, s: byt(x) + cyc(s)[len(byt(x)):]
 tob   = lambda x: bytes.fromhex(hpad(x))
 
 # elf aliases

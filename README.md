@@ -157,8 +157,4 @@ Using gdbserver and gdb to index libraries can be very slow. Therefore an experi
 ### Better Docker integration
 
 - migrate away from ssh (attach from host) to get lower latency
-- additionally virtualize containers (Qemu) in order to change the used kernel.
-
-### Qemu user
-
-- add templates that make use of pwntools qemu-user integration
+- additionally virtualize containers (Qemu) in order to change the used kernel

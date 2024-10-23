@@ -25,8 +25,8 @@ SHGD = "vm = Shgd(BINARY, user='user', host='localhost', port=22, {args})  # SSH
 VAGD_BOX = "Box.VAGRANT_JAMMY64"
 VAGD = "vm = Vagd(BINARY, {box}, {args})  # Vagrant"
 
-ATAKA_ENV = """# ataka envs
-ATAKA  = os.getenv('TARGET_IP') is not None           # running on ataka
+AD_ENV = """# ad envs
+IS_AD  = os.getenv('TARGET_IP') is not None           # running on ad
 IP     = os.getenv('TARGET_IP', IP)                   # remote ip
 EXTRA  = json.loads(os.getenv('TARGET_EXTRA', '[]'))  # flag ids"""
 
@@ -128,9 +128,7 @@ def template(
   vbox: Optional[str] = typer.Option(VAGD_BOX, "--vbox", help="vagrant box to use"),
   shgd: Optional[bool] = typer.Option(False, "--shgd", "--ssh", "-s", help="create ssh template"),
   local: Optional[bool] = typer.Option(False, "--local", help="create local template"),
-  ataka: Optional[bool] = typer.Option(
-    False, "--ataka", help="create an ataka compatible template"
-  ),
+  ad: Optional[bool] = typer.Option(False, "--ad", help="create an ad compatible template"),
   root: Optional[bool] = typer.Option(False, "--root", "-r", help="create a root environment"),
   no_aliases: Optional[bool] = typer.Option(
     False, "--no-aliases", help="no aliases in the template"
@@ -185,7 +183,7 @@ def template(
     args["files"] = "[" + ",".join(f"'{file}'" for file in files) + "]"
 
   modules = list()
-  if ataka:
+  if ad:
     modules.append("json")
 
   args["ex"] = "True"
@@ -228,12 +226,12 @@ def template(
     ip=quote(ip),
     port=str(port),
     env=repr(env),
-    ataka_env=ATAKA_ENV if ataka else "",
+    ad_env=AD_ENV if ad else "",
     vms=("\n" + " " * 4).join(vms),
     libc=quote(libc),
     aslr=repr(aslr),
     is_local=True if local else "args.LOCAL",
-    is_ataka=" or ATAKA" if ataka else "",
+    is_ad=" or IS_AD" if ad else "",
     info=info,
   )
 
