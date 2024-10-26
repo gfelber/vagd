@@ -24,6 +24,7 @@ context.aslr = {aslr:<5s}                                  # ASLR enabled (only 
 {aliases}
 
 # setup vagd vm
+vm = None
 def setup() -> object | None:
   global vm
   if args.REMOTE or {is_local}{is_ad}:
