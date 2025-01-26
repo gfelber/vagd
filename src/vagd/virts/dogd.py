@@ -1,5 +1,5 @@
 import os
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 import docker
 
@@ -67,7 +67,6 @@ class Dogd(Shgd):
   _dockerdir: str
   _dockerfile: str
   _isalpine: bool
-  _gdbsrvport: int
   _rm: bool
   _ex: bool
   _forward: Dict[str, int]
@@ -88,8 +87,8 @@ class Dogd(Shgd):
     binary: str,
     image: str = DEFAULT_IMAGE,
     user: str = DEFAULT_USER,
-    forward: Dict[str, int] = None,
-    packages: List[str] = None,
+    forward: Optional[Dict[str, int]] = None,
+    packages: Optional[List[str]] = None,
     symbols=True,
     rm=True,
     ex: bool = False,
@@ -116,11 +115,8 @@ class Dogd(Shgd):
       # trigger package detection in Pwngdb
       packages = list()
 
-    self._gdbsrvport = -1
     self._dockerdir = Dogd.DOCKERHOME + f"{self._image}/"
-    if not (
-      os.path.exists(Dogd.DOCKERHOME) and os.path.exists(self._dockerdir)
-    ):
+    if not (os.path.exists(Dogd.DOCKERHOME) and os.path.exists(self._dockerdir)):
       os.makedirs(self._dockerdir)
     self._dockerfile = self._dockerdir + "Dockerfile"
     self._user = user
@@ -143,7 +139,6 @@ class Dogd(Shgd):
       ex=ex,
       fast=fast,
       symbols=False,
-      gdbsrvport=self._gdbsrvport,
       **kwargs,
     )
 
@@ -154,11 +149,7 @@ class Dogd(Shgd):
 
     if not os.path.exists(self._dockerdir + "keyfile.pub"):
       os.link(Pwngd.PUBKEYFILE, self._dockerdir + "keyfile.pub")
-    template = (
-      templates.DOCKER_ALPINE_TEMPLATE
-      if self._isalpine
-      else templates.DOCKER_TEMPLATE
-    )
+    template = templates.DOCKER_ALPINE_TEMPLATE if self._isalpine else templates.DOCKER_TEMPLATE
 
     with open(self._dockerfile, "w") as dockerfile:
       dockerfile.write(
@@ -175,9 +166,6 @@ class Dogd(Shgd):
     helper.info("starting docker instance")
     self._port = helper.first_free_port(Dogd.DEFAULT_PORT)
     self._forward.update({"22/tcp": self._port})
-    if self._isalpine:
-      self._gdbsrvport = helper.first_free_port(Pwngd.STATIC_GDBSRV_PORT)
-      self._forward.update({f"{self._gdbsrvport}/tcp": self._gdbsrvport})
 
     dir = os.path.dirname(os.path.realpath(__file__))
     with open(dir[: dir.rfind("/")] + "/res/seccomp.json", "r") as seccomp_file:
@@ -194,9 +182,7 @@ class Dogd(Shgd):
     self._id = container.id
     helper.info(f"started docker instance {container.short_id}")
     with open(Dogd.LOCKFILE, "w") as lockfile:
-      lockfile.write(
-        f"{container.id}:{str(self._port)}:{str(self._gdbsrvport)}"
-      )
+      lockfile.write(f"{container.id}:{str(self._port)}")
 
   def _build_image(self):
     build_progress = helper.progress("building docker image")
@@ -215,9 +201,7 @@ class Dogd(Shgd):
         tag += "_"
       tag += "symbols"
 
-    bimage = self._client.images.build(
-      path=os.path.dirname(self._dockerfile), tag=f"vagd/{tag}"
-    )[0]
+    bimage = self._client.images.build(path=os.path.dirname(self._dockerfile), tag=f"vagd/{tag}")[0]
 
     build_progress.success("done")
 
@@ -239,21 +223,15 @@ class Dogd(Shgd):
   def _vm_setup(self) -> None:
     self._client = docker.from_env()
     if not os.path.exists(Dogd.LOCKFILE):
-      helper.info(
-        f"No Lockfile {Dogd.LOCKFILE} found, creating new Docker Instance"
-      )
+      helper.info(f"No Lockfile {Dogd.LOCKFILE} found, creating new Docker Instance")
       self._vm_create()
     else:
       with open(Dogd.LOCKFILE, "r") as lockfile:
         data = lockfile.readline().split(":")
         self._id = data[0]
         self._port = int(data[1])
-        if self._isalpine:
-          self._gdbsrvport = int(data[2])
       if not self._client.containers.list(filters={"id": self._id}):
-        helper.info(
-          f"Lockfile {Dogd.LOCKFILE} found, container not running, creating new one"
-        )
+        helper.info(f"Lockfile {Dogd.LOCKFILE} found, container not running, creating new one")
         self._vm_create()
       else:
         helper.info(

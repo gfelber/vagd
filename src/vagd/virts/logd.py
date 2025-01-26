@@ -1,4 +1,4 @@
-from typing import Iterable
+from typing import Iterable, Optional
 
 import pwnlib.args
 import pwnlib.tubes
@@ -64,7 +64,7 @@ class Logd(Pwngd):
     """
     helper.error("NOT IMPLEMENTED")
 
-  def put(self, file: str, remote: str = None):
+  def put(self, file: str, remote: Optional[str] = None):
     """
     NOT IMPLEMENTED
     """
@@ -78,9 +78,7 @@ class Logd(Pwngd):
     """
     return self.pwn_debug(**kwargs)
 
-  def pwn_debug(
-    self, argv: list[str] = None, **kwargs
-  ) -> pwnlib.tubes.process.process:
+  def pwn_debug(self, argv: Optional[list[str]] = None, **kwargs) -> pwnlib.tubes.process.process:
     """
     run binary with gdb locally
     :param argv: comandline arguments for binary
@@ -89,9 +87,7 @@ class Logd(Pwngd):
     """
     return pwnlib.gdb.debug([self._binary] + argv, **kwargs)
 
-  def process(
-    self, argv: list[str] = None, **kwargs
-  ) -> pwnlib.tubes.process.process:
+  def process(self, argv: Optional[list[str]] = None, **kwargs) -> pwnlib.tubes.process.process:
     """
     run binary locally
     :param argv: comandline arguments for binary
@@ -102,9 +98,9 @@ class Logd(Pwngd):
 
   def start(
     self,
-    argv: list[str] = None,
+    argv: Optional[list[str]] = None,
     gdbscript: str = "",
-    api: bool = None,
+    api: bool = False,
     **kwargs,
   ) -> pwnlib.tubes.process.process:
     """

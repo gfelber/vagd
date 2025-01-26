@@ -11,6 +11,7 @@ PORT   = {port:<44s} # remote PORT
 BINARY = {binary:<44s} # PATH to local binary
 ARGS   = []                                           # ARGS supplied to binary
 ENV    = {env:<44s} # ENV supplied to binary
+BOX    = {box:<44s} # Docker box image
 {ad_env}
 # GDB SCRIPT, executed at start of GDB session (e.g. set breakpoints here)
 GDB    = f"""
@@ -25,7 +26,7 @@ context.aslr = {aslr:<5s}                                  # ASLR enabled (only 
 
 # setup vagd vm
 vm = None
-def setup() -> object | None:
+def setup():
   global vm
   if args.REMOTE or {is_local}{is_ad}:
     return None
@@ -45,7 +46,7 @@ def setup() -> object | None:
 
 
 # get target (pwnlib.tubes.tube)
-def get_target(**kw) -> tubes.tube:
+def get_target(**kw):
   if args.REMOTE{is_ad}:
     # context.log_level = 'debug'
     return remote(IP, PORT)

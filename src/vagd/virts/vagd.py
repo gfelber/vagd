@@ -2,7 +2,7 @@ import fileinput
 import os
 import re
 from shutil import which
-from typing import List
+from typing import List, Optional
 
 from vagd import helper, templates
 from vagd.box import Box
@@ -46,9 +46,7 @@ class Vagd(Shgd):
   VAGRANTFILE_PATH = Pwngd.LOCAL_DIR + "Vagrantfile"
   VAGRANTFILE_BOX = "config.vm.box"
   VAGRANT_BOX = Box.VAGRANT_JAMMY64
-  KEYFILE = (
-    Pwngd.LOCAL_DIR + ".vagd/.vagrant/machines/default/virtualbox/private_key"
-  )
+  KEYFILE = Pwngd.LOCAL_DIR + ".vagd/.vagrant/machines/default/virtualbox/private_key"
   TYPE = "vagd"
 
   _box: str
@@ -95,8 +93,8 @@ class Vagd(Shgd):
     self,
     binary: str,
     vagrantfile: str = VAGRANTFILE_PATH,
-    vbox: str = None,
-    packages: List[str] = None,
+    vbox: Optional[str] = None,
+    packages: Optional[List[str]] = None,
     **kwargs,
   ):
     """
