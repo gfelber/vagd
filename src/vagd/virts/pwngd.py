@@ -1,8 +1,7 @@
 import os
-import pathlib
 from abc import ABC, abstractmethod
 from shutil import which
-from typing import Dict, Iterable, List, Union
+from typing import Iterable, List, Union, Optional
 
 import pwnlib.args
 import pwnlib.filesystem
@@ -30,6 +29,7 @@ class Pwngd(ABC):
   LOCAL_DIR = "./.vagd/"
   HOME_DIR = os.path.expanduser("~/.local/share/vagd/")
   SYSROOT = LOCAL_DIR + "sysroot/"
+  SYSROOT_LIB_DEBUG = SYSROOT + "lib/debug"
   LOCKFILE = LOCAL_DIR + "vagd.lock"
   KEYFILE = HOME_DIR + "keyfile"
   PUBKEYFILE = KEYFILE + ".pub"
@@ -47,12 +47,12 @@ class Pwngd(ABC):
   def __init__(
     self,
     binary: str,
-    libs=False,
-    files: Union[str, list[str]] = None,
-    packages: List[str] = None,
-    symbols=True,
+    libs: bool = False,
+    files: Optional[Union[str, list[str]]] = None,
+    packages: Optional[List[str]] = None,
+    symbols: bool = True,
     tmp: bool = False,
-    gdbsrvport: int = -1,
+    gdbsrvport: int = 0,
     root: bool = False,
     fast: bool = False,
     ex: bool = False,
@@ -137,7 +137,7 @@ class Pwngd(ABC):
     :param local_dir: local mount point
     """
     if not which("sshfs"):
-      self._error("sshfs isn't installed")
+      helper.error("sshfs isn't installed")
     cmd = Pwngd._SSHFS_TEMPLATE.format(
       port=self._ssh.port,
       keyfile=self._ssh.keyfile,
@@ -179,7 +179,7 @@ class Pwngd(ABC):
   LIBC6_DEBUG = "libc6-dbg"
   LIBC6_I386 = "libc6-i386"
 
-  def _install_packages(self, packages: Iterable):
+  def _install_packages(self, packages: Iterable[str]):
     """
     install packages on remote machine
 
@@ -188,11 +188,9 @@ class Pwngd(ABC):
     helper.info(f"installing packages: {' '.join(packages)}")
     self.system("sudo apt update").recvall()
     packages_str = " ".join(packages)
-    self.system(
-      f"sudo DEBIAN_FRONTEND=noninteractive apt install -y {packages_str}"
-    ).recvall()
+    self.system(f"sudo DEBIAN_FRONTEND=noninteractive apt install -y {packages_str}").recvall()
 
-  def put(self, file: str, remote: str = None):
+  def put(self, file: str, remote: Optional[str] = None):
     """
     upload file or dir on vm,
 
@@ -205,7 +203,7 @@ class Pwngd(ABC):
     else:
       self._ssh.upload(file, remote=remote)
 
-  def pull(self, file: str, local: str = None):
+  def pull(self, file: str, local: Optional[str] = None):
     """
     download file or dir on vm,
 
@@ -221,7 +219,7 @@ class Pwngd(ABC):
 
   LIBS_DIRECTORY = "libs"
 
-  def libs(self, directory=None):
+  def libs(self, directory: str):
     """
     Downloads the libraries referred to by a file.
     This is done by running ldd on the remote server, parsing the output and downloading the relevant files.
@@ -234,129 +232,56 @@ class Pwngd(ABC):
 
   def debug(
     self,
-    argv: list[str] = None,
-    exe: str = "",
-    env: Dict[str, str] = None,
-    ssh=None,
+    argv: Optional[list[str]] = None,
+    gdb_args: Optional[list[str]] = None,
     gdbscript: str = "",
-    api: bool = False,
-    sysroot: str = None,
-    gdb_args: list[str] = None,
+    sysroot: Optional[str] = None,
+    sysroot_debug: Optional[str] = None,
     **kwargs,
-  ) -> pwnlib.tubes.process:
-    """
-    run binary in vm with gdb and experimental features
-
-    :param argv: command line arguments
-    :param exe: exe to execute
-    :param env: environment variable dictionary
-    :param ssh: ignored self._ssh is used instead
-    :param gdbscript: used gdbscript
-    :param api: return gdb python api interface
-    :param sysroot: sysroot directory
-    :param gdb_args: additional gdb arguments
-    :param kwargs: pwntool arguments
-    :rtype: pwnlib.tubes.process.process
-    """
-    if argv is None:
-      argv = []
-    args = [
-      self._binary,
-    ] + argv
-    if gdb_args is None:
-      gdb_args = list()
-    helper.warn("using experimental features")
-    ssh = self._ssh
-    if isinstance(args, (bytes, pwnlib.gdb.six.text_type)):
-      args = [args]
-
-    runner = pwnlib.gdb._get_runner(ssh)
-    which = pwnlib.gdb._get_which(ssh)
-
-    args, env = pwnlib.gdb.misc.normalize_argv_env(args, env, helper)
-    if env:
-      env = {bytes(k): bytes(v) for k, v in env}
-
-    args = pwnlib.gdb._gdbserver_args(args=args, which=which, env=env)
-
-    # set static port if wanted
-    if self._gdbsrvport != -1:
-      for i in range(len(args)):
-        if args[i] == "localhost:0":
-          args[i] = f":{self._gdbsrvport}"
-          break
-
-    # Make sure gdbserver/qemu is installed
-    if not which(args[0]):
-      helper.error("%s is not installed" % args[0])
-
-    # Start gdbserver/qemu
-    # (Note: We override ASLR here for the gdbserver process itself.)
-    gdbserver = runner(args, env=env, aslr=1, **kwargs)
-
-    # Set the .executable on the process object.
-    gdbserver.executable = exe
-
-    # Find what port we need to connect to
-    port = (
-      pwnlib.gdb._gdbserver_port(gdbserver, ssh)
-      if self._gdbsrvport == -1
-      else self._gdbsrvport
-    )
-
-    host = "127.0.0.1"
-
-    if self._fast:
-      gdb_args += [
-        "-ex",
-        f"set sysroot {pathlib.Path().resolve()}/{Pwngd.SYSROOT}",
-      ]
-    elif sysroot:
-      gdb_args += ["-ex", f"set sysroot {sysroot}"]
-
-    gdb_args += ["-ex", f"file -readnow {self._path}"]
-
-    tmp = pwnlib.gdb.attach(
-      (host, port),
-      exe=exe,
-      gdbscript=gdbscript,
-      gdb_args=gdb_args,
-      ssh=ssh,
-      api=api,
-      sysroot=sysroot,
-    )
-    if api:
-      _, gdb = tmp
-      gdbserver.gdb = gdb
-
-    # gdbserver outputs a message when a client connects
-    garbage = gdbserver.recvline(timeout=1)
-
-    # Some versions of gdbserver output an additional message
-    garbage2 = gdbserver.recvline_startswith(
-      b"Remote debugging from host ", timeout=2
-    )
-
-    return gdbserver
-
-  def pwn_debug(
-    self, argv: list[str] = None, ssh=None, **kwargs
-  ) -> pwnlib.tubes.process.process:
+  ) -> pwnlib.tubes.ssh.ssh_channel:
     """
     run binary in vm with gdb (pwnlib feature set)
 
     :param argv: comandline arguments for binary
-    :param ssh: ignored self._ssh is used instead
+    :param gdb_args: gdb args to forward to gdb
+    :param gdbscript: GDB script for GDB
+    :param sysroot: sysroot dir
+    :param sysroot_debug: sysroot debug lib dir
     :param kwargs: pwntool parameters
     :return: pwntools process
     """
     if argv is None:
       argv = list()
-    return pwnlib.gdb.debug([self._binary] + argv, ssh=self._ssh, **kwargs)
 
-  def process(
-    self, argv: list[str] = None, **kwargs
-  ) -> pwnlib.tubes.process.process:
+    if gdb_args is None:
+      gdb_args = list()
+
+    if self._fast:
+      if sysroot is not None:
+        helper.warn("fast enabled but sysroot set, sysroot is ignored")
+      sysroot = Pwngd.SYSROOT
+
+    if sysroot_debug is not None and sysroot is None:
+      helper.warn("sysroot_debug set, but sysroot isn't ignored")
+
+    if sysroot is not None:
+      if sysroot_debug == None:
+        sysroot_debug = Pwngd.SYSROOT_LIB_DEBUG
+      gdbscript = f"set debug-file-directory {sysroot_debug}\n" + gdbscript
+
+    gdb_args += ["-ex", f"file -readnow {self._path}"]
+
+    return pwnlib.gdb.debug(
+      [self._binary] + argv,
+      ssh=self._ssh,
+      gdb_args=gdb_args,
+      port=self._gdbsrvport,
+      gdbscript=gdbscript,
+      sysroot=sysroot,
+      **kwargs,
+    )
+
+  def process(self, argv: Optional[list[str]] = None, **kwargs) -> pwnlib.tubes.ssh.ssh_channel:
     """
     run binary in vm as process
 
@@ -372,39 +297,32 @@ class Pwngd(ABC):
     self,
     argv: list[str] = None,
     gdbscript: str = "",
-    api: bool = None,
-    sysroot: str = None,
-    gdb_args: list = None,
+    api: bool = False,
+    sysroot: Optional[str] = None,
+    sysroot_debug: Optional[str] = None,
+    gdb_args: Optional[list[str]] = None,
     **kwargs,
-  ) -> pwnlib.tubes.process.process:
+  ) -> pwnlib.tubes.ssh.ssh_channel:
     """
     start binary on remote and return pwnlib.tubes.process.process
 
     :param argv: commandline arguments for binary
     :param gdbscript: GDB script for GDB
-    :param api: if GDB API should be enabled (experimental)
-    :param sysroot: sysroot dir (experimental)
-    :param gdb_args: extra gdb args (experimental)
+    :param api: if GDB API should be enabled
+    :param sysroot: sysroot dir
+    :param sysroot_debug: sysroot debug lib dir
+    :param gdb_args: extra gdb args
     :param kwargs: pwntool parameters
     :return: pwntools process, if api=True tuple with gdb api
     """
     if pwnlib.args.args.GDB:
-      if self._experimental:
-        return self.debug(
-          argv=argv,
-          gdbscript=gdbscript,
-          gdb_args=gdb_args,
-          sysroot=sysroot,
-          api=api,
-          **kwargs,
-        )
-      else:
-        if gdb_args or sysroot or api:
-          helper.error(
-            "requires experimental features, activate with ex=True in constructor"
-          )
-        return self.pwn_debug(
-          argv=argv, gdbscript=gdbscript, sysroot=sysroot, **kwargs
-        )
+      return self.debug(
+        argv=argv,
+        gdbscript=gdbscript,
+        gdb_args=gdb_args,
+        sysroot=sysroot,
+        api=api,
+        **kwargs,
+      )
     else:
       return self.process(argv=argv, **kwargs)

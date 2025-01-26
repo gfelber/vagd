@@ -2,7 +2,7 @@ import importlib.metadata
 import os
 import stat
 import sys
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 
 import typer
 from rich.console import Console
@@ -16,14 +16,14 @@ from vagd.virts.qegd import Qegd
 from vagd.virts.vagd import Vagd
 
 DOGD_BOX = "Box.DOCKER_UBUNTU"
-DOGD = "vm = Dogd(BINARY, image={box}, {args})  # Docker"
+DOGD = "vm = Dogd(BINARY, image=BOX, {args})  # Docker"
 QEGD_BOX = "Box.QEMU_UBUNTU"
-QEGD = "vm = Qegd(BINARY, img={box}, {args})  # Qemu"
+QEGD = "vm = Qegd(BINARY, img=BOX, {args})  # Qemu"
 SHGD = "vm = Shgd(BINARY, user='user', host='localhost', port=22, {args})  # SSH"
 
 # deprecated
 VAGD_BOX = "Box.VAGRANT_JAMMY64"
-VAGD = "vm = Vagd(BINARY, {box}, {args})  # Vagrant"
+VAGD = "vm = Vagd(BINARY, BOX, {args})  # Vagrant"
 
 AD_ENV = """# ad envs
 IS_AD  = os.getenv('TARGET_IP') is not None           # running on ad
@@ -35,7 +35,9 @@ app = typer.Typer(context_settings={"help_option_names": ["-h", "--help"]})
 err_console = Console(stderr=True)
 console = Console()
 
-quote = lambda x: f"'{x}'"
+
+def quote(x: str):
+  return f"'{x}'"
 
 
 def _version(value: bool) -> None:
@@ -65,12 +67,11 @@ def add_virt(
   dependency: str,
   template: str,
   args: Dict[str, str],
-  multi=False,
-  box="",
+  multi: bool = False,
 ):
   dependencies.append(dependency)
   args_str = ", ".join(f"{k}={v}" for k, v in args.items())
-  vm = template.format(box=box, args=args_str)
+  vm = template.format(args=args_str)
   vms.append(("# " if multi else "") + vm)
 
 
@@ -162,14 +163,14 @@ def template(
   if sum((dogd, qegd, vagd, shgd)) > 1:
     multi = True
 
-  env = {}
+  env: Dict[str, str] = dict()
 
   if libc:
     files.append(libc)
 
-  dependencies = []
-  vms = []
-  args = dict()
+  dependencies: list[str] = list()
+  vms: list[str] = list()
+  args: Dict[str, Any] = dict()
 
   if root:
     args["user"] = "'root'"
@@ -188,13 +189,17 @@ def template(
 
   args["ex"] = "True"
   args["fast"] = "True"
+  box = ""
 
   if dogd:
-    add_virt(dependencies, vms, "Dogd", DOGD, args, box=image)
+    box = image
+    add_virt(dependencies, vms, "Dogd", DOGD, args)
   if qegd:
-    add_virt(dependencies, vms, "Qegd", QEGD, args, multi, box=img)
+    box = img
+    add_virt(dependencies, vms, "Qegd", QEGD, args, multi)
   if vagd:
-    add_virt(dependencies, vms, "Vagd", VAGD, args, multi, box=vbox)
+    box = vbox
+    add_virt(dependencies, vms, "Vagd", VAGD, args, multi)
   if shgd:
     add_virt(dependencies, vms, "Shgd", SHGD, args, multi)
 
@@ -226,6 +231,7 @@ def template(
     ip=quote(ip),
     port=str(port),
     env=repr(env),
+    box=box,
     ad_env=AD_ENV if ad else "",
     vms=("\n" + " " * 4).join(vms),
     libc=quote(libc),
@@ -267,7 +273,7 @@ def _get_type() -> str:
   exit(1)
 
 
-def _exec(cmd: str, env: Dict = None):
+def _exec(cmd: str, env: Optional[Dict[str, str]] = None):
   if env is None:
     env = os.environ
   else:

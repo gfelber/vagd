@@ -63,6 +63,7 @@ RUN chmod u+s /usr/bin/sudo
 RUN adduser -h /home/{user} -s /bin/ash -g sudo -D {user}
 RUN echo "{user} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/{user} && chmod 0440 /etc/sudoers.d/{user}
 RUN echo "{user}:{user}" | chpasswd
+RUN sed "s/AllowTcpForwarding no/AllowTcpForwarding yes/" -i /etc/ssh/sshd_config
 
 USER {user}
 

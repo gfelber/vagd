@@ -1,7 +1,7 @@
 import os
 import time
 from shutil import copyfile, which
-from typing import Dict, List
+from typing import Dict, List, Optional
 from urllib.parse import urlparse
 from urllib.request import urlretrieve
 
@@ -110,15 +110,15 @@ class Qegd(Shgd):
     binary: str,
     img: str = DEFAULT_IMG,
     user: str = DEFAULT_USER,
-    forward: Dict[str, int] = None,
-    packages: List[str] = None,
+    forward: Optional[Dict[str, int]] = None,
+    packages: Optional[List[str]] = None,
     arm: bool = False,
     qemu: str = DEFAULT_QEMU_CMD,
     cpu: str = DEFAULT_QEMU_CPU,
     memory: str = DEFAULT_QEMU_MEMORY,
     machine: str = DEFAULT_QEMU_MACHINE,
     cores: str = DEFAULT_QEMU_CORES,
-    bios: str = None,
+    bios: Optional[str] = None,
     detach: bool = False,
     custom: str = "",
     **kwargs,
@@ -134,15 +134,9 @@ class Qegd(Shgd):
       os.makedirs(Qegd.QEMU_DIR)
 
     if arm:
-      qemu = (
-        Qegd.DEFAULT_QEMU_ARM_CMD if qemu == Qegd.DEFAULT_QEMU_CMD else qemu
-      )
+      qemu = Qegd.DEFAULT_QEMU_ARM_CMD if qemu == Qegd.DEFAULT_QEMU_CMD else qemu
       cpu = Qegd.DEFAULT_QEMU_ARM_CPU if cpu == Qegd.DEFAULT_QEMU_CPU else cpu
-      machine = (
-        Qegd.DEFAULT_QEMU_ARM_MACHINE
-        if machine == Qegd.DEFAULT_QEMU_MACHINE
-        else machine
-      )
+      machine = Qegd.DEFAULT_QEMU_ARM_MACHINE if machine == Qegd.DEFAULT_QEMU_MACHINE else machine
       bios = Qegd.DEFAULT_QEMU_ARM_BIOS if bios is None else bios
 
     self._img = img
@@ -194,9 +188,7 @@ class Qegd(Shgd):
     else:
       if not os.path.exists(Qegd.IMGS_DIR):
         os.makedirs(Qegd.IMGS_DIR)
-      self._local_img = (
-        Qegd.IMGS_DIR + urlparse(self._img).path.rsplit("/", 1)[-1]
-      )
+      self._local_img = Qegd.IMGS_DIR + urlparse(self._img).path.rsplit("/", 1)[-1]
       if not os.path.exists(self._local_img):
         helper.info("online qemu image starting download")
         urlretrieve(self._img, self._local_img)
@@ -221,9 +213,7 @@ users:
 
   SEED_FILE = QEMU_DIR + "seed.img"
 
-  _GENERATE_SEED_IMG = (
-    f"cloud-localds {SEED_FILE} {USER_DATA_FILE} {METADATA_FILE}"
-  )
+  _GENERATE_SEED_IMG = f"cloud-localds {SEED_FILE} {USER_DATA_FILE} {METADATA_FILE}"
 
   def _setup_seed(self):
     """
@@ -240,9 +230,7 @@ users:
     with open(Qegd.USER_DATA_FILE, "w") as user_data_file:
       with open(Pwngd.PUBKEYFILE, "r") as pubkey_file:
         pubkey = pubkey_file.readline()
-      user_data_file.write(
-        Qegd._USER_DATA.format(pubkey=pubkey, user=self._user)
-      )
+      user_data_file.write(Qegd._USER_DATA.format(pubkey=pubkey, user=self._user))
     os.system(Qegd._GENERATE_SEED_IMG)
 
   _QEMU_PORT_FORWARDING = ",hostfwd={type}::{guest}-:{host}"
@@ -285,19 +273,11 @@ users:
     )
     qemu_cmd = Qegd._QEMU_START.format(
       qemu=self._qemu,
-      machine=f"{Qegd.DEFAULT_QEMU_MACHINE_PREFIX} {self._machine}"
-      if self._machine
-      else "",
-      cores=f"{Qegd.DEFAULT_QEMU_CORES_PREFIX} {self._cores}"
-      if self._cores
-      else "",
+      machine=f"{Qegd.DEFAULT_QEMU_MACHINE_PREFIX} {self._machine}" if self._machine else "",
+      cores=f"{Qegd.DEFAULT_QEMU_CORES_PREFIX} {self._cores}" if self._cores else "",
       cpu=f"{Qegd.DEFAULT_QEMU_CPU_PREFIX} {self._cpu}" if self._cpu else "",
-      memory=f"{Qegd.DEFAULT_QEMU_MEMORY_PREFIX} {self._memory}"
-      if self._memory
-      else "",
-      bios=f"{Qegd.DEFAULT_QEMU_BIOS_PREFIX} {self._bios}"
-      if self._bios
-      else "",
+      memory=f"{Qegd.DEFAULT_QEMU_MEMORY_PREFIX} {self._memory}" if self._memory else "",
+      bios=f"{Qegd.DEFAULT_QEMU_BIOS_PREFIX} {self._bios}" if self._bios else "",
       port=self._port,
       ports=port_forwarding,
       img=Qegd.CURRENT_IMG,
@@ -351,6 +331,4 @@ users:
         )
         os.remove(Qegd.LOCKFILE)
         self._new_vm()
-      helper.info(
-        f"Lockfile in {Qegd.LOCKFILE}. Using running qemu instance at port {self._port}"
-      )
+      helper.info(f"Lockfile in {Qegd.LOCKFILE}. Using running qemu instance at port {self._port}")

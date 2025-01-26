@@ -148,7 +148,7 @@ def virts():
     vm = Dogd(
       exe.path,
       image=Box.DOCKER_ALPINE,
-      user='root',
+      user="root",
       tmp=True,
       ex=True,
       fast=True,
@@ -159,54 +159,55 @@ def virts():
 
     os.system("vagd clean")
 
-  stage("Testing Qemu")
-  vm = Qegd(
-    exe.path,
-    img=Box.QEMU_UBUNTU,
-    tmp=True,
-    packages=["cowsay"],
-    ex=True,
-    fast=True,
-  )
-  assert vm.is_new, "vm should be new"
-  assert vm._ssh.which("cowsay"), "cowsay wasn't installed"
-  yield vm
-  vm._ssh.close()
+  if not args.NO_QEMU:
+    stage("Testing Qemu")
+    vm = Qegd(
+      exe.path,
+      img=Box.QEMU_UBUNTU,
+      tmp=True,
+      packages=["cowsay"],
+      ex=True,
+      fast=True,
+    )
+    assert vm.is_new, "vm should be new"
+    assert vm._ssh.which("cowsay"), "cowsay wasn't installed"
+    yield vm
+    vm._ssh.close()
 
-  stage("Testing Qemu restore")
-  vm = Qegd(exe.path, img=Box.QEMU_UBUNTU, tmp=True, ex=True, fast=True)
-  assert not vm.is_new, "vm shouldn't be new, restored"
-  yield vm
-  vm._ssh.close()
+    stage("Testing Qemu restore")
+    vm = Qegd(exe.path, img=Box.QEMU_UBUNTU, tmp=True, ex=True, fast=True)
+    assert not vm.is_new, "vm shouldn't be new, restored"
+    yield vm
+    vm._ssh.close()
 
-  os.system("vagd clean")
-  sleep(1)
-  stage("Testing Qemu (root)")
-  vm = Qegd(
-    exe.path,
-    img=Box.QEMU_UBUNTU,
-    user="root",
-    tmp=True,
-    ex=True,
-    fast=True,
-    root=True,
-  )
-  assert vm.is_new, "vm should be new"
-  yield vm
-  vm._ssh.close()
-  user = vm._user
-  port = vm._port
+    os.system("vagd clean")
+    sleep(1)
+    stage("Testing Qemu (root)")
+    vm = Qegd(
+      exe.path,
+      img=Box.QEMU_UBUNTU,
+      user="root",
+      tmp=True,
+      ex=True,
+      fast=True,
+      root=True,
+    )
+    assert vm.is_new, "vm should be new"
+    yield vm
+    vm._ssh.close()
+    user = vm._user
+    port = vm._port
 
-  stage("Testing SSH")
-  yield Shgd(
-    exe.path,
-    user=user,
-    port=port,
-    keyfile=vm._ssh.keyfile,
-    tmp=True,
-    ex=True,
-    fast=True,
-  )
+    stage("Testing SSH")
+    yield Shgd(
+      exe.path,
+      user=user,
+      port=port,
+      keyfile=vm._ssh.keyfile,
+      tmp=True,
+      ex=True,
+      fast=True,
+    )
 
 
 for virt in virts():
