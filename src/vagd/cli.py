@@ -14,16 +14,23 @@ from vagd.virts.dogd import Dogd
 from vagd.virts.pwngd import Pwngd
 from vagd.virts.qegd import Qegd
 from vagd.virts.vagd import Vagd
+from vagd.box import Box
 
+
+def quote(x: str):
+  return f"'{x}'"
+
+
+Box
 DOGD_BOX = "Box.DOCKER_UBUNTU"
-DOGD = "vm = Dogd(BINARY, image=BOX, {args})  # Docker"
+DOGD = "vm = Dogd(BINARY, image={box}, {args})  # Docker"
 QEGD_BOX = "Box.QEMU_UBUNTU"
-QEGD = "vm = Qegd(BINARY, img=BOX, {args})  # Qemu"
+QEGD = "vm = Qegd(BINARY, img={box}, {args})  # Qemu"
 SHGD = "vm = Shgd(BINARY, user='user', host='localhost', port=22, {args})  # SSH"
 
 # deprecated
 VAGD_BOX = "Box.VAGRANT_JAMMY64"
-VAGD = "vm = Vagd(BINARY, BOX, {args})  # Vagrant"
+VAGD = "vm = Vagd(BINARY, {box}, {args})  # Vagrant"
 
 AD_ENV = """# ad envs
 IS_AD  = os.getenv('TARGET_IP') is not None           # running on ad
@@ -34,10 +41,6 @@ app = typer.Typer(context_settings={"help_option_names": ["-h", "--help"]})
 
 err_console = Console(stderr=True)
 console = Console()
-
-
-def quote(x: str):
-  return f"'{x}'"
 
 
 def _version(value: bool) -> None:
@@ -68,10 +71,11 @@ def add_virt(
   template: str,
   args: Dict[str, str],
   multi: bool = False,
+  box: str = "BOX",
 ):
   dependencies.append(dependency)
   args_str = ", ".join(f"{k}={v}" for k, v in args.items())
-  vm = template.format(args=args_str)
+  vm = template.format(args=args_str, box=box)
   vms.append(("# " if multi else "") + vm)
 
 
@@ -114,6 +118,9 @@ def template(
   libc: Optional[str] = typer.Option("", "--libc", "-l", help="add libc to template"),
   libs: Optional[bool] = typer.Option(False, "--libs", help="download libraries from virt"),
   files: Optional[List[str]] = typer.Option([], "--files", "-f", help="add files to remote"),
+  symbols: Optional[bool] = typer.Option(
+    True, "--no-symbols", help="install libc debug symbols (might update libc)"
+  ),
   aslr: Optional[bool] = typer.Option(
     False, "--aslr", "-a", help="enable gdb ASLR (default: disabled for gdb)"
   ),
@@ -173,7 +180,9 @@ def template(
   args: Dict[str, Any] = dict()
 
   if root:
-    args["user"] = "'root'"
+    args["user"] = quote("root")
+
+  args["symbols"] = symbols
 
   if libs:
     args["libs"] = True
@@ -192,14 +201,16 @@ def template(
   box = ""
 
   if dogd:
-    box = image
+    box = quote(eval(image)) if image == DOGD_BOX else image
     add_virt(dependencies, vms, "Dogd", DOGD, args)
   if qegd:
-    box = img
-    add_virt(dependencies, vms, "Qegd", QEGD, args, multi)
+    if not multi:
+      box = quote(eval(img)) if img == QEGD_BOX else img
+    add_virt(dependencies, vms, "Qegd", QEGD, args, multi, box=img if multi else "BOX")
   if vagd:
-    box = vbox
-    add_virt(dependencies, vms, "Vagd", VAGD, args, multi)
+    if not multi:
+      box = quote(eval(vbox)) if vbox == VAGD_BOX else vbox
+    add_virt(dependencies, vms, "Vagd", VAGD, args, multi, box=vbox if multi else "BOX")
   if shgd:
     add_virt(dependencies, vms, "Shgd", SHGD, args, multi)
 

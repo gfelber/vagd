@@ -111,9 +111,6 @@ class Dogd(Shgd):
     if packages is not None:
       if self._isalpine:
         helper.error("additional package installation not supported for alpine")
-    else:
-      # trigger package detection in Pwngdb
-      packages = list()
 
     self._dockerdir = Dogd.DOCKERHOME + f"{self._image}/"
     if not (os.path.exists(Dogd.DOCKERHOME) and os.path.exists(self._dockerdir)):
