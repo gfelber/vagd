@@ -2,7 +2,7 @@ import fileinput
 import os
 import re
 from shutil import which
-from typing import List, Optional
+from typing import List, Optional, Any
 
 from vagd import helper, templates
 from vagd.box import Box
@@ -95,7 +95,7 @@ class Vagd(Shgd):
     vagrantfile: str = VAGRANTFILE_PATH,
     vbox: Optional[str] = None,
     packages: Optional[List[str]] = None,
-    **kwargs,
+    **kwargs: Any,
   ):
     """
 

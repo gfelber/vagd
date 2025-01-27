@@ -1,7 +1,7 @@
 import os
 import time
 from shutil import copyfile, which
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 from urllib.parse import urlparse
 from urllib.request import urlretrieve
 
@@ -121,7 +121,7 @@ class Qegd(Shgd):
     bios: Optional[str] = None,
     detach: bool = False,
     custom: str = "",
-    **kwargs,
+    **kwargs: Any,
   ):
     if not which(qemu):
       helper.error(qemu + " isn't installed")

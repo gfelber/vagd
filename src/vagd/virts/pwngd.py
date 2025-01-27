@@ -1,7 +1,7 @@
 import os
 from abc import ABC, abstractmethod
 from shutil import which
-from typing import Iterable, List, Union, Optional
+from typing import Iterable, List, Union, Optional, Any
 
 import pwnlib.args
 import pwnlib.filesystem
@@ -237,7 +237,7 @@ class Pwngd(ABC):
     gdbscript: str = "",
     sysroot: Optional[str] = None,
     sysroot_debug: Optional[str] = None,
-    **kwargs,
+    **kwargs: Any,
   ) -> pwnlib.tubes.ssh.ssh_channel:
     """
     run binary in vm with gdb (pwnlib feature set)
@@ -281,7 +281,9 @@ class Pwngd(ABC):
       **kwargs,
     )
 
-  def process(self, argv: Optional[list[str]] = None, **kwargs) -> pwnlib.tubes.ssh.ssh_channel:
+  def process(
+    self, argv: Optional[list[str]] = None, **kwargs: Any
+  ) -> pwnlib.tubes.ssh.ssh_channel:
     """
     run binary in vm as process
 
@@ -301,7 +303,7 @@ class Pwngd(ABC):
     sysroot: Optional[str] = None,
     sysroot_debug: Optional[str] = None,
     gdb_args: Optional[list[str]] = None,
-    **kwargs,
+    **kwargs: Any,
   ) -> pwnlib.tubes.ssh.ssh_channel:
     """
     start binary on remote and return pwnlib.tubes.process.process

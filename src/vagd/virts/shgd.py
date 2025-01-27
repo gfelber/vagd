@@ -1,6 +1,7 @@
 import time
 
 import pwnlib.tubes.ssh
+from typing import Any
 
 from vagd import helper
 from vagd.virts.pwngd import Pwngd
@@ -87,7 +88,7 @@ class Shgd(Pwngd):
     host: str = DEFAULT_HOST,
     port: int = DEFAULT_PORT,
     keyfile: str = Pwngd.KEYFILE,
-    **kwargs,
+    **kwargs: Any,
   ):
     """
 

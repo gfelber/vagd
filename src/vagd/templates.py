@@ -9,15 +9,23 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
 end"""
 
+LOCK_PACKAGES = """
+ADD https://raw.githubusercontent.com/reproducible-containers/repro-sources-list.sh/v0.1.4/repro-sources-list.sh \
+    /usr/local/bin/repro-sources-list.sh
+RUN bash /usr/local/bin/repro-sources-list.sh
+"""
 
 DOCKER_TEMPLATE = """FROM {image}
 
 USER root
 
+{lock}
+
 # install packages
 ENV DEBIAN_FRONTEND=noninteractive
-RUN apt-get update
-RUN apt-get install -y {packages}
+RUN apt update
+RUN apt install -y {packages}
+RUN apt clean && rm -rf /var/lib/apt/lists/*
 
 # init user and ssh
 EXPOSE 22

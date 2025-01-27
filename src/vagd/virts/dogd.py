@@ -1,5 +1,5 @@
 import os
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 
 import docker
 
@@ -89,12 +89,12 @@ class Dogd(Shgd):
     user: str = DEFAULT_USER,
     forward: Optional[Dict[str, int]] = None,
     packages: Optional[List[str]] = None,
-    symbols=True,
-    rm=True,
+    symbols: bool = True,
+    rm: bool = True,
     ex: bool = False,
     fast: bool = False,
     alpine: bool = False,
-    **kwargs,
+    **kwargs: Any,
   ):
     self._image = image
     self._name = Dogd.VAGD_PREFIX + os.path.basename(binary)
@@ -152,6 +152,7 @@ class Dogd(Shgd):
       dockerfile.write(
         template.format(
           image=self._image,
+          lock=templates.LOCK_PACKAGES if self._symbols else "",
           packages=" ".join(self._packages),
           user=self._user if self._user != "root" else Dogd.DEFAULT_USER,
           keyfile=os.path.basename(self._dockerdir + "keyfile.pub"),
