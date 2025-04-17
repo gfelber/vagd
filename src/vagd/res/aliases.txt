@@ -7,8 +7,8 @@ linfo = lambda x, *a: log.info(x, *a)
 lwarn = lambda x, *a: log.warn(x, *a)
 lerr  = lambda x, *a: log.error(x, *a)
 lprog = lambda x, *a: log.progress(x, *a)
-lhex  = lambda x, y="leak": linfo(f"{x:#016x} <- {y}")
-phex  = lambda x, y="leak": print(f"{x:#016x} <- {y}")
+lhex  = lambda x, y="leak": linfo(f"{x:#018x} <- {y}")
+phex  = lambda x, y="leak": print(f"{x:#018x} <- {y}")
 
 # type manipulation
 byt   = lambda x: x if isinstance(x, (bytes, bytearray)) else f"{x}".encode()
