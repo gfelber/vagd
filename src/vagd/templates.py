@@ -23,9 +23,9 @@ USER root
 
 # install packages
 ENV DEBIAN_FRONTEND=noninteractive
-RUN apt update
-RUN apt install -y {packages}
-RUN apt clean && rm -rf /var/lib/apt/lists/*
+RUN apt update && \\
+  apt install -y {packages} && \\
+  apt clean && rm -rf /var/lib/apt/lists/*
 
 # init user and ssh
 EXPOSE 22
@@ -40,6 +40,37 @@ COPY {keyfile} .ssh/authorized_keys
 
 USER root
 COPY {keyfile} /root/.ssh/authorized_keys
+RUN mkdir -p /run/sshd && \\
+  chmod 755 /run/sshd
+
+ENTRYPOINT []
+
+CMD /usr/sbin/sshd; \\
+  while true; do sleep 1m; done
+"""
+
+DOCKER_ARCH_TEMPLATE = """FROM {image}
+
+USER root
+
+# install packages
+RUN pacman -Sy --noconfirm python3 gdb sudo openssh
+
+# init user and ssh
+EXPOSE 22
+RUN useradd --create-home --shell /bin/bash -g wheel {user}
+RUN chown -R {user}:wheel /home/{user}
+RUN chmod u+s /usr/bin/sudo
+RUN echo "{user} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/{user} && chmod 0440 /etc/sudoers.d/{user}
+USER {user}
+
+WORKDIR /home/{user}
+COPY {keyfile} .ssh/authorized_keys
+
+USER root
+COPY {keyfile} /root/.ssh/authorized_keys
+RUN ssh-keygen -t rsa -f /etc/ssh/ssh_host_rsa_key -N ""
+
 RUN mkdir -p /run/sshd && \\
   chmod 755 /run/sshd
 

@@ -66,11 +66,12 @@ class Dogd(Shgd):
   _id: str
   _dockerdir: str
   _dockerfile: str
-  _isalpine: bool
+  _has_not_apt: bool
   _rm: bool
   _ex: bool
   _forward: Dict[str, int]
   _symbols: bool
+  _template: str
 
   VAGD_PREFIX = "vagd-"
   TYPE = "dogd"
@@ -106,10 +107,17 @@ class Dogd(Shgd):
       )
       self._packages.append(Pwngd.LIBC6_DEBUG)
 
-    self._isalpine = alpine or "alpine" in image
+    self._has_not_apt = True
+    if alpine or "alpine" in image.lower():
+      self._template = templates.DOCKER_ALPINE_TEMPLATE
+    elif "arch" in image.lower() or "manjaro" in image.lower():
+      self._template = templates.DOCKER_ARCH_TEMPLATE
+    else:
+      self._template = templates.DOCKER_TEMPLATE
+      self._has_not_apt = False
 
     if packages is not None:
-      if self._isalpine:
+      if self._has_not_apt:
         helper.error("additional package installation not supported for alpine")
 
     self._dockerdir = Dogd.DOCKERHOME + f"{self._image}/"
@@ -121,7 +129,7 @@ class Dogd(Shgd):
     self._rm = rm
     self._ex = ex
     self._symbols = symbols
-    if self._isalpine and not self._ex:
+    if self._has_not_apt and not self._ex:
       helper.error("Docker alpine images requires experimental features")
     if self._forward is None:
       self._forward = dict()
@@ -146,11 +154,10 @@ class Dogd(Shgd):
 
     if not os.path.exists(self._dockerdir + "keyfile.pub"):
       os.link(Pwngd.PUBKEYFILE, self._dockerdir + "keyfile.pub")
-    template = templates.DOCKER_ALPINE_TEMPLATE if self._isalpine else templates.DOCKER_TEMPLATE
 
     with open(self._dockerfile, "w") as dockerfile:
       dockerfile.write(
-        template.format(
+        self._template.format(
           image=self._image,
           lock=templates.LOCK_PACKAGES if self._symbols else "",
           packages=" ".join(self._packages),
