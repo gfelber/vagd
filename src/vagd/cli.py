@@ -11,6 +11,7 @@ from rich.syntax import Syntax
 
 # prevents term.init
 from vagd.virts.dogd import Dogd
+from vagd.virts.pogd import Pogd
 from vagd.virts.pwngd import Pwngd
 from vagd.virts.qegd import Qegd
 from vagd.virts.vagd import Vagd
@@ -24,6 +25,7 @@ def quote(x: str):
 Box
 DOGD_BOX = "Box.DOCKER_UBUNTU"
 DOGD = "vm = Dogd(BINARY, image={box}, {args})  # Docker"
+POGD = "vm = Pogd(BINARY, image={box}, {args})  # Podman"
 QEGD_BOX = "Box.QEMU_UBUNTU"
 QEGD = "vm = Qegd(BINARY, img={box}, {args})  # Qemu"
 SHGD = "vm = Shgd(BINARY, user='user', host='localhost', port=22, {args})  # SSH"
@@ -127,6 +129,9 @@ def template(
   dogd: Optional[bool] = typer.Option(
     False, "--dogd", "--docker", "-d", help="create docker template"
   ),
+  pogd: Optional[bool] = typer.Option(
+    False, "--pogd", "--podman", "-p", help="create podman template"
+  ),
   image: Optional[str] = typer.Option(DOGD_BOX, "--image", help="docker image to use"),
   qegd: Optional[bool] = typer.Option(False, "--qegd", "--qemu", "-q", help="create qemu template"),
   img: Optional[str] = typer.Option(QEGD_BOX, "--img", help="qemu cloud image to use"),
@@ -147,7 +152,6 @@ def template(
   creates a template
   """
   if image != DOGD_BOX:
-    dogd = True
     image = quote(image)
 
   if img != QEGD_BOX:
@@ -164,10 +168,10 @@ def template(
   templatePath += "/res/template.txt"
   multi = False
 
-  if not any((dogd, qegd, vagd, shgd)):
+  if not any((dogd, pogd, qegd, vagd, shgd)):
     dogd = qegd = True
 
-  if sum((dogd, qegd, vagd, shgd)) > 1:
+  if sum((dogd, pogd, qegd, vagd, shgd)) > 1:
     multi = True
 
   env: Dict[str, str] = dict()
@@ -203,6 +207,9 @@ def template(
   if dogd:
     box = quote(eval(image)) if image == DOGD_BOX else image
     add_virt(dependencies, vms, "Dogd", DOGD, args)
+  if pogd:
+    box = quote(eval(image)) if image == DOGD_BOX else image
+    add_virt(dependencies, vms, "Pogd", POGD, args)
   if qegd:
     if not multi:
       box = quote(eval(img)) if img == QEGD_BOX else img
@@ -310,6 +317,12 @@ def ssh(
     with open(Dogd.LOCKFILE, "r") as lfile:
       port = lfile.read().split(":")[1]
       _ssh(int(port), user)
+  elif typ == Pogd.TYPE:
+    if user is None:
+      user = Pogd.DEFAULT_USER
+    with open(Pogd.LOCKFILE, "r") as lfile:
+      port = lfile.read().split(":")[1]
+      _ssh(int(port), user)
   elif typ == Qegd.TYPE:
     if user is None:
       user = Qegd.DEFAULT_USER
@@ -357,6 +370,12 @@ def scp(
     with open(Dogd.LOCKFILE, "r") as lfile:
       port = lfile.read().split(":")[1]
       _scp(int(port), user, source, target, recursive)
+  elif typ == Pogd.TYPE:
+    if user is None:
+      user = Pogd.DEFAULT_USER
+    with open(Pogd.LOCKFILE, "r") as lfile:
+      port = lfile.read().split(":")[1]
+      _scp(int(port), user, source, target, recursive)
   elif typ == Qegd.TYPE:
     if user is None:
       user = Qegd.DEFAULT_USER
@@ -392,6 +411,21 @@ def clean():
       else:
         container = client.containers.get(id)
         typer.echo(f"Lockfile {Dogd.LOCKFILE} found, Docker Instance f{container.short_id}")
+        container.kill()
+  elif typ == Pogd.TYPE:
+    if os.path.exists(Pogd.LOCKFILE):
+      with open(Pogd.LOCKFILE, "r") as lockfile:
+        data = lockfile.readline().split(":")
+        id = data[0]
+      import podman
+
+      client = podman.from_env()
+      if not client.containers.list(filters={"id": id}):
+        sys.stderr.write(f"Lockfile {Pogd.LOCKFILE} found, container not running\n")
+        exit(1)
+      else:
+        container = client.containers.get(id)
+        typer.echo(f"Lockfile {Pogd.LOCKFILE} found, Podman Instance f{container.short_id}")
         container.kill()
   elif typ == Qegd.TYPE:
     os.system("kill $(pgrep qemu)")
