@@ -200,7 +200,7 @@ def virts():
 
     os.system("vagd clean")
 
-  if not args.NOPOGD:
+  if args.PODMAN:
     if os.path.exists(Pogd.LOCKFILE):
       os.remove(Pogd.LOCKFILE)
     stage("Testing Podman for Ubuntu")
