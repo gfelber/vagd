@@ -3,7 +3,7 @@ import os
 
 from pwn import *
 import vagd.virts.pwngd
-from vagd import Vagd, Qegd, Shgd, Dogd, Logd, wrapper, Box
+from vagd import Vagd, Qegd, Shgd, Dogd, Pogd, Logd, wrapper, Box
 
 GDB_OFF = 0x555555554000
 IP = ""
@@ -195,6 +195,83 @@ def virts():
       fast=True,
     )
     assert vm.is_new, "vm should be new"
+    yield vm
+    vm._ssh.close()
+
+    os.system("vagd clean")
+
+  if args.PODMAN:
+    if os.path.exists(Pogd.LOCKFILE):
+      os.remove(Pogd.LOCKFILE)
+    stage("Testing Podman for Ubuntu")
+    vm = Pogd(
+      exe.path,
+      image=Box.DOCKER_UBUNTU,
+      packages=["cowsay"],
+      tmp=True,
+      ex=True,
+      fast=True,
+    )
+    assert vm.is_new, "vm should be new"
+    assert vm._ssh.which("cowsay"), "cowsay wasn't installed"
+    yield vm
+    vm._ssh.close()
+
+    stage("Testing Podman for Ubuntu restore")
+    vm = Pogd(exe.path, image=Box.DOCKER_UBUNTU, tmp=True, ex=True, fast=True)
+    assert not vm.is_new, "vm shouldn't be new, restored"
+    yield vm
+    vm._ssh.close()
+
+    os.system("vagd clean")
+    sleep(1)
+    stage("Testing Podman for Arch")
+    vm = Pogd(
+      exe.path,
+      image=Box.DOCKER_ARCH,
+      tmp=True,
+      ex=True,
+      fast=True,
+    )
+    assert vm.is_new, "vm should be new"
+    yield vm
+    vm._ssh.close()
+
+    stage("Testing Podman for Arch restore")
+    vm = Pogd(
+      exe.path,
+      image=Box.DOCKER_ARCH,
+      tmp=True,
+      ex=True,
+      fast=True,
+    )
+    assert not vm.is_new, "vm shouldn't be new, restored"
+    yield vm
+    vm._ssh.close()
+
+    os.system("vagd clean")
+    sleep(1)
+    stage("Testing Podman for Alpine")
+    vm = Pogd(
+      exe.path,
+      image=Box.DOCKER_ALPINE,
+      tmp=True,
+      ex=True,
+      fast=True,
+    )
+    assert vm.is_new, "vm should be new"
+    yield vm
+    vm._ssh.close()
+
+    stage("Testing Podman for Alpine restore")
+    vm = Pogd(
+      exe.path,
+      image=Box.DOCKER_ALPINE,
+      tmp=True,
+      ex=True,
+      fast=True,
+    )
+    assert not vm.is_new, "vm shouldn't be new, restored"
     yield vm
     vm._ssh.close()
 
