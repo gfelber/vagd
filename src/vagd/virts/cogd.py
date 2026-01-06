@@ -148,7 +148,7 @@ class Cogd(Shgd):
     self.is_new = True
     helper.info("starting container instance")
     self._port = helper.first_free_port(Cogd.DEFAULT_PORT)
-    self._forward.update({"22/tcp": self._port})
+    self._forward.update({"22/tcp": ("127.0.0.1", self._port)})
 
     dir = os.path.dirname(os.path.realpath(__file__))
     with open(dir[: dir.rfind("/")] + "/res/seccomp.json", "r") as seccomp_file:

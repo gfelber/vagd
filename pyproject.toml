@@ -1,10 +1,10 @@
 [project]
 name = "vagd"
-version = "1.7.0"
+version = "1.7.1"
 authors = [{ name = "0x6fe1be2" }]
 description = "VirtuAlization GDb integrations in pwntools"
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python = ">=3.7,<3.14"
 dependencies = ['pwntools>=4.14.0', 'docker', 'typer', 'rich', 'podman']
 classifiers = [
   "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",

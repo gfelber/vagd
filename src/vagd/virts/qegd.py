@@ -241,6 +241,8 @@ users:
     + "{cpu} "
     + "{memory} "
     + "-nographic "
+    + "-serial none "
+    + "-monitor none "
     + "{bios} "
     + "-device virtio-net-pci,netdev=net0 "
     + "-netdev user,id=net0,hostfwd=tcp::{port}-:22"
@@ -250,7 +252,7 @@ users:
     + "{custom} "
   )
 
-  _QEMU_PIPE = "&> /dev/null; "
+  _QEMU_PIPE = "> /dev/null; "
 
   _QEMU_SUFFIX = "rm {lock} {current}"
 
