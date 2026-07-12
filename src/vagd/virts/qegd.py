@@ -47,7 +47,7 @@ class Qegd(Shgd):
 
       vagd clean
       # or
-      kill $(pgrep qemu)
+      kill $(cat .vagd/qemu.pid)
 
   | Qemu images are cached in the home directory: :code:`~/.share/local/vagd/qemu-imgs/`
   |
@@ -243,6 +243,7 @@ users:
     + "-nographic "
     + "-serial none "
     + "-monitor none "
+    + "-pidfile {pidfile} "
     + "{bios} "
     + "-device virtio-net-pci,netdev=net0 "
     + "-netdev user,id=net0,hostfwd=tcp::{port}-:22"
@@ -254,10 +255,11 @@ users:
 
   _QEMU_PIPE = "> /dev/null; "
 
-  _QEMU_SUFFIX = "rm {lock} {current}"
+  _QEMU_SUFFIX = "rm -f {lock} {current} {pidfile}"
 
   _QEMU_ARM_START = ""
   LOCKFILE = QEMU_DIR + "qemu.lock"
+  PIDFILE = QEMU_DIR + "qemu.pid"
 
   def _qemu_start(self):
     """
@@ -280,6 +282,7 @@ users:
       cpu=f"{Qegd.DEFAULT_QEMU_CPU_PREFIX} {self._cpu}" if self._cpu else "",
       memory=f"{Qegd.DEFAULT_QEMU_MEMORY_PREFIX} {self._memory}" if self._memory else "",
       bios=f"{Qegd.DEFAULT_QEMU_BIOS_PREFIX} {self._bios}" if self._bios else "",
+      pidfile=Qegd.PIDFILE,
       port=self._port,
       ports=port_forwarding,
       img=Qegd.CURRENT_IMG,
@@ -287,12 +290,16 @@ users:
       seed=Qegd.SEED_FILE,
     )
     qemu_suffix = Qegd._QEMU_SUFFIX.format(
-      lock=f"{Qegd.LOCKFILE} {Pwngd.LOCKFILE}", current=Qegd.CURRENT_IMG
+      lock=f"{Qegd.LOCKFILE} {Pwngd.LOCKFILE}",
+      current=Qegd.CURRENT_IMG,
+      pidfile=Qegd.PIDFILE,
     )
 
     helper.info(qemu_cmd)
     if self._detach:
-      pwnlib.util.misc.run_in_new_terminal(qemu_cmd, kill_at_exit=False)
+      pwnlib.util.misc.run_in_new_terminal(
+        qemu_cmd + Qegd._QEMU_PIPE + qemu_suffix, kill_at_exit=False
+      )
     else:
       pid = os.fork()
       if pid == 0:

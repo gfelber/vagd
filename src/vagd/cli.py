@@ -1,5 +1,6 @@
 import importlib.metadata
 import os
+import signal
 import stat
 import sys
 from typing import Dict, List, Optional, Any
@@ -428,7 +429,15 @@ def clean():
         typer.echo(f"Lockfile {Pogd.LOCKFILE} found, Podman Instance f{container.short_id}")
         container.kill()
   elif typ == Qegd.TYPE:
-    os.system("kill $(pgrep qemu)")
+    try:
+      with open(Qegd.PIDFILE, "r") as pidfile:
+        pid = int(pidfile.read().strip())
+      os.kill(pid, signal.SIGTERM)
+    except FileNotFoundError:
+      sys.stderr.write(f"No QEMU PID file found at {Qegd.PIDFILE}\n")
+      raise typer.Exit(1)
+    except ProcessLookupError:
+      sys.stderr.write(f"QEMU process {pid} is no longer running\n")
   elif typ == Vagd.TYPE:
     import vagrant
 
@@ -439,7 +448,8 @@ def clean():
   else:
     sys.stderr.write(f"Unknown type in {Pwngd.LOCKFILE}: {typ}\n")
     exit(1)
-  os.remove(Pwngd.LOCKFILE)
+  if os.path.exists(Pwngd.LOCKFILE):
+    os.remove(Pwngd.LOCKFILE)
 
 
 def start():
