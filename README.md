@@ -21,6 +21,38 @@ pip install ./vagd/
 
 - `vagd template [OPTIONS] [BINARY] [IP] [PORT]` to generate a template, list OPTIONS with help `-h`
 
+Use `--degd` (or `--docker-api`) to generate a template backed by the native
+Docker API instead of SSH. `Degd` uses attached Docker exec sockets for target
+I/O, Docker archive APIs for file transfer, and a localhost-only published port
+for GDB's connection to `gdbserver`. The `vagd ssh` command opens an attached
+Bash TTY for `Degd`, while `vagd scp` transfers files through Docker archives:
+
+```python
+from vagd import Degd
+
+vm = Degd(BINARY, image="ubuntu:noble")
+t = vm.start(argv=ARGS, env=ENV, gdbscript=GDB)
+```
+
+The initial `Degd` implementation supports Debian and Ubuntu images. The
+existing `Dogd` SSH backend remains available unchanged.
+The bundled seccomp policy tracks
+[Moby's upstream default](https://github.com/moby/profiles/blob/main/seccomp/default.json)
+and additionally allows `personality(ADDR_NO_RANDOMIZE)` for debugger-driven
+ASLR control.
+
+Extra packages and TLS remotes can be included directly when generating a
+template:
+
+```bash
+vagd template --degd --package strace --ssl \
+  ./binary challenge.example 443
+```
+
+Repeat `--package` to include more than one value. Capabilities and privileged
+mode remain available through the `cap_add` and `privileged` Python constructor
+arguments on Docker and Podman backends.
+
 ```python
 from pwn import *
 

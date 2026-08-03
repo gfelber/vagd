@@ -52,6 +52,10 @@
 		{
 			"architecture": "SCMP_ARCH_RISCV64",
 			"subArchitectures": null
+		},
+		{
+			"architecture": "SCMP_ARCH_LOONGARCH64",
+			"subArchitectures": null
 		}
 	],
 	"syscalls": [
@@ -64,6 +68,7 @@
 				"alarm",
 				"bind",
 				"brk",
+				"cachestat",
 				"capget",
 				"capset",
 				"chdir",
@@ -109,6 +114,7 @@
 				"fchdir",
 				"fchmod",
 				"fchmodat",
+				"fchmodat2",
 				"fchown",
 				"fchown32",
 				"fchownat",
@@ -130,8 +136,11 @@
 				"ftruncate",
 				"ftruncate64",
 				"futex",
+				"futex_requeue",
 				"futex_time64",
+				"futex_wait",
 				"futex_waitv",
+				"futex_wake",
 				"futimesat",
 				"getcpu",
 				"getcwd",
@@ -169,6 +178,7 @@
 				"getuid",
 				"getuid32",
 				"getxattr",
+				"getxattrat",
 				"inotify_add_watch",
 				"inotify_init",
 				"inotify_init1",
@@ -183,9 +193,6 @@
 				"ioprio_set",
 				"io_setup",
 				"io_submit",
-				"io_uring_enter",
-				"io_uring_register",
-				"io_uring_setup",
 				"ipc",
 				"kill",
 				"landlock_add_rule",
@@ -197,7 +204,9 @@
 				"link",
 				"linkat",
 				"listen",
+				"listmount",
 				"listxattr",
+				"listxattrat",
 				"llistxattr",
 				"_llseek",
 				"lremovexattr",
@@ -206,6 +215,7 @@
 				"lstat",
 				"lstat64",
 				"madvise",
+				"map_shadow_stack",
 				"membarrier",
 				"memfd_create",
 				"memfd_secret",
@@ -229,6 +239,7 @@
 				"mq_timedsend_time64",
 				"mq_unlink",
 				"mremap",
+				"mseal",
 				"msgctl",
 				"msgget",
 				"msgrcv",
@@ -278,10 +289,12 @@
 				"recvmsg",
 				"remap_file_pages",
 				"removexattr",
+				"removexattrat",
 				"rename",
 				"renameat",
 				"renameat2",
 				"restart_syscall",
+				"riscv_hwprobe",
 				"rmdir",
 				"rseq",
 				"rt_sigaction",
@@ -347,6 +360,7 @@
 				"setuid",
 				"setuid32",
 				"setxattr",
+				"setxattrat",
 				"shmat",
 				"shmctl",
 				"shmdt",
@@ -364,6 +378,7 @@
 				"stat64",
 				"statfs",
 				"statfs64",
+				"statmount",
 				"statx",
 				"symlink",
 				"symlinkat",
@@ -395,6 +410,7 @@
 				"uname",
 				"unlink",
 				"unlinkat",
+				"uretprobe",
 				"utime",
 				"utimensat",
 				"utimensat_time64",
@@ -426,11 +442,36 @@
 			],
 			"action": "SCMP_ACT_ALLOW",
 			"args": [
-
+				{
+					"index": 0,
+					"value": 38,
+					"op": "SCMP_CMP_LT"
+				}
+			]
+		},
+		{
+			"names": [
+				"socket"
+			],
+			"action": "SCMP_ACT_ALLOW",
+			"args": [
+				{
+					"index": 0,
+					"value": 39,
+					"op": "SCMP_CMP_EQ"
+				}
+			]
+		},
+		{
+			"names": [
+				"socket"
+			],
+			"action": "SCMP_ACT_ALLOW",
+			"args": [
 				{
 					"index": 0,
 					"value": 40,
-					"op": "SCMP_CMP_NE"
+					"op": "SCMP_CMP_GT"
 				}
 			]
 		},
@@ -613,6 +654,9 @@
 				"fsopen",
 				"fspick",
 				"lookup_dcookie",
+				"lsm_get_self_attr",
+				"lsm_list_modules",
+				"lsm_set_self_attr",
 				"mount",
 				"mount_setattr",
 				"move_mount",
@@ -797,7 +841,8 @@
 			"names": [
 				"get_mempolicy",
 				"mbind",
-				"set_mempolicy"
+				"set_mempolicy",
+				"set_mempolicy_home_node"
 			],
 			"action": "SCMP_ACT_ALLOW",
 			"includes": {

@@ -3,7 +3,7 @@ import os
 
 from pwn import *
 import vagd.virts.pwngd
-from vagd import Vagd, Qegd, Shgd, Dogd, Pogd, Logd, wrapper, Box
+from vagd import Vagd, Qegd, Shgd, Dogd, Degd, Pogd, Logd, wrapper, Box
 
 GDB_OFF = 0x555555554000
 IP = ""
@@ -200,6 +200,45 @@ def virts():
 
     os.system("vagd clean")
 
+  if not args.NODEGD:
+    if os.path.exists(Degd.LOCKFILE):
+      os.remove(Degd.LOCKFILE)
+
+    stage("Testing native Docker API")
+    vm = Degd(
+      exe.path,
+      image=Box.DOCKER_UBUNTU,
+      packages=["cowsay"],
+      cap_add=["SYS_PTRACE"],
+      privileged=True,
+      symbols=False,
+    )
+    assert vm.is_new, "vm should be new"
+    assert vm.which("cowsay"), "cowsay wasn't installed"
+    test_lockfile(Degd.TYPE)
+    vm._container.reload()
+    assert vm._container.attrs["HostConfig"]["Privileged"], "privileged mode wasn't enabled"
+    capabilities = {
+      capability[4:] if capability.startswith("CAP_") else capability
+      for capability in vm._container.attrs["HostConfig"]["CapAdd"]
+    }
+    assert "SYS_PTRACE" in capabilities, "SYS_PTRACE wasn't added"
+    yield vm
+
+    stage("Testing native Docker API restore")
+    vm = Degd(
+      exe.path,
+      image=Box.DOCKER_UBUNTU,
+      packages=["cowsay"],
+      cap_add=["SYS_PTRACE"],
+      privileged=True,
+      symbols=False,
+    )
+    assert not vm.is_new, "vm shouldn't be new, restored"
+    yield vm
+
+    os.system("vagd clean")
+
   if args.PODMAN:
     if os.path.exists(Pogd.LOCKFILE):
       os.remove(Pogd.LOCKFILE)
@@ -340,8 +379,13 @@ for virt in virts():
   out = b"\n".join(t.recvlines(3))
 
   log.info(out.decode())
+  if args.GDB:
+    try:
+      g.execute("set confirm off")
+      g.execute("quit")
+    except EOFError:
+      pass
   t.close()
-  os.system("tmux kill-pane")
 
 os.system("vagd clean")
 sleep(1)

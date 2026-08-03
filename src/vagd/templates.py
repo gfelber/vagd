@@ -15,6 +15,31 @@ ADD https://raw.githubusercontent.com/reproducible-containers/repro-sources-list
 RUN bash /usr/local/bin/repro-sources-list.sh
 """
 
+DOCKER_API_TEMPLATE = """FROM {image}
+
+USER root
+
+{lock}
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games
+RUN apt update && \\
+  apt install -y {packages} && \\
+  apt clean && rm -rf /var/lib/apt/lists/*
+
+RUN if [ "{user}" != "root" ]; then \\
+      useradd --create-home --shell /bin/bash --groups sudo {user} && \\
+      echo "{user} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/{user} && \\
+      chmod 0440 /etc/sudoers.d/{user}; \\
+    fi && \\
+    mkdir -p /vagd && \\
+    chown {user}:{user} /vagd
+
+WORKDIR /vagd
+ENTRYPOINT []
+CMD ["sleep", "infinity"]
+"""
+
 DOCKER_TEMPLATE = """FROM {image}
 
 USER root

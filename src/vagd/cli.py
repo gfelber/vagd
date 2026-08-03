@@ -1,8 +1,11 @@
 import importlib.metadata
+import json
 import os
 import signal
 import stat
+import subprocess
 import sys
+from shutil import which
 from typing import Dict, List, Optional, Any
 
 import typer
@@ -12,6 +15,8 @@ from rich.syntax import Syntax
 
 # prevents term.init
 from vagd.virts.dogd import Dogd
+from vagd.virts.degd import Degd
+from vagd.virts.docker_exec import DockerExecTube
 from vagd.virts.pogd import Pogd
 from vagd.virts.pwngd import Pwngd
 from vagd.virts.qegd import Qegd
@@ -26,6 +31,7 @@ def quote(x: str):
 Box
 DOGD_BOX = "Box.DOCKER_UBUNTU"
 DOGD = "vm = Dogd(BINARY, image={box}, {args})  # Docker"
+DEGD = "vm = Degd(BINARY, image={box}, {args})  # Docker API"
 POGD = "vm = Pogd(BINARY, image={box}, {args})  # Podman"
 QEGD_BOX = "Box.QEMU_UBUNTU"
 QEGD = "vm = Qegd(BINARY, img={box}, {args})  # Qemu"
@@ -121,6 +127,12 @@ def template(
   libc: Optional[str] = typer.Option("", "--libc", "-l", help="add libc to template"),
   libs: Optional[bool] = typer.Option(False, "--libs", help="download libraries from virt"),
   files: Optional[List[str]] = typer.Option([], "--files", "-f", help="add files to remote"),
+  packages: Optional[List[str]] = typer.Option(
+    [], "--package", "--packages", help="install package in the virtual environment"
+  ),
+  ssl: Optional[bool] = typer.Option(
+    False, "--ssl", help="use TLS for the remote pwntools connection"
+  ),
   symbols: Optional[bool] = typer.Option(
     True, "--no-symbols", help="install libc debug symbols (might update libc)"
   ),
@@ -129,6 +141,9 @@ def template(
   ),
   dogd: Optional[bool] = typer.Option(
     False, "--dogd", "--docker", "-d", help="create docker template"
+  ),
+  degd: Optional[bool] = typer.Option(
+    False, "--degd", "--docker-api", help="create native Docker API template"
   ),
   pogd: Optional[bool] = typer.Option(
     False, "--pogd", "--podman", "-p", help="create podman template"
@@ -169,10 +184,10 @@ def template(
   templatePath += "/res/template.txt"
   multi = False
 
-  if not any((dogd, pogd, qegd, vagd, shgd)):
+  if not any((dogd, degd, pogd, qegd, vagd, shgd)):
     dogd = qegd = True
 
-  if sum((dogd, pogd, qegd, vagd, shgd)) > 1:
+  if sum((dogd, degd, pogd, qegd, vagd, shgd)) > 1:
     multi = True
 
   env: Dict[str, str] = dict()
@@ -197,6 +212,9 @@ def template(
   if files:
     args["files"] = "[" + ",".join(f"'{file}'" for file in files) + "]"
 
+  if packages:
+    args["packages"] = repr(packages)
+
   modules = list()
   if ad:
     modules.append("json")
@@ -208,6 +226,9 @@ def template(
   if dogd:
     box = quote(eval(image)) if image == DOGD_BOX else image
     add_virt(dependencies, vms, "Dogd", DOGD, args)
+  if degd:
+    box = quote(eval(image)) if image == DOGD_BOX else image
+    add_virt(dependencies, vms, "Degd", DEGD, args)
   if pogd:
     box = quote(eval(image)) if image == DOGD_BOX else image
     add_virt(dependencies, vms, "Pogd", POGD, args)
@@ -249,6 +270,7 @@ def template(
     binary=quote(binary),
     ip=quote(ip),
     port=str(port),
+    ssl=repr(ssl),
     env=repr(env),
     box=box,
     ad_env=AD_ENV if ad else "",
@@ -304,6 +326,23 @@ def _ssh(port, user):
   os.system(f'ssh -o "StrictHostKeyChecking=no" -i {Pwngd.KEYFILE} -p {port} {user}@0.0.0.0')
 
 
+def _degd_container():
+  import docker
+
+  with open(Degd.LOCKFILE, "r") as lockfile:
+    state = json.load(lockfile)
+  client = docker.from_env()
+  return client, client.containers.get(state["id"])
+
+
+def _degd_path(path: str) -> str:
+  if path in (".", "./"):
+    return Degd.WORKDIR
+  if path.startswith("./"):
+    return Degd.WORKDIR + "/" + path[2:]
+  return path
+
+
 @app.command()
 def ssh(
   user: Optional[str] = typer.Option(None, "--user", "-u", help="ssh user"),
@@ -318,6 +357,22 @@ def ssh(
     with open(Dogd.LOCKFILE, "r") as lfile:
       port = lfile.read().split(":")[1]
       _ssh(int(port), user)
+  elif typ == Degd.TYPE:
+    if user is None:
+      user = Degd.DEFAULT_USER
+    client, container = _degd_container()
+    exec_id = client.api.exec_create(
+      container.id,
+      ["/bin/bash"],
+      stdin=True,
+      stdout=True,
+      stderr=True,
+      tty=True,
+      user=user,
+      workdir=Degd.WORKDIR,
+    )["Id"]
+    stream = client.api.exec_start(exec_id, socket=True, tty=True)
+    DockerExecTube(client.api, exec_id, stream, tty=True).interactive()
   elif typ == Pogd.TYPE:
     if user is None:
       user = Pogd.DEFAULT_USER
@@ -354,6 +409,18 @@ def _scp(
   os.system(f"scp -P {port} -o StrictHostKeyChecking=no -i {keyfile} {options} {source} {target}")
 
 
+def _unmount_sysroot():
+  if not os.path.ismount(Pwngd.SYSROOT):
+    return
+  fusermount = which("fusermount3") or which("fusermount")
+  if fusermount is None:
+    sys.stderr.write(f"Cannot unmount {Pwngd.SYSROOT}: fusermount is not installed\n")
+    return
+  result = subprocess.run([fusermount, "-u", Pwngd.SYSROOT], check=False)
+  if result.returncode:
+    subprocess.run([fusermount, "-uz", Pwngd.SYSROOT], check=False)
+
+
 @app.command()
 def scp(
   source: str = typer.Argument(..., help="source file"),
@@ -371,6 +438,18 @@ def scp(
     with open(Dogd.LOCKFILE, "r") as lfile:
       port = lfile.read().split(":")[1]
       _scp(int(port), user, source, target, recursive)
+  elif typ == Degd.TYPE:
+    _, container = _degd_container()
+    if ":" in source and ":" in target:
+      raise typer.BadParameter("source and target cannot both be inside Degd")
+    if ":" in source:
+      remote = _degd_path(source.split(":", 1)[1])
+      Degd.pull_from(container, remote, target)
+    elif ":" in target:
+      remote = _degd_path(target.split(":", 1)[1])
+      Degd.put_to(container, source, remote)
+    else:
+      raise typer.BadParameter("either source or target must use the 'vagd:' prefix")
   elif typ == Pogd.TYPE:
     if user is None:
       user = Pogd.DEFAULT_USER
@@ -398,36 +477,48 @@ def clean():
   clean current vagd instance (stop/kill/remove/destroy)
   """
   typ = _get_type()
+  _unmount_sysroot()
   if typ == Dogd.TYPE:
     if os.path.exists(Dogd.LOCKFILE):
       with open(Dogd.LOCKFILE, "r") as lockfile:
-        data = lockfile.readline().split(":")
-        id = data[0]
+        container_id = lockfile.readline().split(":")[0]
       import docker
 
       client = docker.from_env()
-      if not client.containers.list(filters={"id": id}):
+      try:
+        container = client.containers.get(container_id)
+      except docker.errors.NotFound:
         sys.stderr.write(f"Lockfile {Dogd.LOCKFILE} found, container not running\n")
-        exit(1)
       else:
-        container = client.containers.get(id)
         typer.echo(f"Lockfile {Dogd.LOCKFILE} found, Docker Instance f{container.short_id}")
-        container.kill()
+        container.remove(force=True)
+      os.remove(Dogd.LOCKFILE)
+  elif typ == Degd.TYPE:
+    import docker
+
+    try:
+      _, container = _degd_container()
+      typer.echo(f"Stopping native Docker instance {container.short_id}")
+      container.remove(force=True)
+    except docker.errors.NotFound:
+      sys.stderr.write(f"Container from {Degd.LOCKFILE} is no longer running\n")
+    if os.path.exists(Degd.LOCKFILE):
+      os.remove(Degd.LOCKFILE)
   elif typ == Pogd.TYPE:
     if os.path.exists(Pogd.LOCKFILE):
       with open(Pogd.LOCKFILE, "r") as lockfile:
-        data = lockfile.readline().split(":")
-        id = data[0]
+        container_id = lockfile.readline().split(":")[0]
       import podman
 
       client = podman.from_env()
-      if not client.containers.list(filters={"id": id}):
+      try:
+        container = client.containers.get(container_id)
+      except podman.errors.NotFound:
         sys.stderr.write(f"Lockfile {Pogd.LOCKFILE} found, container not running\n")
-        exit(1)
       else:
-        container = client.containers.get(id)
         typer.echo(f"Lockfile {Pogd.LOCKFILE} found, Podman Instance f{container.short_id}")
-        container.kill()
+        container.remove(force=True)
+      os.remove(Pogd.LOCKFILE)
   elif typ == Qegd.TYPE:
     try:
       with open(Qegd.PIDFILE, "r") as pidfile:

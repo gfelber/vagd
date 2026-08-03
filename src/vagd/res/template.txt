@@ -8,6 +8,7 @@ from pwn import *
 GOFF   = 0x555555554000                               # GDB default base address
 IP     = {ip:<44s} # remote IP
 PORT   = {port:<44s} # remote PORT
+SSL    = {ssl:<44s} # use TLS for remote connection
 BINARY = {binary:<44s} # PATH to local binary
 ARGS   = []                                           # ARGS supplied to binary
 ENV    = {env:<44s} # ENV supplied to binary
@@ -49,7 +50,7 @@ def setup():
 def get_target(**kw):
   if args.REMOTE{is_ad}:
     # context.log_level = 'debug'
-    return remote(IP, PORT)
+    return remote(IP, PORT, ssl=SSL)
 
   if {is_local}:
     if args.GDB:

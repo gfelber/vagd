@@ -1,4 +1,5 @@
 from vagd.virts.cogd import Cogd
+from vagd.virts.degd import Degd
 from vagd.virts.dogd import Dogd
 from vagd.virts.pogd import Pogd
 from vagd.virts.logd import Logd

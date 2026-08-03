@@ -23,6 +23,8 @@ class Cogd(Shgd):
   :param user: name of user on docker container
   :param forward: Dictionary of forwarded ports, needs to follow docker api format: 'hostport/(tcp|udp)' : guestport
   :param packages: packages to install on the container
+  :param cap_add: Linux capabilities to add to the container
+  :param privileged: run the container with extended privileges
   :param symbols: additionally install libc6 debug symbols (also updates libc6)
   :param ex: if experimental features, e.g. alpine, gdbserver should be enabled
   :param rm: remove container after exit
@@ -67,6 +69,8 @@ class Cogd(Shgd):
     user: str = DEFAULT_USER,
     forward: Optional[Dict[str, int]] = None,
     packages: Optional[List[str]] = None,
+    cap_add: Optional[List[str]] = None,
+    privileged: bool = False,
     symbols: bool = True,
     rm: bool = True,
     ex: bool = False,
@@ -77,12 +81,16 @@ class Cogd(Shgd):
     self._image = image
     self._name = Cogd.VAGD_PREFIX + os.path.basename(binary)
     self._packages = list(Cogd.DEFAULT_PACKAGES)
+    self._cap_add = list(cap_add or [])
+    self._privileged = privileged
     self._containerhome = containerhome
     self._lockfile = lockfile
     self._type = cogd_type
 
     if symbols:
-      helper.warn(f"installing {Pwngd.LIBC6_DEBUG} might update libc binary, consider using symbols=False")
+      helper.warn(
+        f"installing {Pwngd.LIBC6_DEBUG} might update libc binary, consider using symbols=False"
+      )
       self._packages.append(Pwngd.LIBC6_DEBUG)
 
     self._has_not_apt = True
@@ -160,6 +168,8 @@ class Cogd(Shgd):
       ports=self._forward,
       detach=True,
       remove=self._rm,
+      cap_add=self._cap_add,
+      privileged=self._privileged,
       security_opt=[f"seccomp:{seccomp_rules}"],
     )
     self._id = container.id
