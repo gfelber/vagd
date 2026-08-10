@@ -22,6 +22,7 @@ class Pwngd(ABC):
   :param symbols: additionally install libc6 debug symbols
   :param tmp: if a temporary directory should be created for files
   :param gdbsrvport: specify static gdbserver port, REQURIES port forwarding to localhost
+  :param socket: expose the process through a one-shot TCP socket
   :param fast: mounts libs locally for faster symbol extraction (experimental)
   :param ex: if experimental features should be enabled
   """
@@ -43,6 +44,7 @@ class Pwngd(ABC):
   _ssh: pwnlib.tubes.ssh.ssh
   _experimental: bool
   _fast: bool
+  _socket: bool
 
   def __init__(
     self,
@@ -56,10 +58,12 @@ class Pwngd(ABC):
     root: bool = False,
     fast: bool = False,
     ex: bool = False,
+    socket: bool = False,
   ):
     self._path = binary
     self._gdbsrvport = gdbsrvport
     self._binary = "./" + os.path.basename(binary)
+    self._socket = socket
 
     pwnlib.context.context.ssh_session = self._ssh
 
@@ -175,6 +179,12 @@ class Pwngd(ABC):
     """
     return self._ssh.system(cmd)
 
+  def _transport(self, socket: bool = False) -> Any:
+    """Return the process transport supplied by the concrete backend."""
+    if socket:
+      helper.error(f"socket transport is not supported by {type(self).__name__}")
+    return self._ssh
+
   DEFAULT_PACKAGES = ["gdbserver", "python3", "sudo"]
   LIBC6_DEBUG = "libc6-dbg"
   LIBC6_I386 = "libc6-i386"
@@ -237,8 +247,9 @@ class Pwngd(ABC):
     gdbscript: str = "",
     sysroot: Optional[str] = None,
     sysroot_debug: Optional[str] = None,
+    socket: Optional[bool] = None,
     **kwargs: Any,
-  ) -> pwnlib.tubes.ssh.ssh_channel:
+  ) -> pwnlib.tubes.tube.tube:
     """
     run binary in vm with gdb (pwnlib feature set)
 
@@ -247,14 +258,16 @@ class Pwngd(ABC):
     :param gdbscript: GDB script for GDB
     :param sysroot: sysroot dir
     :param sysroot_debug: sysroot debug lib dir
+    :param socket: override the instance's socket transport setting
     :param kwargs: pwntool parameters
     :return: pwntools process
     """
     if argv is None:
       argv = list()
 
-    if gdb_args is None:
-      gdb_args = list()
+    # pwnlib accepts a mutable list here, but callers commonly reuse it for
+    # multiple backends. Never append our arguments to the caller's object.
+    gdb_args = list(gdb_args or ())
 
     if self._fast:
       if sysroot is not None:
@@ -271,9 +284,13 @@ class Pwngd(ABC):
 
     gdb_args += ["-ex", f"file -readnow {self._path}"]
 
+    if socket is None:
+      socket = self._socket
+    ssh = self._transport(socket)
+
     return pwnlib.gdb.debug(
       [self._binary] + argv,
-      ssh=self._ssh,
+      ssh=ssh,
       gdb_args=gdb_args,
       port=self._gdbsrvport,
       gdbscript=gdbscript,
@@ -282,18 +299,22 @@ class Pwngd(ABC):
     )
 
   def process(
-    self, argv: Optional[list[str]] = None, **kwargs: Any
-  ) -> pwnlib.tubes.ssh.ssh_channel:
+    self, argv: Optional[list[str]] = None, socket: Optional[bool] = None, **kwargs: Any
+  ) -> pwnlib.tubes.tube.tube:
     """
     run binary in vm as process
 
     :param argv: comandline arguments for binary
+    :param socket: override the instance's socket transport setting
     :param kwargs: pwntool parameters
     :return: pwntools process
     """
     if argv is None:
       argv = list()
-    return self._ssh.process([self._binary] + argv, **kwargs)
+    if socket is None:
+      socket = self._socket
+    ssh = self._transport(socket)
+    return ssh.process([self._binary] + argv, **kwargs)
 
   def start(
     self,
@@ -303,8 +324,9 @@ class Pwngd(ABC):
     sysroot: Optional[str] = None,
     sysroot_debug: Optional[str] = None,
     gdb_args: Optional[list[str]] = None,
+    socket: Optional[bool] = None,
     **kwargs: Any,
-  ) -> pwnlib.tubes.ssh.ssh_channel:
+  ) -> pwnlib.tubes.tube.tube:
     """
     start binary on remote and return pwnlib.tubes.process.process
 
@@ -314,6 +336,7 @@ class Pwngd(ABC):
     :param sysroot: sysroot dir
     :param sysroot_debug: sysroot debug lib dir
     :param gdb_args: extra gdb args
+    :param socket: override the instance's socket transport setting
     :param kwargs: pwntool parameters
     :return: pwntools process, if api=True tuple with gdb api
     """
@@ -323,8 +346,9 @@ class Pwngd(ABC):
         gdbscript=gdbscript,
         gdb_args=gdb_args,
         sysroot=sysroot,
+        socket=socket,
         api=api,
         **kwargs,
       )
     else:
-      return self.process(argv=argv, **kwargs)
+      return self.process(argv=argv, socket=socket, **kwargs)

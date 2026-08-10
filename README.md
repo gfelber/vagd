@@ -21,23 +21,6 @@ pip install ./vagd/
 
 - `vagd template [OPTIONS] [BINARY] [IP] [PORT]` to generate a template, list OPTIONS with help `-h`
 
-The bundled seccomp policy tracks
-[Moby's upstream default](https://github.com/moby/profiles/blob/main/seccomp/default.json)
-and additionally allows `personality(ADDR_NO_RANDOMIZE)` for debugger-driven
-ASLR control.
-
-Extra packages and TLS remotes can be included directly when generating a
-template:
-
-```bash
-vagd template --dogd --package strace --ssl \
-  ./binary challenge.example 443
-```
-
-Repeat `--package` to include more than one value. Capabilities and privileged
-mode remain available through the `cap_add` and `privileged` Python constructor
-arguments on Docker and Podman backends.
-
 ```python
 from pwn import *
 

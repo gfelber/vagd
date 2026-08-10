@@ -153,7 +153,7 @@ class Qegd(Shgd):
 
     self._vm_setup()
 
-    packages += Pwngd.DEFAULT_PACKAGES
+    packages += Shgd.DEFAULT_PACKAGES
 
     super().__init__(
       binary=binary,

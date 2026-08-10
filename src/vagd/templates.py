@@ -54,7 +54,7 @@ DOCKER_ARCH_TEMPLATE = """FROM {image}
 USER root
 
 # install packages
-RUN pacman -Sy --noconfirm python3 gdb sudo openssh
+RUN pacman -Sy --noconfirm python3 gdb socat sudo openssh
 
 # init user and ssh
 EXPOSE 22
@@ -92,6 +92,8 @@ RUN apk add --no-cache python3
 RUN apk add --no-cache musl-dbg
 # install gdb
 RUN apk add --no-cache gdb
+# install socket transport
+RUN apk add --no-cache socat
 # install ssh server support and keys
 RUN apk add --no-cache openssh
 # install sudo

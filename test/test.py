@@ -15,6 +15,7 @@ API = True
 GDB = """
 b main
 c"""
+GDB_ARGS = ["-ex", "set debuginfod enabled off"]
 
 context.binary = exe = ELF(BINARY, checksec=False)
 context.aslr = False
@@ -329,7 +330,22 @@ def virts():
 
 
 for virt in virts():
-  t = virt.start(argv=ARGS, env=ENV, gdbscript=GDB, api=API)
+  if not isinstance(virt, Logd):
+    socket_t = virt.process(argv=ARGS, env=ENV, socket=True)
+    socket_t.shutdown("send")
+    socket_out = b"\n".join(socket_t.recvlines(3))
+    assert b"Kernel name:" in socket_out, "socket transport returned bad output"
+    socket_t.close()
+
+  start_kwargs = {"socket": True} if not isinstance(virt, Logd) else {}
+  t = virt.start(
+    argv=ARGS,
+    env=ENV,
+    gdbscript=GDB,
+    gdb_args=GDB_ARGS,
+    api=API,
+    **start_kwargs,
+  )
 
   sleep(1)
   if args.GDB:
@@ -338,6 +354,7 @@ for virt in virts():
     g.execute("c")
 
   out = b"\n".join(t.recvlines(3))
+  assert b"Kernel name:" in out, "target returned bad output"
 
   log.info(out.decode())
   if args.GDB:

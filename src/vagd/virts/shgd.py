@@ -1,10 +1,91 @@
+import os
+import re
 import time
 
+import pwnlib.timeout
 import pwnlib.tubes.ssh
 from typing import Any
 
 from vagd import helper
 from vagd.virts.pwngd import Pwngd
+
+
+class _SocketSSH:
+  """Run SSH processes behind a one-shot TCP listener."""
+
+  _LISTEN = "TCP4-LISTEN:0,bind=127.0.0.1"
+  _PORT = re.compile(rb"listening on .*:(\d+)\s*$")
+
+  def __init__(self, ssh: pwnlib.tubes.ssh.ssh):
+    self._ssh = ssh
+
+  def __getattr__(self, name: str) -> Any:
+    return getattr(self._ssh, name)
+
+  def connect_remote(self, *args: Any, **kwargs: Any) -> pwnlib.tubes.sock.sock:
+    """Connect through SSH without leaking Paramiko teardown races."""
+    tube = self._ssh.connect_remote(*args, **kwargs)
+    shutdown_raw = tube.shutdown_raw
+
+    def safe_shutdown_raw(direction: str) -> None:
+      try:
+        shutdown_raw(direction)
+      except EOFError:
+        # The peer and SSH transport can close between connect_both() seeing
+        # EOF and forwarding the corresponding half-close. The requested
+        # direction is already marked closed by pwntools at this point.
+        pass
+
+    tube.shutdown_raw = safe_shutdown_raw
+    return tube
+
+  def process(self, argv: Any = None, **kwargs: Any) -> pwnlib.tubes.sock.sock:
+    """
+    Create the process with pwntools' execve wrapper, then let socat run it.
+
+    The listener intentionally has neither a fixed port nor socat's listener
+    ``fork`` option. It accepts exactly one connection and terminates its child
+    when that connection closes.
+    """
+    timeout = kwargs.get("timeout", pwnlib.timeout.Timeout.default)
+    wrapper = os.fsdecode(self._ssh.process(argv, run=False, **kwargs))
+    python = self._ssh.which("python3")
+    socat_path = self._ssh.which("socat")
+    if not python:
+      helper.error("python3 isn't installed on the remote system")
+    if not socat_path:
+      helper.error("socat isn't installed on the remote system")
+
+    socat = self._ssh.process(
+      [
+        os.fsdecode(socat_path),
+        "-d",
+        "-d",
+        self._LISTEN,
+        f"EXEC:{os.fsdecode(python)} {wrapper},stderr",
+      ],
+      tty=False,
+      raw=True,
+      aslr=True,
+    )
+
+    while True:
+      try:
+        line = socat.recvline(timeout=3)
+      except EOFError:
+        helper.error("socat exited before opening its listener")
+      if not line:
+        socat.close()
+        helper.error("timed out waiting for socat to open its listener")
+      match = self._PORT.search(line)
+      if match:
+        break
+
+    tube = self._ssh.connect_remote("127.0.0.1", int(match.group(1)), timeout=timeout)
+    # Keep the SSH control channel alive until the socket is closed. The
+    # one-shot socat process then exits and kills its child automatically.
+    tube.socat = socat
+    return tube
 
 
 class Shgd(Pwngd):
@@ -22,12 +103,18 @@ class Shgd(Pwngd):
   DEFAULT_HOST = "localhost"
   DEFAULT_PORT = 22
   DEFAULT_USER = "root"
+  DEFAULT_PACKAGES = Pwngd.DEFAULT_PACKAGES + ["socat"]
 
   _user: str
   _host: str
   _port: int
   _keyfile: str
   _ssh: pwnlib.tubes.ssh.ssh
+
+  def _transport(self, socket: bool = False) -> Any:
+    if socket:
+      return _SocketSSH(self._ssh)
+    return self._ssh
 
   def bind(self, port: int) -> int:
     """

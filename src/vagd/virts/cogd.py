@@ -57,7 +57,7 @@ class Cogd(Shgd):
   DEFAULT_PORT = 2222
   DEFAULT_IMAGE = Box.DOCKER_NOBLE
 
-  DEFAULT_PACKAGES = Pwngd.DEFAULT_PACKAGES + ["openssh-server"]
+  DEFAULT_PACKAGES = Shgd.DEFAULT_PACKAGES + ["openssh-server"]
 
   def __init__(
     self,

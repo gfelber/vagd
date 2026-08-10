@@ -129,6 +129,9 @@ def template(
   ssl: Optional[bool] = typer.Option(
     False, "--ssl", help="use TLS for the remote pwntools connection"
   ),
+  socket: Optional[bool] = typer.Option(
+    False, "--socket", help="use a one-shot socket for the virtual target"
+  ),
   symbols: Optional[bool] = typer.Option(
     True, "--no-symbols", help="install libc debug symbols (might update libc)"
   ),
@@ -207,6 +210,9 @@ def template(
 
   if packages:
     args["packages"] = repr(packages)
+
+  if socket:
+    args["socket"] = True
 
   modules = list()
   if ad:
