@@ -32,8 +32,9 @@ autoapi_dirs = ["../src/vagd"]
 autoclass_content = "both"
 
 templates_path = ["_templates"]
-autoapi_ignore = exclude_patterns = ["*env*", "*__pycache__*", "*.egg-info", "*vagd/gdb/*"]
-autoapi_add_toctree_entry = False
+exclude_patterns = ["_build", "env", "Thumbs.db", ".DS_Store"]
+autoapi_ignore = ["*__pycache__*", "*.egg-info"]
+autoapi_add_toctree_entry = True
 
 
 # -- Options for HTML output -------------------------------------------------
@@ -41,3 +42,12 @@ autoapi_add_toctree_entry = False
 
 html_theme = "sphinx_rtd_theme"
 html_static_path = ["_static"]
+html_theme_options = {
+  # Keep the complete package/module tree visible in the left sidebar.
+  "collapse_navigation": False,
+  "includehidden": True,
+  "navigation_depth": 5,
+  # Classes and functions remain on their module pages instead of cluttering
+  # the navigation tree.
+  "titles_only": True,
+}
