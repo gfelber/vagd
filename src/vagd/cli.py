@@ -40,7 +40,7 @@ VAGD = "vm = Vagd(BINARY, {box}, {args})  # Vagrant"
 AD_ENV = """# ad envs
 IS_AD  = os.getenv('TARGET_IP') is not None           # running on ad
 IP     = os.getenv('TARGET_IP', IP)                   # remote ip
-EXTRA  = json.loads(os.getenv('TARGET_EXTRA', '[]'))  # flag ids"""
+EXTRA  = json.loads(os.getenv('TARGET_EXTRA', '{}'))  # flag ids"""
 
 app = typer.Typer(context_settings={"help_option_names": ["-h", "--help"]})
 
@@ -181,7 +181,7 @@ def template(
   multi = False
 
   if not any((dogd, pogd, qegd, vagd, shgd)):
-    dogd = qegd = True
+    dogd = True
 
   if sum((dogd, pogd, qegd, vagd, shgd)) > 1:
     multi = True
