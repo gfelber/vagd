@@ -1,7 +1,8 @@
 import os
+import shlex
 from abc import ABC, abstractmethod
 from shutil import which
-from typing import Iterable, List, Union, Optional, Any
+from typing import Iterable, List, Sequence, Union, Optional, Any
 
 import pwnlib.args
 import pwnlib.filesystem
@@ -9,6 +10,7 @@ import pwnlib.gdb
 import pwnlib.tubes
 
 from vagd import helper
+from vagd.patch import patch_binary
 
 
 class Pwngd(ABC):
@@ -18,6 +20,8 @@ class Pwngd(ABC):
   :param binary: binary for VM debugging
   :param libs: download libraries (using ldd) from VM
   :param files: other files or directories that need to be uploaded to VM
+  :param libraries: local shared libraries used to patch the binary
+  :param interpreter: local ELF interpreter used to patch the binary
   :param packages: packages to install on vm
   :param symbols: additionally install libc6 debug symbols
   :param tmp: if a temporary directory should be created for files
@@ -51,6 +55,8 @@ class Pwngd(ABC):
     binary: str,
     libs: bool = False,
     files: Optional[Union[str, list[str]]] = None,
+    libraries: Optional[Sequence[str]] = None,
+    interpreter: Optional[str] = None,
     packages: Optional[List[str]] = None,
     symbols: bool = True,
     tmp: bool = False,
@@ -60,6 +66,11 @@ class Pwngd(ABC):
     ex: bool = False,
     socket: bool = False,
   ):
+    try:
+      patched_libraries, patched_interpreter = patch_binary(binary, libraries, interpreter)
+    except (FileNotFoundError, RuntimeError, ValueError) as error:
+      helper.error(str(error))
+
     self._path = binary
     self._gdbsrvport = gdbsrvport
     self._binary = "./" + os.path.basename(binary)
@@ -70,7 +81,12 @@ class Pwngd(ABC):
     if tmp:
       self._ssh.set_working_directory()
 
-    if self._sync(self._path):
+    patched = bool(patched_libraries or patched_interpreter)
+    if patched:
+      # A previous persistent VM may already contain an unpatched copy.
+      self.put(self._path, remote=self._binary)
+      self._system_checked(f"chmod 755 -- {shlex.quote(self._binary)}")
+    elif self._sync(self._path):
       self.system("chmod +x " + self._binary)
 
     if self.is_new and libs:
@@ -105,6 +121,9 @@ class Pwngd(ABC):
     elif hasattr(files, "__iter__"):
       for file in files:
         self._sync(file)
+
+    if patched:
+      self._patch_remote(patched_libraries, patched_interpreter)
 
   @abstractmethod
   def _vm_setup(self) -> None:
@@ -199,6 +218,32 @@ class Pwngd(ABC):
     self.system("sudo apt update").recvall()
     packages_str = " ".join(packages)
     self.system(f"sudo DEBIAN_FRONTEND=noninteractive apt install -y {packages_str}").recvall()
+
+  def _patch_remote(
+    self, libraries: Sequence[str], interpreter: Optional[str]
+  ) -> None:
+    """Upload the artifacts used by the already-patched local executable."""
+    artifacts = list(libraries)
+    if interpreter:
+      artifacts.append(interpreter)
+
+    remote_artifacts = []
+    for artifact in artifacts:
+      remote = "./" + os.path.basename(artifact)
+      self.put(artifact, remote=remote)
+      remote_artifacts.append(remote)
+
+    quoted_artifacts = " ".join(shlex.quote(path) for path in remote_artifacts)
+    self._system_checked(f"chmod 755 -- {quoted_artifacts}")
+
+  def _system_checked(self, command: str) -> bytes:
+    """Run a remote command and report its output when it fails."""
+    channel = self.system(command)
+    output = channel.recvall()
+    if channel.returncode:
+      message = output.decode(errors="replace").strip()
+      helper.error(f"remote command failed ({command}): {message}")
+    return output
 
   def put(self, file: str, remote: Optional[str] = None):
     """

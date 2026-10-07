@@ -19,6 +19,7 @@ from vagd.virts.pwngd import Pwngd
 from vagd.virts.qegd import Qegd
 from vagd.virts.vagd import Vagd
 from vagd.box import Box
+from vagd.patch import patch_binary
 
 
 def quote(x: str):
@@ -121,6 +122,19 @@ def template(
     "", "-o", help="output file of the template (also add +x), default stdout"
   ),
   libc: Optional[str] = typer.Option("", "--libc", "-l", help="add libc to template"),
+  library: Optional[List[str]] = typer.Option(
+    [], "--library", "-L", help="patch the binary to use a local shared library"
+  ),
+  interpreter: Optional[str] = typer.Option(
+    "",
+    "--interpreter",
+    "--ld",
+    "-i",
+    help="patch the binary to use a local ELF interpreter",
+  ),
+  patchelf: Optional[bool] = typer.Option(
+    False, "--patchelf", "-p", help="patch the binary with the supplied libraries/interpreter"
+  ),
   libs: Optional[bool] = typer.Option(False, "--libs", help="download libraries from virt"),
   files: Optional[List[str]] = typer.Option([], "--files", "-f", help="add files to remote"),
   packages: Optional[List[str]] = typer.Option(
@@ -142,7 +156,7 @@ def template(
     False, "--dogd", "--docker", "-d", help="create docker template"
   ),
   pogd: Optional[bool] = typer.Option(
-    False, "--pogd", "--podman", "-p", help="create podman template"
+    False, "--pogd", "--podman", "-P", help="create podman template"
   ),
   image: Optional[str] = typer.Option(DOGD_BOX, "--image", help="docker image to use"),
   qegd: Optional[bool] = typer.Option(False, "--qegd", "--qemu", "-q", help="create qemu template"),
@@ -191,6 +205,20 @@ def template(
   if libc:
     files.append(libc)
 
+  patch_libraries = ([libc] if libc else []) + list(library)
+  if (library or interpreter) and not patchelf:
+    err_console.print("[red]--library and --interpreter require --patchelf[/red]")
+    raise typer.Exit(1)
+  if patchelf and not (patch_libraries or interpreter):
+    err_console.print("[red]--patchelf requires --libc, --library, or --interpreter[/red]")
+    raise typer.Exit(1)
+  if patchelf:
+    try:
+      patch_binary(binary, patch_libraries, interpreter or None)
+    except (FileNotFoundError, RuntimeError, ValueError) as error:
+      err_console.print(f"[red]Failed to patch {binary!r}: {error}[/red]")
+      raise typer.Exit(1)
+
   dependencies: list[str] = list()
   vms: list[str] = list()
   args: Dict[str, Any] = dict()
@@ -207,6 +235,12 @@ def template(
 
   if files:
     args["files"] = "[" + ",".join(f"'{file}'" for file in files) + "]"
+
+  if patchelf and patch_libraries:
+    args["libraries"] = repr(patch_libraries)
+
+  if patchelf and interpreter:
+    args["interpreter"] = repr(interpreter)
 
   if packages:
     args["packages"] = repr(packages)

@@ -126,6 +126,11 @@ vagd scp [OPTIONS] SOURCE [TARGET]
 vagd clean [OPTIONS]
 ```
 
+To patch a binary explicitly, use `-p/--patchelf` with `-l/--libc`, repeatable
+`-L/--library`, or `-i/--interpreter`. The original is saved as `<binary>.bak`;
+the exact patched binary is used locally and inside the environment. Supplying
+`-l/--libc` alone only includes libc in the generated template.
+
 ## [Documentation](https://vagd.gfelber.dev)
 
 ## Boxes

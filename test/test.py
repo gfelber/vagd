@@ -1,9 +1,15 @@
 #!/bin/env python3
 import os
+import shutil
+import subprocess
+import tempfile
 
 from pwn import *
+from typer.testing import CliRunner
 import vagd.virts.pwngd
 from vagd import Vagd, Qegd, Shgd, Dogd, Pogd, Logd, wrapper, Box
+from vagd.cli import app
+from vagd.patch import patch_binary
 
 GDB_OFF = 0x555555554000
 IP = ""
@@ -32,6 +38,81 @@ def test_lockfile(expected):
 
 def stage(msg, *args):
   log.info("======== " + msg + " ========", *args)
+
+
+def test_patchelf():
+  """Supplied artifacts take priority without disabling system fallbacks."""
+  source_binary = "/bin/echo"
+  interpreter = subprocess.check_output(
+    ["patchelf", "--print-interpreter", source_binary], text=True
+  ).strip()
+
+  with tempfile.TemporaryDirectory(dir="./bin") as directory:
+    binary = os.path.abspath(os.path.join(directory, "echo"))
+    shutil.copy2(source_binary, binary)
+    subprocess.run(["patchelf", "--set-rpath", "/existing", binary], check=True)
+    with open(binary, "rb") as executable:
+      original = executable.read()
+
+    libraries, staged_interpreter = patch_binary(
+      binary, libraries=[interpreter], interpreter=interpreter
+    )
+
+    with open(binary + ".bak", "rb") as backup:
+      assert backup.read() == original, "bad binary backup"
+    assert os.access(libraries[0], os.R_OK | os.X_OK), "bad library permissions"
+    assert os.access(staged_interpreter, os.R_OK | os.X_OK), "bad interpreter permissions"
+    rpath = subprocess.check_output(["patchelf", "--print-rpath", binary], text=True)
+    assert rpath.strip() == "$ORIGIN:/existing"
+    assert (
+      subprocess.check_output(["patchelf", "--print-interpreter", binary], text=True).strip()
+      == "./" + os.path.basename(staged_interpreter)
+    )
+    output = subprocess.check_output(["./echo", "patched"], cwd=directory)
+    assert output == b"patched\n", "patched binary failed"
+
+
+def test_patchelf_cli():
+  """Patching requires -p; -l alone retains its original behavior."""
+  source_binary = "/bin/echo"
+  interpreter = subprocess.check_output(
+    ["patchelf", "--print-interpreter", source_binary], text=True
+  ).strip()
+
+  with tempfile.TemporaryDirectory(dir="./bin") as directory:
+    binary = os.path.abspath(os.path.join(directory, "echo"))
+    output = os.path.join(directory, "exploit.py")
+    shutil.copy2(source_binary, binary)
+    with open(binary, "rb") as executable:
+      original = executable.read()
+
+    runner = CliRunner()
+    result = runner.invoke(
+      app, ["template", binary, "--local", "--no-info", "-o", output, "-l", interpreter]
+    )
+    assert result.exit_code == 0, result.output
+    with open(binary, "rb") as executable:
+      assert executable.read() == original, "-l unexpectedly patched the binary"
+    assert not os.path.exists(binary + ".bak"), "-l unexpectedly created a backup"
+
+    result = runner.invoke(
+      app,
+      [
+        "template",
+        binary,
+        "--local",
+        "--no-info",
+        "-o",
+        output,
+        "-p",
+        "-l",
+        interpreter,
+        "-i",
+        interpreter,
+      ],
+    )
+    assert result.exit_code == 0, result.output
+    assert os.path.exists(binary + ".bak"), "-p did not create a backup"
 
 
 def virts():
@@ -328,6 +409,10 @@ def virts():
       fast=True,
     )
 
+
+stage("Testing patchelf library support")
+test_patchelf()
+test_patchelf_cli()
 
 for virt in virts():
   if not isinstance(virt, Logd):

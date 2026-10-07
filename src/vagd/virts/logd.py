@@ -1,9 +1,10 @@
-from typing import Iterable, Optional, Any
+from typing import Iterable, Optional, Sequence, Any
 
 import pwnlib.args
 import pwnlib.tubes
 
 from vagd import helper
+from vagd.patch import patch_binary
 from vagd.virts.pwngd import Pwngd
 
 
@@ -12,6 +13,8 @@ class Logd(Pwngd):
   local execution of binary
 
   :param binary: binary to execute
+  :param libraries: local shared libraries used to patch the binary
+  :param interpreter: local ELF interpreter used to patch the binary
   """
 
   _binary: str
@@ -28,10 +31,22 @@ class Logd(Pwngd):
     """
     helper.error("NOT IMPLEMENTED")
 
-  def __init__(self, binary: str, **kwargs: Any):
+  def __init__(
+    self,
+    binary: str,
+    libraries: Optional[Sequence[str]] = None,
+    interpreter: Optional[str] = None,
+    **kwargs: Any,
+  ):
     """
     :param binary: binary to execute
+    :param libraries: local shared libraries used to patch the binary
+    :param interpreter: local ELF interpreter used to patch the binary
     """
+    try:
+      patch_binary(binary, libraries, interpreter)
+    except (FileNotFoundError, RuntimeError, ValueError) as error:
+      helper.error(str(error))
     self._binary = binary
 
   def _sync(self, file: str) -> None:
