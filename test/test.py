@@ -10,6 +10,7 @@ import vagd.virts.pwngd
 from vagd import Vagd, Qegd, Shgd, Dogd, Pogd, Logd, wrapper, Box
 from vagd.cli import app
 from vagd.patch import patch_binary
+from vagd.detect import detect_image
 
 GDB_OFF = 0x555555554000
 IP = ""
@@ -113,6 +114,40 @@ def test_patchelf_cli():
     )
     assert result.exit_code == 0, result.output
     assert os.path.exists(binary + ".bak"), "-p did not create a backup"
+
+
+def test_auto_image():
+  """-a prefers a Dockerfile next to the binary and falls back to .comment."""
+  dockerfile = """ARG UBUNTU=22.04
+FROM --platform=linux/amd64 ubuntu:${UBUNTU} AS builder
+RUN apt update && \\
+    apt install -y gcc
+FROM builder
+"""
+  with tempfile.TemporaryDirectory(dir="./bin") as directory:
+    binary = os.path.join(directory, "echo")
+    shutil.copy2("/bin/echo", binary)
+    comment = os.path.join(directory, "comment")
+    with open(comment, "wb") as comment_file:
+      comment_file.write(b"GCC: (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0\0")
+    subprocess.run(["objcopy", "--remove-section", ".comment", binary], check=False)
+    subprocess.run(["objcopy", "--add-section", f".comment={comment}", binary], check=True)
+    assert detect_image(binary) == ("ubuntu:22.04", ".comment"), "bad .comment detection"
+
+    with open(os.path.join(directory, "Dockerfile"), "w") as dockerfile_file:
+      dockerfile_file.write(dockerfile)
+    image, source = detect_image(binary)
+    assert image == "ubuntu:22.04", "bad Dockerfile detection"
+    assert source.endswith("Dockerfile"), "Dockerfile should take priority"
+
+    runner = CliRunner()
+    result = runner.invoke(app, ["template", binary, "-a", "--no-info"])
+    assert result.exit_code == 0, result.output
+    assert "BOX    = 'ubuntu:22.04'" in result.output, "template missing detected image"
+    result = runner.invoke(app, ["template", binary, "-a", "--image", "ubuntu:focal"])
+    assert result.exit_code == 1, "-a and --image should conflict"
+    result = runner.invoke(app, ["template", "/bin/true", "-a", "--no-info"])
+    assert result.exit_code == 1, "detection should fail without Dockerfile or known .comment"
 
 
 def virts():
@@ -413,6 +448,8 @@ def virts():
 stage("Testing patchelf library support")
 test_patchelf()
 test_patchelf_cli()
+stage("Testing image detection")
+test_auto_image()
 
 for virt in virts():
   if not isinstance(virt, Logd):

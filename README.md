@@ -126,6 +126,10 @@ vagd scp [OPTIONS] SOURCE [TARGET]
 vagd clean [OPTIONS]
 ```
 
+`vagd template -a/--auto` detects the container image: it uses the final `FROM`
+of a `Dockerfile` next to the binary (then in the current directory) and falls
+back to the compiler string in the binary's `.comment` section (Ubuntu/Debian).
+
 To patch a binary explicitly, use `-p/--patchelf` with `-l/--libc`, repeatable
 `-L/--library`, or `-i/--interpreter`. The original is saved as `<binary>.bak`;
 the exact patched binary is used locally and inside the environment. Supplying

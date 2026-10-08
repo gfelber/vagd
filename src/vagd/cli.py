@@ -20,6 +20,7 @@ from vagd.virts.qegd import Qegd
 from vagd.virts.vagd import Vagd
 from vagd.box import Box
 from vagd.patch import patch_binary
+from vagd.detect import detect_image
 
 
 def quote(x: str):
@@ -150,7 +151,13 @@ def template(
     True, "--no-symbols", help="install libc debug symbols (might update libc)"
   ),
   aslr: Optional[bool] = typer.Option(
-    False, "--aslr", "-a", help="enable gdb ASLR (default: disabled for gdb)"
+    False, "--aslr", help="enable gdb ASLR (default: disabled for gdb)"
+  ),
+  auto: Optional[bool] = typer.Option(
+    False,
+    "--auto",
+    "-a",
+    help="detect the container image from a Dockerfile (binary dir, then cwd) or the binary's .comment",
   ),
   dogd: Optional[bool] = typer.Option(
     False, "--dogd", "--docker", "-d", help="create docker template"
@@ -177,6 +184,20 @@ def template(
   """
   creates a template
   """
+  if auto:
+    if image != DOGD_BOX:
+      err_console.print("[red]--auto and --image are mutually exclusive[/red]")
+      raise typer.Exit(1)
+    if any((qegd, vagd, shgd)) and not any((dogd, pogd)):
+      err_console.print("[red]--auto requires a container backend (docker/podman)[/red]")
+      raise typer.Exit(1)
+    try:
+      image, source = detect_image(binary)
+    except ValueError as error:
+      err_console.print(f"[red]Failed to detect image: {error}[/red]")
+      raise typer.Exit(1)
+    err_console.print(f"detected image {image!r} from {source}")
+
   if image != DOGD_BOX:
     image = quote(image)
 
