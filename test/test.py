@@ -8,6 +8,7 @@ from pwn import *
 from typer.testing import CliRunner
 import vagd.virts.pwngd
 from vagd import Vagd, Qegd, Shgd, Dogd, Pogd, Logd, wrapper, Box
+from vagd.virts.cogd import Cogd
 from vagd.cli import app
 from vagd.patch import patch_binary
 from vagd.detect import detect_image
@@ -141,13 +142,31 @@ FROM builder
     assert source.endswith("Dockerfile"), "Dockerfile should take priority"
 
     runner = CliRunner()
-    result = runner.invoke(app, ["template", binary, "-a", "--no-info"])
+    output = os.path.join(directory, "exploit.py")
+    result = runner.invoke(app, ["template", binary, "-a", "--no-info", "-o", output])
     assert result.exit_code == 0, result.output
-    assert "BOX    = 'ubuntu:22.04'" in result.output, "template missing detected image"
+    with open(output) as template:
+      assert "BOX    = 'ubuntu:22.04'" in template.read(), "template missing detected image"
     result = runner.invoke(app, ["template", binary, "-a", "--image", "ubuntu:focal"])
     assert result.exit_code == 1, "-a and --image should conflict"
     result = runner.invoke(app, ["template", "/bin/true", "-a", "--no-info"])
     assert result.exit_code == 1, "detection should fail without Dockerfile or known .comment"
+
+
+def test_template_target():
+  """Without a binary the positional arguments are the remote target."""
+  with tempfile.TemporaryDirectory(dir="./bin") as directory:
+    output = os.path.join(directory, "exploit.py")
+    runner = CliRunner()
+    result = runner.invoke(app, ["template", "[::1]:1337", "-o", output])
+    assert result.exit_code == 0, result.output
+    with open(output) as template:
+      content = template.read()
+    assert "BINARY = ''" in content, "binary should be empty"
+    assert "IP     = '::1'" in content and "PORT   = 1337" in content, "bad target"
+    assert "context.arch = 'amd64'" in content and "ELF(BINARY" not in content, "bad context"
+    result = runner.invoke(app, ["template", "missing_binary", "example.com", "1337"])
+    assert result.exit_code == 1, "missing binary should fail"
 
 
 def virts():
@@ -450,16 +469,10 @@ test_patchelf()
 test_patchelf_cli()
 stage("Testing image detection")
 test_auto_image()
+stage("Testing template target")
+test_template_target()
 
-for virt in virts():
-  if not isinstance(virt, Logd):
-    socket_t = virt.process(argv=ARGS, env=ENV, socket=True)
-    socket_t.shutdown("send")
-    socket_out = b"\n".join(socket_t.recvlines(3))
-    assert b"Kernel name:" in socket_out, "socket transport returned bad output"
-    socket_t.close()
-
-  start_kwargs = {"socket": True} if not isinstance(virt, Logd) else {}
+def check_start(virt, **start_kwargs):
   t = virt.start(
     argv=ARGS,
     env=ENV,
@@ -486,6 +499,27 @@ for virt in virts():
     except EOFError:
       pass
   t.close()
+
+
+for virt in virts():
+  if not isinstance(virt, Logd):
+    socket_t = virt.process(argv=ARGS, env=ENV, socket=True)
+    socket_t.shutdown("send")
+    socket_out = b"\n".join(socket_t.recvlines(3))
+    assert b"Kernel name:" in socket_out, "socket transport returned bad output"
+    socket_t.close()
+
+  if isinstance(virt, Cogd):
+    # host gdb attached directly to the container process, with and without socat
+    check_start(virt, native=True)
+    check_start(virt, native=True, socket=True)
+
+  if isinstance(virt, Logd):
+    check_start(virt)
+  elif isinstance(virt, Cogd):
+    check_start(virt, socket=True, native=False)
+  else:
+    check_start(virt, socket=True)
 
 os.system("vagd clean")
 sleep(1)

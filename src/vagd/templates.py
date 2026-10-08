@@ -29,8 +29,11 @@ RUN apt update && \\
 
 # init user and ssh
 EXPOSE 22
-RUN useradd --create-home --shell /bin/bash -g sudo {user}
-RUN chown -R {user}:sudo /home/{user}
+# uid/gid match the host user so the host gdb may ptrace processes in the container
+RUN u=$(getent passwd {uid} | cut -d: -f1); [ -z "$u" ] || userdel -r "$u"; \\
+  getent group {gid} >/dev/null || groupadd -g {gid} {user}; \\
+  useradd --create-home --shell /bin/bash -u {uid} -g {gid} -G sudo {user}
+RUN chown -R {uid}:{gid} /home/{user}
 RUN chmod u+s /usr/bin/sudo
 RUN echo "{user} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/{user} && chmod 0440 /etc/sudoers.d/{user}
 USER {user}
@@ -58,8 +61,11 @@ RUN pacman -Sy --noconfirm python3 gdb socat sudo openssh
 
 # init user and ssh
 EXPOSE 22
-RUN useradd --create-home --shell /bin/bash -g wheel {user}
-RUN chown -R {user}:wheel /home/{user}
+# uid/gid match the host user so the host gdb may ptrace processes in the container
+RUN u=$(getent passwd {uid} | cut -d: -f1); [ -z "$u" ] || userdel -r "$u"; \\
+  getent group {gid} >/dev/null || groupadd -g {gid} {user}; \\
+  useradd --create-home --shell /bin/bash -u {uid} -g {gid} -G wheel {user}
+RUN chown -R {uid}:{gid} /home/{user}
 RUN chmod u+s /usr/bin/sudo
 RUN echo "{user} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/{user} && chmod 0440 /etc/sudoers.d/{user}
 USER {user}
@@ -101,7 +107,10 @@ RUN apk add --no-cache sudo
 
 EXPOSE 22
 RUN chmod u+s /usr/bin/sudo
-RUN adduser -h /home/{user} -s /bin/ash -g sudo -D {user}
+# uid/gid match the host user so the host gdb may ptrace processes in the container
+RUN u=$(getent passwd {uid} | cut -d: -f1); [ -z "$u" ] || deluser --remove-home "$u"; \
+  getent group {gid} >/dev/null || addgroup -g {gid} {user}; \
+  adduser -h /home/{user} -s /bin/ash -G "$(getent group {gid} | cut -d: -f1)" -D -u {uid} {user}
 RUN echo "{user} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/{user} && chmod 0440 /etc/sudoers.d/{user}
 RUN echo "{user}:{user}" | chpasswd
 RUN sed "s/AllowTcpForwarding no/AllowTcpForwarding yes/" -i /etc/ssh/sshd_config

@@ -1,14 +1,29 @@
 import os
+import time
 from typing import Any, Dict, List, Optional
 from abc import abstractmethod
 
 import docker
 import podman
+import pwnlib.gdb
 
 from vagd import helper, templates
 from vagd.box import Box
 from vagd.virts.pwngd import Pwngd
 from vagd.virts.shgd import Shgd
+
+
+def _stop_for_debugger():
+  # runs inside pwntools' remote execve wrapper right before execve.
+  # Allow any process to ptrace us (Yama ptrace_scope=1) and wait for gdb.
+  import ctypes
+  import os
+  import signal
+
+  PR_SET_PTRACER = 0x59616D61
+  PR_SET_PTRACER_ANY = ctypes.c_ulong(-1)
+  ctypes.CDLL(None, use_errno=True).prctl(PR_SET_PTRACER, PR_SET_PTRACER_ANY, 0, 0, 0)
+  os.kill(os.getpid(), signal.SIGSTOP)
 
 
 class Cogd(Shgd):
@@ -30,6 +45,7 @@ class Cogd(Shgd):
   :param rm: remove container after exit
   :param alpine: if the conainter is alpine (also autochecks image name)
   :param fast: mounts libs locally for faster symbol extraction (experimental) NOT COMPATIBLE WITH ALPINE
+  :param native: attach the host gdb directly to the process instead of using gdbserver (requires same uid)
   :param kwargs: parameters to pass through to super
   """
 
@@ -51,6 +67,8 @@ class Cogd(Shgd):
   _containerhome: str
   _lockfile: str
   _type: str
+  _native: bool
+  _native_ok: Optional[bool] = None
 
   VAGD_PREFIX = "vagd-"
   DEFAULT_USER = "vagd"
@@ -76,9 +94,11 @@ class Cogd(Shgd):
     ex: bool = False,
     fast: bool = False,
     alpine: bool = False,
+    native: bool = True,
     **kwargs: Any,
   ):
     self._image = image
+    self._native = native
     self._name = Cogd.VAGD_PREFIX + os.path.basename(binary)
     self._packages = list(Cogd.DEFAULT_PACKAGES)
     self._cap_add = list(cap_add or [])
@@ -148,6 +168,8 @@ class Cogd(Shgd):
           lock=templates.LOCK_PACKAGES if self._symbols else "",
           packages=" ".join(self._packages),
           user=self._user if self._user != "root" else Cogd.DEFAULT_USER,
+          uid=os.getuid(),
+          gid=os.getgid(),
           keyfile=os.path.basename(self._containerdir + "keyfile.pub"),
         )
       )
@@ -236,3 +258,178 @@ class Cogd(Shgd):
   @abstractmethod
   def _client_setup(self) -> Any:
     pass
+
+  def _init_pid(self) -> int:
+    """host pid of the container's init process"""
+    return int(self._client.containers.get(self._id).attrs["State"]["Pid"])
+
+  @staticmethod
+  def _status(pid: int) -> Dict[str, str]:
+    """parse /proc/<pid>/status"""
+    with open(f"/proc/{pid}/status") as status:
+      return dict(line.rstrip("\n").split(":\t", 1) for line in status if ":\t" in line)
+
+  def _host_pid(self, pid: int) -> Optional[int]:
+    """
+    translate a pid inside the container to a host pid
+
+    :param pid: pid inside the container
+    :return: host pid or None if not found
+    """
+    init = self._init_pid()
+    for entry in os.listdir("/proc"):
+      if not entry.isdigit():
+        continue
+      try:
+        status = self._status(int(entry))
+        if int(status["NSpid"].split()[-1]) != pid:
+          continue
+        # make sure the process actually belongs to our container
+        parent = int(status["PPid"])
+        while parent > 1 and parent != init:
+          parent = int(self._status(parent)["PPid"])
+      except (OSError, KeyError, ValueError):
+        continue
+      if parent == init:
+        return int(entry)
+    return None
+
+  def _child_pid(self, parent: int, tries: int = 200) -> Optional[int]:
+    """host pid of the first child of a host process, polls while the child is spawned"""
+    for _ in range(tries):
+      for entry in os.listdir("/proc"):
+        try:
+          if entry.isdigit() and int(self._status(int(entry))["PPid"]) == parent:
+            return int(entry)
+        except (OSError, KeyError, ValueError):
+          continue
+      time.sleep(0.01)
+    return None
+
+  def _native_supported(self) -> bool:
+    """check if the host gdb is allowed to ptrace processes inside the container"""
+    try:
+      with open("/proc/sys/kernel/yama/ptrace_scope") as scope:
+        if int(scope.read()) > 1:
+          helper.warn("kernel.yama.ptrace_scope > 1, native attach requires CAP_SYS_PTRACE")
+          return False
+    except OSError:
+      pass
+    # rootless container runtimes map the container root to the host user
+    if os.access(f"/proc/{self._init_pid()}/root", os.R_OK):
+      return True
+    # ptrace requires matching uid and primary gid
+    uid, gid = (int(x) for x in self.system("id -u; id -g").recvall().split())
+    if (uid, gid) == (os.getuid(), os.getgid()):
+      return True
+    helper.warn(
+      f"container uid/gid {uid}/{gid} differs from host {os.getuid()}/{os.getgid()}, using gdbserver"
+    )
+    return False
+
+  def process(
+    self,
+    argv: Optional[list[str]] = None,
+    socket: Optional[bool] = None,
+    native: Optional[bool] = None,
+    **kwargs: Any,
+  ) -> pwnlib.tubes.tube.tube:
+    """
+    run binary in container as process
+
+    :param argv: comandline arguments for binary
+    :param socket: override the instance's socket transport setting
+    :param native: ignored, only relevant for debug
+    :param kwargs: pwntool parameters
+    :return: pwntools process
+    """
+    return super().process(argv=argv, socket=socket, **kwargs)
+
+  def debug(
+    self,
+    argv: Optional[list[str]] = None,
+    gdb_args: Optional[list[str]] = None,
+    gdbscript: str = "",
+    sysroot: Optional[str] = None,
+    sysroot_debug: Optional[str] = None,
+    socket: Optional[bool] = None,
+    native: Optional[bool] = None,
+    api: bool = False,
+    **kwargs: Any,
+  ) -> pwnlib.tubes.tube.tube:
+    """
+    run binary in container with gdb, attaches the host gdb directly if possible
+
+    :param argv: comandline arguments for binary
+    :param gdb_args: gdb args to forward to gdb
+    :param gdbscript: GDB script for GDB
+    :param sysroot: sysroot dir (ignored for native attach)
+    :param sysroot_debug: sysroot debug lib dir (ignored for native attach)
+    :param socket: override the instance's socket transport setting
+    :param native: override the instance's native attach setting
+    :param api: if GDB API should be enabled
+    :param kwargs: pwntool parameters
+    :return: pwntools process
+    """
+    if native is None:
+      native = self._native
+    if socket is None:
+      socket = self._socket
+    if native and self._native_ok is None:
+      self._native_ok = self._native_supported()
+    if not (native and self._native_ok):
+      return super().debug(
+        argv=argv,
+        gdb_args=gdb_args,
+        gdbscript=gdbscript,
+        sysroot=sysroot,
+        sysroot_debug=sysroot_debug,
+        socket=socket,
+        api=api,
+        **kwargs,
+      )
+
+    if sysroot is not None:
+      helper.warn("native attach uses the container root as sysroot, sysroot is ignored")
+
+    tube = self._transport(socket).process(
+      [self._binary] + list(argv or ()), preexec_fn=_stop_for_debugger, **kwargs
+    )
+    if socket:
+      # socat forks the execve wrapper as its child
+      socat = self._host_pid(tube.socat.pid)
+      hostpid = self._child_pid(socat) if socat else None
+    else:
+      hostpid = self._host_pid(tube.pid)
+    if hostpid is None:
+      tube.close()
+      helper.error("could not find the host pid of the process")
+
+    # wait until the wrapper stopped itself, the ptrace exception is in place by then
+    for _ in range(200):
+      if self._status(hostpid).get("State", "").startswith("T"):
+        break
+      time.sleep(0.01)
+    else:
+      helper.warn("process didn't stop, attaching anyway")
+
+    helper.info(f"attaching gdb natively to host pid {hostpid}")
+    root = f"/proc/{hostpid}/root"
+    gdbscript = (
+      "handle SIGSTOP nostop noprint\n"
+      "tcatch exec\n"
+      "continue\n"
+      "handle SIGSTOP stop print\n"
+      f"set debug-file-directory {root}/usr/lib/debug\n"
+    ) + gdbscript
+    result = pwnlib.gdb.attach(
+      hostpid,
+      exe=self._path,
+      gdbscript=gdbscript,
+      gdb_args=list(gdb_args or ()),
+      sysroot=root,
+      api=api,
+    )
+    if api:
+      _, tube.gdb = result
+    return tube

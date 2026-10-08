@@ -20,10 +20,18 @@ set follow-fork-mode parent
 
 c"""
 
-context.binary = exe = ELF(BINARY, checksec=False)    # binary
-context.aslr = {aslr:<5s}                                  # ASLR enabled (only GDB)
+{context}
+context.aslr = args.ASLR                              # enable ASLR (only GDB)
 
 {aliases}
+
+# parse optional target for REMOTE
+if args.REMOTE and len(sys.argv) > 1:
+  IP, port = sys.argv[1], ''
+  if IP.count(':') == 1 or ']:' in IP:
+    IP, _, port = IP.rpartition(':')
+  IP = IP.strip('[]')
+  PORT = int(sys.argv[2] if len(sys.argv) > 2 else port or PORT)
 
 # setup vagd vm
 vm = None

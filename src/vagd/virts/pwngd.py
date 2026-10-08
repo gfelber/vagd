@@ -100,7 +100,7 @@ class Pwngd(ABC):
         packages.append(Pwngd.LIBC6_DEBUG)
       try:
         elf = pwnlib.elf.ELF(binary, checksec=False)
-        if elf.arch == "i386":
+        if "i386" in elf.arch:
           packages.append(Pwngd.LIBC6_I386)
       except:
         helper.warn("failed to get architecture from binary")

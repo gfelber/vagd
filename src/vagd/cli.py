@@ -5,7 +5,7 @@ import stat
 import subprocess
 import sys
 from shutil import which
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Tuple
 
 import typer
 from rich.console import Console
@@ -86,6 +86,35 @@ def add_virt(
   vms.append(("# " if multi else "") + vm)
 
 
+def _parse_target(ip: str, port: int) -> Tuple[str, int]:
+  """split unified targets like HOST:PORT or 'nc HOST PORT' into ip and port"""
+  target = ip.strip()
+  if target.startswith("nc "):
+    target = target[3:].strip()
+  if " " in target:
+    target, target_port = target.rsplit(" ", 1)
+  elif target.startswith("["):
+    # bracketed IPv6 with optional port: [::1] or [::1]:1337
+    target, _, target_port = target[1:].partition("]")
+    target_port = target_port.lstrip(":")
+    if not target_port:
+      return target, port
+  elif target.count(":") == 1:
+    target, target_port = target.split(":")
+  else:
+    # hostname, IPv4 or bare IPv6 without port
+    return target, port
+  if port:
+    err_console.print("[red]port supplied twice[/red]")
+    raise typer.Exit(1)
+  try:
+    port = int(target_port)
+  except ValueError:
+    err_console.print(f"[red]invalid port {target_port!r}[/red]")
+    raise typer.Exit(1)
+  return target.strip(), port
+
+
 def _info(binary, color=True) -> str:
   from pwnlib.elf.elf import ELF
   from pwnlib.term import text
@@ -113,9 +142,13 @@ def _info(binary, color=True) -> str:
 
 @app.command()
 def template(
-  binary: Optional[str] = typer.Argument("", help="Binary to Exploit"),
-  ip: Optional[str] = typer.Argument("", help="Ip or Domain of the remote target"),
-  port: Optional[int] = typer.Argument(0, help="port of the remote target"),
+  binary: Optional[str] = typer.Argument(
+    "", help="Binary to Exploit, may be omitted (then IP and PORT shift left)"
+  ),
+  ip: Optional[str] = typer.Argument(
+    "", envvar="VAGD_IP", help="remote target, accepts HOST, HOST:PORT or 'nc HOST PORT'"
+  ),
+  port: Optional[int] = typer.Argument(0, envvar="VAGD_PORT", help="port of the remote target"),
   output_exploit: Optional[bool] = typer.Option(
     False, "-e", help="output file of the template (also add +x) to exploit.py"
   ),
@@ -150,9 +183,6 @@ def template(
   symbols: Optional[bool] = typer.Option(
     True, "--no-symbols", help="install libc debug symbols (might update libc)"
   ),
-  aslr: Optional[bool] = typer.Option(
-    False, "--aslr", help="enable gdb ASLR (default: disabled for gdb)"
-  ),
   auto: Optional[bool] = typer.Option(
     False,
     "--auto",
@@ -184,6 +214,14 @@ def template(
   """
   creates a template
   """
+  if binary and not os.path.isfile(binary):
+    if ip and not ip.isdigit():
+      err_console.print(f"[red]binary {binary!r} not found[/red]")
+      raise typer.Exit(1)
+    # no binary supplied, the positional arguments are the remote target
+    binary, ip, port = "", binary, (int(ip) if ip else port)
+  ip, port = _parse_target(ip, port)
+
   if auto:
     if image != DOGD_BOX:
       err_console.print("[red]--auto and --image are mutually exclusive[/red]")
@@ -312,9 +350,15 @@ def template(
   else:
     info = ""
 
+  if binary:
+    context = "context.binary = exe = ELF(BINARY, checksec=False)    # binary"
+  else:
+    context = "context.arch = 'amd64'                                # no binary, set arch manually"
+
   template = "".join(templateChunks).format(
     "{}",
     cmd_args=" ".join(sys.argv[1:]),
+    context=context,
     modules="\n".join(f"import {module}" for module in modules),
     dependencies=", ".join(dependencies),
     aliases=aliases if not no_aliases else "",
@@ -327,7 +371,6 @@ def template(
     ad_env=AD_ENV if ad else "",
     vms=("\n" + " " * 4).join(vms),
     libc=quote(libc),
-    aslr=repr(aslr),
     is_local=True if local else "args.LOCAL",
     is_ad=" or IS_AD" if ad else "",
     info=info,

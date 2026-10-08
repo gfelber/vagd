@@ -38,7 +38,7 @@ set follow-fork-mode parent
 c"""
 
 context.binary = exe = ELF(BINARY, checksec=False)    # binary
-context.aslr = False                                  # ASLR enabled (only GDB)
+context.aslr = args.ASLR                              # ASLR enabled (only GDB)
 
 vm = None
 # setup vagd vm
@@ -93,10 +93,14 @@ t.interactive() # or it()
 ```bash
 # run as process in VM
 ./exploit.py
-# run as gdb server in VM requires tmux
+# run with gdb attached, requires tmux
 ./exploit.py GDB
+# run with gdb and ASLR enabled
+./exploit.py GDB ASLR
 # run on remote IP:PORT
 ./exploit.py REMOTE
+# run on a different remote target (IPv6 in brackets)
+./exploit.py REMOTE HOST[:PORT] [PORT]
 # run process locally
 ./exploit.py LOCAL [GDB]
 ```
@@ -126,6 +130,10 @@ vagd scp [OPTIONS] SOURCE [TARGET]
 vagd clean [OPTIONS]
 ```
 
+`IP` and `PORT` can also be given as `HOST:PORT` or `nc HOST PORT`, or through
+the environment variables `VAGD_IP` and `VAGD_PORT`. `BINARY` may be omitted
+(e.g. `vagd template host:1337`), the template then only sets `context.arch`.
+
 `vagd template -a/--auto` detects the container image: it uses the final `FROM`
 of a `Dockerfile` next to the binary (then in the current directory) and falls
 back to the compiler string in the binary's `.comment` section (Ubuntu/Debian).
@@ -151,7 +159,11 @@ all instances continue to run in the background (after a vagd object has been st
 
 ### gdb & gdbserver
 
-Because gdbserver is used to run binaries on the instances I recommend using [pwndbg](https://github.com/pwndbg/pwndbg). Other well known gdb plugins like [peda](https://github.com/longld/peda) aren't compatible with gdbserver and therefore won't work.
+For containers (`Dogd`, `Pogd`) the host gdb attaches directly to the process (`native=True`, default) and
+uses the container root as sysroot, no gdbserver or sshfs is involved. This requires that the container
+user has the same uid as the host user (the generated Dockerfile takes care of this) and `kernel.yama.ptrace_scope <= 1`.
+Otherwise, and for VMs, gdbserver is used; I recommend using [pwndbg](https://github.com/pwndbg/pwndbg).
+Other well known gdb plugins like [peda](https://github.com/longld/peda) aren't compatible with gdbserver and therefore won't work.
 
 ### files
 

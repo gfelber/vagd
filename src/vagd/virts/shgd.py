@@ -2,12 +2,26 @@ import os
 import re
 import time
 
+import pwnlib.term.term
 import pwnlib.timeout
 import pwnlib.tubes.ssh
 from typing import Any
 
 from vagd import helper
 from vagd.virts.pwngd import Pwngd
+
+
+class _NoResize(list):
+  """
+  pwntools resizes remote ptys from its SIGWINCH handler, which deadlocks paramiko
+  when the signal arrives during a send (e.g. a gdb tmux pane opening or closing)
+  """
+
+  def append(self, resizer: Any) -> None:
+    pass
+
+
+pwnlib.term.term.on_winch = _NoResize()
 
 
 class _SocketSSH:
