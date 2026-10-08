@@ -5,6 +5,7 @@ from abc import abstractmethod
 
 import docker
 import podman
+import pwnlib.elf
 import pwnlib.gdb
 
 from vagd import helper, templates
@@ -63,6 +64,7 @@ class Cogd(Shgd):
   _ex: bool
   _forward: Dict[str, int]
   _symbols: bool
+  _i386: bool
   _template: str
   _containerhome: str
   _lockfile: str
@@ -125,6 +127,16 @@ class Cogd(Shgd):
     if packages is not None:
       if self._has_not_apt:
         helper.error("additional package installation not supported for alpine")
+
+    # 32 bit binaries need the i386 libc on 64 bit images
+    self._i386 = False
+    if not self._has_not_apt:
+      try:
+        self._i386 = "i386" in pwnlib.elf.ELF(binary, checksec=False).arch
+      except Exception:
+        helper.warn("failed to get architecture from binary")
+      if self._i386:
+        self._packages.append(Pwngd.LIBC6_I386)
 
     self._containerdir = self._containerhome + f"{self._image}/"
     if not (os.path.exists(self._containerhome) and os.path.exists(self._containerdir)):
@@ -215,6 +227,9 @@ class Cogd(Shgd):
       else:
         tag += "_"
       tag += "symbols"
+
+    if self._i386:
+      tag += "_i386" if ":" in tag else ":i386"
 
     bimage = self._client.images.build(
       path=os.path.dirname(self._dockerfile), dockerfile=self._dockerfile, tag=f"vagd/{tag}"

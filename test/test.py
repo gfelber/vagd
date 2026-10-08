@@ -254,6 +254,21 @@ def virts():
 
     os.system("vagd clean")
     sleep(1)
+    stage("Testing Docker for Ubuntu (i386)")
+    with context.local(arch="i386", bits=32):
+      i386 = ELF.from_assembly(shellcraft.echo("Kernel name: Linux\n") + shellcraft.exit(0))
+    shutil.copy2(i386.path, "./bin/sysinfo_i386")
+    vm = Dogd("./bin/sysinfo_i386", image=Box.DOCKER_UBUNTU, tmp=True, ex=True)
+    assert vm.is_new, "vm should be new"
+    # libc6-i386 provides the 32 bit loader
+    vm._system_checked("test -e /lib32/ld-linux.so.2")
+    t = vm.process()
+    assert b"Kernel name:" in t.recvline(), "i386 binary returned bad output"
+    t.close()
+    vm._ssh.close()
+
+    os.system("vagd clean")
+    sleep(1)
     stage("Testing Docker for Arch")
     vm = Dogd(
       exe.path,
