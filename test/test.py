@@ -501,6 +501,11 @@ def check_start(virt, **start_kwargs):
   if args.GDB:
     g = wrapper.GDB(t)
     g.execute('p "PWN"')
+    if start_kwargs.get("native"):
+      # ASLR must be disabled by the execve wrapper, gdb only attaches
+      pid = int(g.execute("python print(gdb.selected_inferior().pid)", to_string=True))
+      with open(f"/proc/{pid}/personality") as personality:
+        assert int(personality.read(), 16) & 0x0040000, "ASLR not disabled for native attach"
     g.execute("c")
 
   out = b"\n".join(t.recvlines(3))

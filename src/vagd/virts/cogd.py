@@ -5,6 +5,7 @@ from abc import abstractmethod
 
 import docker
 import podman
+import pwnlib.context
 import pwnlib.elf
 import pwnlib.gdb
 
@@ -14,16 +15,20 @@ from vagd.virts.pwngd import Pwngd
 from vagd.virts.shgd import Shgd
 
 
-def _stop_for_debugger():
+def _stop_for_debugger(aslr):
   # runs inside pwntools' remote execve wrapper right before execve.
   # Allow any process to ptrace us (Yama ptrace_scope=1) and wait for gdb.
   import ctypes
   import os
   import signal
 
+  libc = ctypes.CDLL(None, use_errno=True)
+  if not aslr:
+    ADDR_NO_RANDOMIZE = 0x0040000
+    libc.personality(ADDR_NO_RANDOMIZE)
   PR_SET_PTRACER = 0x59616D61
   PR_SET_PTRACER_ANY = ctypes.c_ulong(-1)
-  ctypes.CDLL(None, use_errno=True).prctl(PR_SET_PTRACER, PR_SET_PTRACER_ANY, 0, 0, 0)
+  libc.prctl(PR_SET_PTRACER, PR_SET_PTRACER_ANY, 0, 0, 0)
   os.kill(os.getpid(), signal.SIGSTOP)
 
 
@@ -407,8 +412,14 @@ class Cogd(Shgd):
     if sysroot is not None:
       helper.warn("native attach uses the container root as sysroot, sysroot is ignored")
 
+    aslr = kwargs.get("aslr")
+    if aslr is None:
+      aslr = pwnlib.context.context.aslr
     tube = self._transport(socket).process(
-      [self._binary] + list(argv or ()), preexec_fn=_stop_for_debugger, **kwargs
+      [self._binary] + list(argv or ()),
+      preexec_fn=_stop_for_debugger,
+      preexec_args=(bool(aslr),),
+      **kwargs,
     )
     if socket:
       # socat forks the execve wrapper as its child
