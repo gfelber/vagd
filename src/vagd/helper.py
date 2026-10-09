@@ -1,5 +1,6 @@
 import os
 import sys
+from typing import Any, Dict, List, Tuple
 
 import pwnlib.log
 
@@ -102,3 +103,37 @@ def first_free_port(start: int = 2222, tries: int = 101) -> int:
       return port
 
   error(f"No free port inside range {start}-{start + tries}")
+
+
+# ulimit option -> (resource, unit), units as used by sh/dash
+_ULIMIT = {
+  "c": ("RLIMIT_CORE", 512),
+  "d": ("RLIMIT_DATA", 1024),
+  "f": ("RLIMIT_FSIZE", 512),
+  "l": ("RLIMIT_MEMLOCK", 1024),
+  "m": ("RLIMIT_RSS", 1024),
+  "n": ("RLIMIT_NOFILE", 1),
+  "s": ("RLIMIT_STACK", 1024),
+  "t": ("RLIMIT_CPU", 1),
+  "u": ("RLIMIT_NPROC", 1),
+  "v": ("RLIMIT_AS", 1024),
+}
+
+
+def rlimits(ulimit: Dict[str, Any]) -> List[Tuple[str, int, int]]:
+  """
+  translate ulimit options to setrlimit arguments
+
+  :param ulimit: ulimit options in sh units (e.g. {"m": 8192, "d": 131072}) or
+                 RLIMIT_* names in bytes, values may be (soft, hard) or "unlimited"
+  :return: list of (RLIMIT_* name, soft, hard)
+  """
+  result = []
+  for key, value in ulimit.items():
+    name, scale = _ULIMIT.get(key.lstrip("-"), (key, 1))
+    if not name.startswith("RLIMIT_"):
+      error(f"unknown ulimit option {key!r}")
+    soft, hard = value if isinstance(value, tuple) else (value, value)
+    limits = tuple(-1 if v in (-1, "unlimited") else int(v) * scale for v in (soft, hard))
+    result.append((name, *limits))
+  return result

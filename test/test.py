@@ -488,6 +488,9 @@ stage("Testing template target")
 test_template_target()
 
 def check_start(virt, **start_kwargs):
+  remote = not isinstance(virt, Logd)
+  if remote:
+    start_kwargs.setdefault("ulimit", {"s": 1024})
   t = virt.start(
     argv=ARGS,
     env=ENV,
@@ -501,11 +504,18 @@ def check_start(virt, **start_kwargs):
   if args.GDB:
     g = wrapper.GDB(t)
     g.execute('p "PWN"')
-    if start_kwargs.get("native"):
+    # the process is stopped at main, check what the execve wrapper set up
+    pid = int(g.execute("python print(gdb.selected_inferior().pid)", to_string=True))
+    if "(native)" in g.execute("info inferiors", to_string=True):
       # ASLR must be disabled by the execve wrapper, gdb only attaches
-      pid = int(g.execute("python print(gdb.selected_inferior().pid)", to_string=True))
       with open(f"/proc/{pid}/personality") as personality:
         assert int(personality.read(), 16) & 0x0040000, "ASLR not disabled for native attach"
+      with open(f"/proc/{pid}/limits") as limits_file:
+        limits = limits_file.read()
+    else:
+      limits = virt.system(f"cat /proc/{pid}/limits").recvall().decode() if remote else ""
+    if remote:
+      assert "Max stack size            1048576" in limits, "ulimit not applied"
     g.execute("c")
 
   out = b"\n".join(t.recvlines(3))

@@ -2,15 +2,30 @@ import os
 import shlex
 from abc import ABC, abstractmethod
 from shutil import which
-from typing import Iterable, List, Sequence, Union, Optional, Any
+from typing import Dict, Iterable, List, Sequence, Tuple, Union, Optional, Any
 
 import pwnlib.args
+import pwnlib.context
 import pwnlib.filesystem
 import pwnlib.gdb
 import pwnlib.tubes
 
 from vagd import helper
 from vagd.patch import patch_binary
+
+
+def _prepare(aslr, rlimits):
+  # runs inside pwntools' remote execve wrapper right before execve.
+  # ASLR is disabled here instead of by pwntools, which would additionally raise
+  # RLIMIT_STACK to unlimited and thereby move the mmap base to TASK_SIZE/6
+  import ctypes
+  import resource
+
+  if not aslr:
+    ADDR_NO_RANDOMIZE = 0x0040000
+    ctypes.CDLL(None, use_errno=True).personality(ADDR_NO_RANDOMIZE)
+  for name, soft, hard in rlimits:
+    resource.setrlimit(getattr(resource, name), (soft, hard))
 
 
 class Pwngd(ABC):
@@ -27,6 +42,7 @@ class Pwngd(ABC):
   :param tmp: if a temporary directory should be created for files
   :param gdbsrvport: specify static gdbserver port, REQURIES port forwarding to localhost
   :param socket: expose the process through a one-shot TCP socket
+  :param ulimit: resource limits for the process, e.g. {"m": 8192, "d": 131072} (see helper.rlimits)
   :param fast: mounts libs locally for faster symbol extraction (experimental)
   :param ex: if experimental features should be enabled
   """
@@ -49,6 +65,7 @@ class Pwngd(ABC):
   _experimental: bool
   _fast: bool
   _socket: bool
+  _ulimit: Optional[Dict[str, Any]]
 
   def __init__(
     self,
@@ -65,6 +82,7 @@ class Pwngd(ABC):
     fast: bool = False,
     ex: bool = False,
     socket: bool = False,
+    ulimit: Optional[Dict[str, Any]] = None,
   ):
     try:
       patched_libraries, patched_interpreter = patch_binary(binary, libraries, interpreter)
@@ -75,6 +93,7 @@ class Pwngd(ABC):
     self._gdbsrvport = gdbsrvport
     self._binary = "./" + os.path.basename(binary)
     self._socket = socket
+    self._ulimit = ulimit
 
     pwnlib.context.context.ssh_session = self._ssh
 
@@ -198,6 +217,12 @@ class Pwngd(ABC):
     """
     return self._ssh.system(cmd)
 
+  def _rlimits(self, ulimit: Optional[Dict[str, Any]]) -> List[Tuple[str, int, int]]:
+    """resolve the resource limits of a call, falls back to the instance setting"""
+    if ulimit is None:
+      ulimit = self._ulimit
+    return helper.rlimits(ulimit) if ulimit else []
+
   def _transport(self, socket: bool = False) -> Any:
     """Return the process transport supplied by the concrete backend."""
     if socket:
@@ -293,6 +318,7 @@ class Pwngd(ABC):
     sysroot: Optional[str] = None,
     sysroot_debug: Optional[str] = None,
     socket: Optional[bool] = None,
+    ulimit: Optional[Dict[str, Any]] = None,
     **kwargs: Any,
   ) -> pwnlib.tubes.tube.tube:
     """
@@ -304,11 +330,17 @@ class Pwngd(ABC):
     :param sysroot: sysroot dir
     :param sysroot_debug: sysroot debug lib dir
     :param socket: override the instance's socket transport setting
+    :param ulimit: override the instance's resource limits
     :param kwargs: pwntool parameters
     :return: pwntools process
     """
     if argv is None:
       argv = list()
+
+    rlimits = self._rlimits(ulimit)
+    if rlimits:
+      # gdbserver passes its limits on to the binary and disables ASLR itself
+      kwargs.update(preexec_fn=_prepare, preexec_args=(True, rlimits))
 
     # pwnlib accepts a mutable list here, but callers commonly reuse it for
     # multiple backends. Never append our arguments to the caller's object.
@@ -344,13 +376,18 @@ class Pwngd(ABC):
     )
 
   def process(
-    self, argv: Optional[list[str]] = None, socket: Optional[bool] = None, **kwargs: Any
+    self,
+    argv: Optional[list[str]] = None,
+    socket: Optional[bool] = None,
+    ulimit: Optional[Dict[str, Any]] = None,
+    **kwargs: Any,
   ) -> pwnlib.tubes.tube.tube:
     """
     run binary in vm as process
 
     :param argv: comandline arguments for binary
     :param socket: override the instance's socket transport setting
+    :param ulimit: override the instance's resource limits
     :param kwargs: pwntool parameters
     :return: pwntools process
     """
@@ -358,6 +395,12 @@ class Pwngd(ABC):
       argv = list()
     if socket is None:
       socket = self._socket
+    aslr = kwargs.pop("aslr", None)
+    if aslr is None:
+      aslr = pwnlib.context.context.aslr
+    if not aslr:
+      helper.warn(f"ASLR is disabled for {self._binary!r}")
+    kwargs.update(preexec_fn=_prepare, preexec_args=(bool(aslr), self._rlimits(ulimit)), aslr=True)
     ssh = self._transport(socket)
     return ssh.process([self._binary] + argv, **kwargs)
 

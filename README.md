@@ -138,6 +138,11 @@ the environment variables `VAGD_IP` and `VAGD_PORT`. `BINARY` may be omitted
 of a `Dockerfile` next to the binary (then in the current directory) and falls
 back to the compiler string in the binary's `.comment` section (Ubuntu/Debian).
 
+Resource limits of the target (like `ulimit` in a challenge's run script) can be set
+with `Dogd(..., ulimit={"m": 8192, "d": 131072})` or per call `vm.start(ulimit=...)`.
+Keys are `ulimit` options in sh units or `RLIMIT_*` names in bytes, values may be
+`(soft, hard)` or `"unlimited"`.
+
 To patch a binary explicitly, use `-p/--patchelf` with `-l/--libc`, repeatable
 `-L/--library`, or `-i/--interpreter`. The original is saved as `<binary>.bak`;
 the exact patched binary is used locally and inside the environment. Supplying

@@ -15,13 +15,16 @@ from vagd.virts.pwngd import Pwngd
 from vagd.virts.shgd import Shgd
 
 
-def _stop_for_debugger(aslr):
+def _stop_for_debugger(aslr, rlimits):
   # runs inside pwntools' remote execve wrapper right before execve.
   # Allow any process to ptrace us (Yama ptrace_scope=1) and wait for gdb.
   import ctypes
   import os
+  import resource
   import signal
 
+  for name, soft, hard in rlimits:
+    resource.setrlimit(getattr(resource, name), (soft, hard))
   libc = ctypes.CDLL(None, use_errno=True)
   if not aslr:
     ADDR_NO_RANDOMIZE = 0x0040000
@@ -352,6 +355,7 @@ class Cogd(Shgd):
     argv: Optional[list[str]] = None,
     socket: Optional[bool] = None,
     native: Optional[bool] = None,
+    ulimit: Optional[Dict[str, Any]] = None,
     **kwargs: Any,
   ) -> pwnlib.tubes.tube.tube:
     """
@@ -360,10 +364,11 @@ class Cogd(Shgd):
     :param argv: comandline arguments for binary
     :param socket: override the instance's socket transport setting
     :param native: ignored, only relevant for debug
+    :param ulimit: override the instance's resource limits
     :param kwargs: pwntool parameters
     :return: pwntools process
     """
-    return super().process(argv=argv, socket=socket, **kwargs)
+    return super().process(argv=argv, socket=socket, ulimit=ulimit, **kwargs)
 
   def debug(
     self,
@@ -375,6 +380,7 @@ class Cogd(Shgd):
     socket: Optional[bool] = None,
     native: Optional[bool] = None,
     api: bool = False,
+    ulimit: Optional[Dict[str, Any]] = None,
     **kwargs: Any,
   ) -> pwnlib.tubes.tube.tube:
     """
@@ -388,6 +394,7 @@ class Cogd(Shgd):
     :param socket: override the instance's socket transport setting
     :param native: override the instance's native attach setting
     :param api: if GDB API should be enabled
+    :param ulimit: override the instance's resource limits
     :param kwargs: pwntool parameters
     :return: pwntools process
     """
@@ -406,19 +413,25 @@ class Cogd(Shgd):
         sysroot_debug=sysroot_debug,
         socket=socket,
         api=api,
+        ulimit=ulimit,
         **kwargs,
       )
 
     if sysroot is not None:
       helper.warn("native attach uses the container root as sysroot, sysroot is ignored")
 
-    aslr = kwargs.get("aslr")
+    # the hook disables ASLR itself (like gdb does), pwntools would additionally
+    # raise RLIMIT_STACK to unlimited which moves the mmap base to TASK_SIZE/6
+    aslr = kwargs.pop("aslr", None)
     if aslr is None:
       aslr = pwnlib.context.context.aslr
+    if not aslr:
+      helper.warn(f"ASLR is disabled for {self._binary!r}")
     tube = self._transport(socket).process(
       [self._binary] + list(argv or ()),
       preexec_fn=_stop_for_debugger,
-      preexec_args=(bool(aslr),),
+      preexec_args=(bool(aslr), self._rlimits(ulimit)),
+      aslr=True,
       **kwargs,
     )
     if socket:
