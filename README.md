@@ -166,7 +166,7 @@ all instances continue to run in the background (after a vagd object has been st
 
 For containers (`Dogd`, `Pogd`) the host gdb attaches directly to the process (`native=True`, default) and
 uses the container root as sysroot, no gdbserver or sshfs is involved. This requires that the container
-user has the same uid as the host user (the generated Dockerfile takes care of this) and `kernel.yama.ptrace_scope <= 1`.
+user has the same uid as the host user (the generated Dockerfile takes care of this) and `kernel.yama.ptrace_scope <= 1`. For rootless containers, GDB enters the container's user namespace using `nsenter`.
 Otherwise, and for VMs, gdbserver is used; I recommend using [pwndbg](https://github.com/pwndbg/pwndbg).
 Other well known gdb plugins like [peda](https://github.com/longld/peda) aren't compatible with gdbserver and therefore won't work.
 
