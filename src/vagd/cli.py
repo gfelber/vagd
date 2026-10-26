@@ -365,7 +365,7 @@ def template(
     binary=quote(binary),
     ip=quote(ip),
     port=str(port),
-    ssl=repr(ssl),
+    ssl="True" if ssl else "args.SSL",
     env=repr(env),
     box=box,
     ad_env=AD_ENV if ad else "",

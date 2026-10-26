@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 # This exploit template was generated via:
 # $ vagd {cmd_args}
+import os
+# os.environ['PWNLIB_NOTERM'] = '1'
 from pwn import *
 {modules}
 
